@@ -16,8 +16,9 @@
   color-scheme: dark;
 }
 
+/* "system" follows the OS; data-theme forces light or dark. */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme='dark']) {
     --bg: #f4f5f7;
     --surface: #ffffff;
     --surface-2: #eef0f3;
@@ -27,6 +28,16 @@
     --accent-soft: rgba(255, 122, 26, 0.12);
     color-scheme: light;
   }
+}
+:root[data-theme='light'] {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --border: #e1e4e8;
+  --text: #15181c;
+  --muted: #6b7280;
+  --accent-soft: rgba(255, 122, 26, 0.12);
+  color-scheme: light;
 }
 
 * {
@@ -74,6 +85,12 @@ h2 {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+.content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 main {
   flex: 1;
@@ -144,6 +161,7 @@ main {
 }
 
 .tabbar {
+  order: 2;
   display: flex;
   border-top: 1px solid var(--border);
   background: var(--surface);
@@ -164,6 +182,9 @@ main {
 }
 .tabbar button.active {
   color: var(--accent);
+}
+.rail-logo {
+  display: none;
 }
 
 /* Cards & tiles */
@@ -329,6 +350,17 @@ main {
   padding: 10px;
   border-radius: var(--radius-sm);
   background: var(--surface-2);
+}
+.stats.four {
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (min-width: 480px) {
+  .stats.four {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.eta-note {
+  margin: 8px 2px 0;
 }
 .stats strong {
   font-size: 14px;
@@ -500,6 +532,10 @@ main {
 }
 .segmented button {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 8px 0;
   border: 0;
   border-radius: 9px;
@@ -518,12 +554,14 @@ main {
   flex-direction: column;
   gap: 12px;
 }
-.form label {
+.form label,
+.form .field {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.form label > span {
+.form label > span,
+.form .field > span {
   font-size: 12.5px;
   color: var(--muted);
   font-weight: 500;
@@ -690,6 +728,101 @@ main {
   min-height: 58px;
 }
 
+/* Phone layout stacks the dashboard; tablets get a side rail and columns. */
+.dash,
+.dash-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (min-width: 768px) {
+  .app {
+    flex-direction: row;
+  }
+  .tabbar {
+    order: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 92px;
+    padding: calc(env(safe-area-inset-top) + 16px) 0 16px;
+    border-top: 0;
+    border-right: 1px solid var(--border);
+  }
+  .rail-logo {
+    display: block;
+    border-radius: 12px;
+    margin-bottom: 18px;
+  }
+  .tabbar button {
+    flex: 0;
+    width: 72px;
+    padding: 12px 0;
+    border-radius: 16px;
+    font-size: 12px;
+  }
+  .tabbar button.active {
+    background: var(--accent-soft);
+  }
+  .topbar {
+    padding: calc(env(safe-area-inset-top) + 20px) 28px 6px;
+  }
+  .topbar h1 {
+    font-size: 24px;
+  }
+  .screen {
+    padding: 16px 28px 32px;
+    gap: 18px;
+  }
+  .screen.wide {
+    max-width: 1280px;
+  }
+  .tiles {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  .file-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+  }
+  .sheet-backdrop {
+    align-items: center;
+    padding: 24px;
+  }
+  .sheet {
+    border-radius: 24px;
+    padding-bottom: 22px;
+  }
+  .sheet-handle {
+    display: none;
+  }
+  .settings {
+    max-width: 760px;
+  }
+  .toasts {
+    bottom: 32px;
+  }
+}
+
+/* Landscape tablets: camera on the left, job and controls on the right. */
+@media (min-width: 900px) {
+  .dash {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr);
+    align-items: start;
+  }
+  .dash-main {
+    position: sticky;
+    top: 0;
+  }
+}
+
 /* Feedback */
 .toasts {
   position: fixed;
@@ -779,5 +912,16 @@ main {
   from {
     transform: translateY(24px);
     opacity: 0;
+  }
+}
+
+@media (min-width: 768px) {
+  .camera-screen .camera {
+    max-height: calc(100dvh - 230px);
+  }
+}
+@media (min-width: 900px) and (max-width: 1199px) {
+  .dash-side .stats.four {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

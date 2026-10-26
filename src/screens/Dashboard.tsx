@@ -22,19 +22,19 @@ import {
 } from '../api/moonraker';
 import { CameraView } from '../components/CameraView';
 import { ConfirmSheet, Sheet, useAction } from '../components/ui';
-import { baseName, formatDuration, stateLabel } from '../format';
-import type { Printer } from '../store';
+import { computeEta } from '../eta';
+import { baseName, formatClock, formatDuration } from '../format';
+import { useT, type MessageKey } from '../i18n';
+import { useSettings, type Printer } from '../store';
 import { usePrinterStatus } from '../usePrinterStatus';
 
 const PRESETS = {
   extruder: [
-    { label: 'Apagar', value: 0 },
     { label: 'PLA', value: 210 },
     { label: 'PETG', value: 240 },
     { label: 'ABS', value: 250 },
   ],
   heater_bed: [
-    { label: 'Apagar', value: 0 },
     { label: 'PLA', value: 60 },
     { label: 'PETG', value: 75 },
     { label: 'ABS', value: 100 },
@@ -73,6 +73,7 @@ function TempTile({
   heater: Heater;
   onClick?: () => void;
 }) {
+  const t = useT();
   const heating = heater.target > 0;
   return (
     <button className={`tile ${heating ? 'heating' : ''}`} onClick={onClick} disabled={!onClick}>
@@ -85,13 +86,15 @@ function TempTile({
         <small>°C</small>
       </div>
       {onClick && (
-        <div className="tile-sub">{heating ? `→ ${heater.target.toFixed(0)}°C` : 'Apagado'}</div>
+        <div className="tile-sub">{heating ? `→ ${heater.target.toFixed(0)}°C` : t('home.off')}</div>
       )}
     </button>
   );
 }
 
 export function Dashboard({ printer, onOpenCamera }: { printer: Printer; onOpenCamera: () => void }) {
+  const t = useT();
+  const { settings } = useSettings();
   const { status, error, refresh } = usePrinterStatus();
   const run = useAction();
   const [meta, setMeta] = useState<{ file: string; data: FileMetadata } | null>(null);
@@ -118,19 +121,18 @@ export function Dashboard({ printer, onOpenCamera }: { printer: Printer; onOpenC
         {error ? (
           <div className="empty">
             <WifiOff size={36} />
-            <h2>Sin conexión</h2>
+            <h2>{t('home.offline')}</h2>
             <p className="muted">
-              {error}. Revisa la IP de {printer.host} y que el puerto {printer.port} (Moonraker)
-              esté accesible.
+              {t('home.offlineHint', { error, host: printer.host, port: printer.port })}
             </p>
             <button className="btn primary" onClick={refresh}>
-              Reintentar
+              {t('common.retry')}
             </button>
           </div>
         ) : (
           <div className="empty">
             <div className="loader" />
-            <p className="muted">Conectando con {printer.name}…</p>
+            <p className="muted">{t('home.connecting', { name: printer.name })}</p>
           </div>
         )}
       </div>
@@ -140,144 +142,168 @@ export function Dashboard({ printer, onOpenCamera }: { printer: Printer; onOpenC
   const active = status.state === 'printing' || status.state === 'paused';
   const jobMeta = meta?.file === status.filename ? meta.data : undefined;
   const thumb = status.filename ? thumbnailUrl(printer, status.filename, jobMeta) : null;
-  const remaining =
-    status.progress > 0.01
-      ? status.printDuration / status.progress - status.printDuration
-      : (jobMeta?.estimated_time ?? 0) - status.printDuration;
+  const eta = computeEta(status, jobMeta, settings.eta);
   const klippyDown = status.klippyState !== 'ready';
 
   return (
-    <div className="screen">
-      {error && <div className="banner warn">Conexión inestable: {error}</div>}
+    <div className="screen wide">
+      {error && <div className="banner warn">{t('home.unstable', { error })}</div>}
       {klippyDown && (
         <div className="banner error">
           Klipper: {status.klippyState}
           {status.message ? ` — ${status.message}` : ''}
           <button className="btn small" onClick={() => act(() => printerActions.firmwareRestart(printer))}>
-            Reiniciar firmware
+            {t('home.firmwareRestart')}
           </button>
         </div>
       )}
 
-      <div className="card camera-card" onClick={onOpenCamera}>
-        <CameraView printer={printer} />
-        <span className="camera-expand">
-          <Maximize2 size={16} />
-        </span>
-      </div>
-
-      <section className="card job">
-        <div className="job-head">
-          {thumb ? (
-            <img className="job-thumb" src={thumb} alt="" />
-          ) : (
-            <div className="job-thumb placeholder">
-              <Layers size={26} />
-            </div>
-          )}
-          <div className="job-info">
-            <span className={`pill ${status.state}`}>{stateLabel[status.state] ?? status.state}</span>
-            <h2 className="job-name">{status.filename ? baseName(status.filename) : 'Sin trabajo'}</h2>
-            {status.currentLayer != null && status.totalLayer != null && (
-              <span className="muted small">
-                Capa {status.currentLayer} / {status.totalLayer}
-              </span>
-            )}
+      <div className="dash">
+        <div className="dash-main">
+          <div className="card camera-card" onClick={onOpenCamera}>
+            <CameraView printer={printer} />
+            <span className="camera-expand">
+              <Maximize2 size={16} />
+            </span>
           </div>
-          {status.filename && <ProgressRing value={status.progress} />}
         </div>
-        {active && (
-          <div className="stats">
-            <div>
-              <span className="muted small">Transcurrido</span>
-              <strong>{formatDuration(status.printDuration)}</strong>
+
+        <div className="dash-side">
+          <section className="card job">
+            <div className="job-head">
+              {thumb ? (
+                <img className="job-thumb" src={thumb} alt="" />
+              ) : (
+                <div className="job-thumb placeholder">
+                  <Layers size={26} />
+                </div>
+              )}
+              <div className="job-info">
+                <span className={`pill ${status.state}`}>
+                  {t(`state.${status.state}` as MessageKey) ?? status.state}
+                </span>
+                <h2 className="job-name">
+                  {status.filename ? baseName(status.filename) : t('home.noJob')}
+                </h2>
+                {status.currentLayer != null && status.totalLayer != null && (
+                  <span className="muted small">
+                    {t('home.layer', { current: status.currentLayer, total: status.totalLayer })}
+                  </span>
+                )}
+              </div>
+              {status.filename && <ProgressRing value={status.progress} />}
             </div>
-            <div>
-              <span className="muted small">Restante</span>
-              <strong>{formatDuration(remaining)}</strong>
-            </div>
-            <div>
-              <span className="muted small">Filamento</span>
-              <strong>{(status.filamentUsed / 1000).toFixed(2)} m</strong>
+            {active && (
+              <>
+                <div className="stats four">
+                  <div>
+                    <span className="muted small">{t('home.elapsed')}</span>
+                    <strong>{formatDuration(status.printDuration)}</strong>
+                  </div>
+                  <div>
+                    <span className="muted small">{t('home.remaining')}</span>
+                    <strong>{formatDuration(eta.remaining)}</strong>
+                  </div>
+                  <div>
+                    <span className="muted small">{t('home.finish')}</span>
+                    <strong>{formatClock(eta.finishAt, settings.lang)}</strong>
+                  </div>
+                  <div>
+                    <span className="muted small">{t('home.filament')}</span>
+                    <strong>{(status.filamentUsed / 1000).toFixed(2)} m</strong>
+                  </div>
+                </div>
+                <p className="eta-note muted small">
+                  {eta.method && t('home.etaVia', { method: t(`eta.${eta.method}` as MessageKey) })}
+                  {eta.slicerTotal != null &&
+                    ` · ${t('home.slicerTotal', { time: formatDuration(eta.slicerTotal) })}`}
+                </p>
+                <div className="row gap">
+                  {status.state === 'printing' ? (
+                    <button
+                      className="btn grow"
+                      onClick={() => act(() => printerActions.pause(printer), t('home.pausing'))}
+                    >
+                      <Pause size={18} /> {t('home.pause')}
+                    </button>
+                  ) : (
+                    <button
+                      className="btn primary grow"
+                      onClick={() => act(() => printerActions.resume(printer), t('home.resuming'))}
+                    >
+                      <Play size={18} /> {t('home.resume')}
+                    </button>
+                  )}
+                  <button className="btn danger-outline grow" onClick={() => setConfirm('cancel')}>
+                    <Square size={16} /> {t('home.cancel')}
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+
+          <div className="tiles">
+            <TempTile
+              icon={<Flame size={16} />}
+              label={t('home.nozzle')}
+              heater={status.extruder}
+              onClick={() => setTempSheet('extruder')}
+            />
+            <TempTile
+              icon={<Thermometer size={16} />}
+              label={t('home.bed')}
+              heater={status.bed}
+              onClick={() => setTempSheet('heater_bed')}
+            />
+            {status.chamber && (
+              <TempTile icon={<Thermometer size={16} />} label={t('home.chamber')} heater={status.chamber} />
+            )}
+            <div className="tile">
+              <div className="tile-label">
+                <Fan size={16} />
+                {t('home.fan')}
+              </div>
+              <div className="tile-value">
+                {Math.round(status.fanSpeed * 100)}
+                <small>%</small>
+              </div>
             </div>
           </div>
-        )}
-        {active && (
-          <div className="row gap">
-            {status.state === 'printing' ? (
-              <button className="btn grow" onClick={() => act(() => printerActions.pause(printer), 'Pausando…')}>
-                <Pause size={18} /> Pausar
-              </button>
-            ) : (
+
+          <div className="row gap wrap">
+            {status.light && (
               <button
-                className="btn primary grow"
-                onClick={() => act(() => printerActions.resume(printer), 'Reanudando…')}
+                className={`btn grow ${status.light.on ? 'primary' : ''}`}
+                onClick={() =>
+                  act(() => printerActions.setLight(printer, status.light!.pin, !status.light!.on))
+                }
               >
-                <Play size={18} /> Reanudar
+                <Lightbulb size={18} /> {t('home.light')}
               </button>
             )}
-            <button className="btn danger-outline grow" onClick={() => setConfirm('cancel')}>
-              <Square size={16} /> Cancelar
+            {!active && (
+              <button
+                className="btn grow"
+                onClick={() => act(() => printerActions.gcode(printer, 'G28'), t('home.homing'))}
+              >
+                <Home size={18} /> {t('home.home')}
+              </button>
+            )}
+            <button className="btn danger grow" onClick={() => setConfirm('estop')}>
+              <OctagonX size={18} /> {t('home.estop')}
             </button>
           </div>
-        )}
-      </section>
-
-      <div className="tiles">
-        <TempTile
-          icon={<Flame size={16} />}
-          label="Boquilla"
-          heater={status.extruder}
-          onClick={() => setTempSheet('extruder')}
-        />
-        <TempTile
-          icon={<Thermometer size={16} />}
-          label="Cama"
-          heater={status.bed}
-          onClick={() => setTempSheet('heater_bed')}
-        />
-        {status.chamber && (
-          <TempTile icon={<Thermometer size={16} />} label="Recinto" heater={status.chamber} />
-        )}
-        <div className="tile">
-          <div className="tile-label">
-            <Fan size={16} />
-            Ventilador
-          </div>
-          <div className="tile-value">
-            {Math.round(status.fanSpeed * 100)}
-            <small>%</small>
-          </div>
         </div>
-      </div>
-
-      <div className="row gap wrap">
-        {status.light && (
-          <button
-            className={`btn grow ${status.light.on ? 'primary' : ''}`}
-            onClick={() => act(() => printerActions.setLight(printer, status.light!.pin, !status.light!.on))}
-          >
-            <Lightbulb size={18} /> Luz
-          </button>
-        )}
-        {!active && (
-          <button className="btn grow" onClick={() => act(() => printerActions.gcode(printer, 'G28'), 'Haciendo home…')}>
-            <Home size={18} /> Home
-          </button>
-        )}
-        <button className="btn danger grow" onClick={() => setConfirm('estop')}>
-          <OctagonX size={18} /> Paro de emergencia
-        </button>
       </div>
 
       <Sheet
         open={!!tempSheet}
         onClose={() => setTempSheet(null)}
-        title={tempSheet === 'extruder' ? 'Temperatura de boquilla' : 'Temperatura de cama'}
+        title={tempSheet === 'extruder' ? t('home.nozzleTemp') : t('home.bedTemp')}
       >
         <div className="presets">
           {tempSheet &&
-            PRESETS[tempSheet].map((p) => (
+            [{ label: t('home.turnOff'), value: 0 }, ...PRESETS[tempSheet]].map((p) => (
               <button
                 key={p.label}
                 className="btn"
@@ -296,7 +322,7 @@ export function Dashboard({ printer, onOpenCamera }: { printer: Printer; onOpenC
           onSubmit={(e) => {
             e.preventDefault();
             const v = Number(customTemp);
-            if (tempSheet && Number.isFinite(v)) {
+            if (tempSheet && customTemp !== '' && Number.isFinite(v)) {
               act(() => printerActions.setTemp(printer, tempSheet, v));
               setTempSheet(null);
               setCustomTemp('');
@@ -307,32 +333,32 @@ export function Dashboard({ printer, onOpenCamera }: { printer: Printer; onOpenC
             className="input grow"
             type="number"
             inputMode="numeric"
-            placeholder="Personalizada °C"
+            placeholder={t('home.customTemp')}
             value={customTemp}
             onChange={(e) => setCustomTemp(e.target.value)}
           />
           <button className="btn primary" type="submit">
-            Aplicar
+            {t('common.apply')}
           </button>
         </form>
       </Sheet>
 
       <ConfirmSheet
         open={confirm === 'cancel'}
-        title="¿Cancelar impresión?"
-        message="El trabajo actual se detendrá y no se puede reanudar."
-        confirmLabel="Cancelar impresión"
+        title={t('home.cancelTitle')}
+        message={t('home.cancelMsg')}
+        confirmLabel={t('home.cancelConfirm')}
         danger
-        onConfirm={() => act(() => printerActions.cancel(printer), 'Cancelando…')}
+        onConfirm={() => act(() => printerActions.cancel(printer), t('home.canceling'))}
         onClose={() => setConfirm(null)}
       />
       <ConfirmSheet
         open={confirm === 'estop'}
-        title="¿Paro de emergencia?"
-        message="Detiene Klipper de inmediato. Tendrás que reiniciar el firmware después."
-        confirmLabel="Detener ahora"
+        title={t('home.estopTitle')}
+        message={t('home.estopMsg')}
+        confirmLabel={t('home.estopConfirm')}
         danger
-        onConfirm={() => act(() => printerActions.emergencyStop(printer), 'Paro de emergencia enviado')}
+        onConfirm={() => act(() => printerActions.emergencyStop(printer), t('home.estopSent'))}
         onClose={() => setConfirm(null)}
       />
     </div>

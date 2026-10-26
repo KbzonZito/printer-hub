@@ -1,6 +1,9 @@
 import { useCallback, useSyncExternalStore } from 'react';
 
 export type CameraMode = 'auto' | 'webrtc' | 'mjpeg' | 'snapshot';
+export type Lang = 'es' | 'en';
+export type Theme = 'system' | 'light' | 'dark';
+export type EtaMethod = 'auto' | 'slicer' | 'printer' | 'file' | 'filament';
 
 export interface Printer {
   id: string;
@@ -12,21 +15,37 @@ export interface Printer {
   cameraUrl: string;
 }
 
+export interface Settings {
+  lang: Lang;
+  theme: Theme;
+  eta: EtaMethod;
+}
+
 interface State {
   printers: Printer[];
   activeId: string | null;
+  settings: Settings;
 }
 
 const KEY = 'printer-hub:v1';
 
+function defaultSettings(): Settings {
+  const lang = typeof navigator !== 'undefined' && !navigator.language.startsWith('es') ? 'en' : 'es';
+  return { lang, theme: 'system', eta: 'auto' };
+}
+
 function load(): State {
+  const fallback = { printers: [], activeId: null, settings: defaultSettings() };
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      return { ...fallback, ...saved, settings: { ...fallback.settings, ...saved.settings } };
+    }
   } catch {
     /* storage unavailable or corrupt */
   }
-  return { printers: [], activeId: null };
+  return fallback;
 }
 
 let state = load();
@@ -47,6 +66,9 @@ function subscribe(l: () => void) {
   return () => listeners.delete(l);
 }
 
+/** Current settings for code that runs outside React (e.g. API error messages). */
+export const getSettings = () => state.settings;
+
 export function newPrinter(): Printer {
   return {
     id: Math.random().toString(36).slice(2, 10),
@@ -58,6 +80,15 @@ export function newPrinter(): Printer {
   };
 }
 
+export function useSettings() {
+  const settings = useSyncExternalStore(subscribe, () => state.settings);
+  const updateSettings = useCallback(
+    (patch: Partial<Settings>) => setState({ ...state, settings: { ...state.settings, ...patch } }),
+    [],
+  );
+  return { settings, updateSettings };
+}
+
 export function useStore() {
   const s = useSyncExternalStore(subscribe, () => state);
   const active = s.printers.find((p) => p.id === s.activeId) ?? s.printers[0] ?? null;
@@ -65,6 +96,7 @@ export function useStore() {
   const savePrinter = useCallback((p: Printer) => {
     const exists = state.printers.some((x) => x.id === p.id);
     setState({
+      ...state,
       printers: exists ? state.printers.map((x) => (x.id === p.id ? p : x)) : [...state.printers, p],
       activeId: state.activeId ?? p.id,
     });
@@ -73,6 +105,7 @@ export function useStore() {
   const removePrinter = useCallback((id: string) => {
     const printers = state.printers.filter((x) => x.id !== id);
     setState({
+      ...state,
       printers,
       activeId: state.activeId === id ? (printers[0]?.id ?? null) : state.activeId,
     });

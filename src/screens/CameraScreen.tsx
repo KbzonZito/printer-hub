@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { CameraView } from '../components/CameraView';
+import { useT, type MessageKey } from '../i18n';
 import type { CameraMode, Printer } from '../store';
 import { usePrinterStatus } from '../usePrinterStatus';
-import { stateLabel } from '../format';
 
 const MODES: { id: CameraMode; label: string }[] = [
   { id: 'auto', label: 'Auto' },
@@ -19,16 +19,17 @@ export function CameraScreen({
   printer: Printer;
   onModeChange: (mode: CameraMode) => void;
 }) {
+  const t = useT();
   const { status } = usePrinterStatus();
   const [retry, setRetry] = useState(0);
 
   return (
-    <div className="screen camera-screen">
+    <div className="screen wide camera-screen">
       <div className="camera-full">
         <CameraView printer={printer} retryKey={retry} />
         {status && (
           <div className="camera-overlay">
-            <span className={`pill ${status.state}`}>{stateLabel[status.state]}</span>
+            <span className={`pill ${status.state}`}>{t(`state.${status.state}` as MessageKey)}</span>
             {status.state === 'printing' && <span>{Math.round(status.progress * 100)}%</span>}
             <span>🔥 {status.extruder.temperature.toFixed(0)}°</span>
             <span>▭ {status.bed.temperature.toFixed(0)}°</span>
@@ -47,14 +48,11 @@ export function CameraScreen({
             </button>
           ))}
         </div>
-        <button className="btn icon" onClick={() => setRetry((n) => n + 1)} aria-label="Reconectar">
+        <button className="btn icon" onClick={() => setRetry((n) => n + 1)} aria-label={t('camera.reconnect')}>
           <RefreshCw size={18} />
         </button>
       </div>
-      <p className="muted small">
-        Gira el teléfono para verla en horizontal. "Auto" prueba WebRTC de Creality (puerto 8000), las
-        cámaras de Moonraker y MJPEG en el puerto 8080.
-      </p>
+      <p className="muted small">{t('camera.hint')}</p>
     </div>
   );
 }

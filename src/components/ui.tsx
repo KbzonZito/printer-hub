@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
+import { useT } from '../i18n';
 
 export function Sheet({
   open,
@@ -40,12 +41,13 @@ export function ConfirmSheet({
   onConfirm: () => void;
   onClose: () => void;
 }) {
+  const t = useT();
   return (
     <Sheet open={open} onClose={onClose} title={title}>
       {message && <p className="muted">{message}</p>}
       <div className="row gap">
         <button className="btn ghost grow" onClick={onClose}>
-          Volver
+          {t('common.back')}
         </button>
         <button
           className={`btn grow ${danger ? 'danger' : 'primary'}`}

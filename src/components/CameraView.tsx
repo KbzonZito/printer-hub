@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CameraOff, Loader2 } from 'lucide-react';
 import { connectCrealityWebrtc, crealityWebrtcUrl } from '../api/crealityWebrtc';
 import { listWebcams, resolveWebcamUrl } from '../api/moonraker';
+import { useT } from '../i18n';
 import type { CameraMode, Printer } from '../store';
 
 type Source =
@@ -64,6 +65,7 @@ interface Props {
 }
 
 export function CameraView({ printer, mode = printer.cameraMode, className, retryKey }: Props) {
+  const t = useT();
   const [view, setView] = useState<View>({ kind: 'loading' });
   const [tick, setTick] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -131,21 +133,21 @@ export function CameraView({ printer, mode = printer.cameraMode, className, retr
       {view.kind === 'loading' && (
         <div className="camera-placeholder">
           <Loader2 className="spin" size={28} />
-          <span>Conectando cámara…</span>
+          <span>{t('camera.connecting')}</span>
         </div>
       )}
       {view.kind === 'error' && (
         <div className="camera-placeholder">
           <CameraOff size={28} />
-          <span>Cámara no disponible</span>
+          <span>{t('camera.unavailable')}</span>
         </div>
       )}
       {view.kind === 'webrtc' && <video ref={videoRef} autoPlay playsInline muted />}
       {view.kind === 'mjpeg' && (
-        <img src={view.url} alt="Cámara" onError={() => setView({ kind: 'error' })} />
+        <img src={view.url} alt="" onError={() => setView({ kind: 'error' })} />
       )}
       {view.kind === 'snapshot' && (
-        <img src={`${view.url}${view.url.includes('?') ? '&' : '?'}t=${tick}`} alt="Cámara" />
+        <img src={`${view.url}${view.url.includes('?') ? '&' : '?'}t=${tick}`} alt="" />
       )}
     </div>
   );

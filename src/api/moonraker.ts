@@ -15,7 +15,10 @@ export interface PrinterStatus {
   state: PrintState;
   message: string;
   filename: string;
+  /** File position progress (virtual_sdcard). */
   progress: number;
+  /** Progress reported by the printer: M73 from the slicer when present, else file position. */
+  displayProgress: number;
   printDuration: number;
   totalDuration: number;
   filamentUsed: number;
@@ -121,6 +124,7 @@ export async function fetchStatus(p: Printer): Promise<PrinterStatus> {
     message: ps.message || s.webhooks?.state_message || '',
     filename: ps.filename ?? '',
     progress: s.virtual_sdcard?.progress ?? s.display_status?.progress ?? 0,
+    displayProgress: s.display_status?.progress ?? s.virtual_sdcard?.progress ?? 0,
     printDuration: ps.print_duration ?? 0,
     totalDuration: ps.total_duration ?? 0,
     filamentUsed: ps.filament_used ?? 0,

@@ -12,6 +12,7 @@ import {
 } from '../api/moonraker';
 import { ConfirmSheet, Sheet, useAction } from '../components/ui';
 import { baseName, formatBytes, formatDate, formatDuration } from '../format';
+import { useLang, useT } from '../i18n';
 import type { Printer } from '../store';
 import { usePrinterStatus } from '../usePrinterStatus';
 
@@ -48,6 +49,7 @@ function FileRow({ printer, file, onOpen }: { printer: Printer; file: GcodeFile;
     io.observe(el);
     return () => io.disconnect();
   }, []);
+  const lang = useLang();
   const meta = useMetadata(printer, file, visible);
   const thumb = thumbnailUrl(printer, file.path, meta);
 
@@ -64,7 +66,7 @@ function FileRow({ printer, file, onOpen }: { printer: Printer; file: GcodeFile;
         <span className="file-name">{baseName(file.path)}</span>
         <span className="muted small">
           {meta?.estimated_time ? `${formatDuration(meta.estimated_time)} · ` : ''}
-          {formatBytes(file.size)} · {formatDate(file.modified)}
+          {formatBytes(file.size)} · {formatDate(file.modified, lang)}
         </span>
       </div>
     </button>
@@ -72,6 +74,7 @@ function FileRow({ printer, file, onOpen }: { printer: Printer; file: GcodeFile;
 }
 
 export function FilesScreen({ printer, onPrintStarted }: { printer: Printer; onPrintStarted: () => void }) {
+  const t = useT();
   const { status, refresh: refreshStatus } = usePrinterStatus();
   const run = useAction();
   const [files, setFiles] = useState<GcodeFile[] | null>(null);
@@ -101,31 +104,31 @@ export function FilesScreen({ printer, onPrintStarted }: { printer: Printer; onP
   const onUpload = async (file: File | undefined) => {
     if (!file) return;
     setUploading(true);
-    await run(() => uploadFile(printer, file), `${file.name} subido`);
+    await run(() => uploadFile(printer, file), t('files.uploaded', { name: file.name }));
     setUploading(false);
     if (inputRef.current) inputRef.current.value = '';
     load();
   };
 
   return (
-    <div className="screen">
+    <div className="screen wide">
       <div className="row gap">
         <label className="search grow">
           <Search size={18} />
           <input
-            placeholder="Buscar archivos"
+            placeholder={t('files.search')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
-        <button className="btn icon" onClick={load} aria-label="Recargar">
+        <button className="btn icon" onClick={load} aria-label={t('files.reload')}>
           <RefreshCw size={18} />
         </button>
         <button
           className="btn icon primary"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          aria-label="Subir G-code"
+          aria-label={t('files.upload')}
         >
           {uploading ? <div className="loader small" /> : <Upload size={18} />}
         </button>
@@ -142,7 +145,7 @@ export function FilesScreen({ printer, onPrintStarted }: { printer: Printer; onP
         <div className="empty">
           <p className="muted">{error}</p>
           <button className="btn primary" onClick={load}>
-            Reintentar
+            {t('common.retry')}
           </button>
         </div>
       )}
@@ -154,7 +157,7 @@ export function FilesScreen({ printer, onPrintStarted }: { printer: Printer; onP
       {files && filtered.length === 0 && (
         <div className="empty">
           <FileBox size={36} />
-          <p className="muted">{query ? 'Sin resultados' : 'No hay archivos en la impresora'}</p>
+          <p className="muted">{query ? t('files.noResults') : t('files.none')}</p>
         </div>
       )}
       <div className="file-list">
@@ -177,12 +180,12 @@ export function FilesScreen({ printer, onPrintStarted }: { printer: Printer; onP
             <div className="stats">
               <div>
                 <span className="muted small">
-                  <Clock size={12} /> Tiempo
+                  <Clock size={12} /> {t('files.time')}
                 </span>
                 <strong>{formatDuration(selMeta?.estimated_time ?? 0)}</strong>
               </div>
               <div>
-                <span className="muted small">Filamento</span>
+                <span className="muted small">{t('home.filament')}</span>
                 <strong>
                   {selMeta?.filament_weight_total
                     ? `${selMeta.filament_weight_total.toFixed(0)} g`
@@ -192,19 +195,19 @@ export function FilesScreen({ printer, onPrintStarted }: { printer: Printer; onP
                 </strong>
               </div>
               <div>
-                <span className="muted small">Capa</span>
+                <span className="muted small">{t('files.layer')}</span>
                 <strong>{selMeta?.layer_height ? `${selMeta.layer_height} mm` : '—'}</strong>
               </div>
             </div>
             <div className="row gap">
-              <button className="btn danger-outline icon" onClick={() => setConfirmDelete(true)} aria-label="Eliminar">
+              <button className="btn danger-outline icon" onClick={() => setConfirmDelete(true)} aria-label={t('common.delete')}>
                 <Trash2 size={18} />
               </button>
               <button
                 className="btn primary grow"
                 disabled={busy}
                 onClick={async () => {
-                  const ok = await run(() => printerActions.start(printer, selected.path), 'Impresión iniciada');
+                  const ok = await run(() => printerActions.start(printer, selected.path), t('files.started'));
                   if (ok) {
                     setSelected(null);
                     refreshStatus();
@@ -212,7 +215,7 @@ export function FilesScreen({ printer, onPrintStarted }: { printer: Printer; onP
                   }
                 }}
               >
-                <Play size={18} /> {busy ? 'Impresora ocupada' : 'Imprimir'}
+                <Play size={18} /> {busy ? t('files.busy') : t('files.print')}
               </button>
             </div>
           </>
@@ -221,13 +224,13 @@ export function FilesScreen({ printer, onPrintStarted }: { printer: Printer; onP
 
       <ConfirmSheet
         open={confirmDelete}
-        title="¿Eliminar archivo?"
+        title={t('files.deleteTitle')}
         message={selected ? baseName(selected.path) : undefined}
-        confirmLabel="Eliminar"
+        confirmLabel={t('common.delete')}
         danger
         onConfirm={async () => {
           if (!selected) return;
-          const ok = await run(() => deleteFile(printer, selected.path), 'Archivo eliminado');
+          const ok = await run(() => deleteFile(printer, selected.path), t('files.deleted'));
           if (ok) {
             setSelected(null);
             load();

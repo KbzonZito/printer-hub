@@ -1,3 +1,5 @@
+import { tr } from '../i18n';
+
 // Small fetch wrapper. On Android, Capacitor routes fetch() through native HTTP
 // (see capacitor.config.ts), so requests to the printer skip browser CORS checks.
 
@@ -22,7 +24,7 @@ export async function request(url: string, opts: RequestOptions = {}): Promise<R
   const timeoutPromise = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
       controller.abort();
-      reject(new HttpError('Tiempo de espera agotado'));
+      reject(new HttpError(tr('err.timeout')));
     }, timeout);
   });
   try {
@@ -43,7 +45,7 @@ export async function request(url: string, opts: RequestOptions = {}): Promise<R
     return res;
   } catch (err) {
     if (err instanceof HttpError) throw err;
-    throw new HttpError('No se pudo conectar con la impresora');
+    throw new HttpError(tr('err.unreachable'));
   } finally {
     clearTimeout(timer);
   }

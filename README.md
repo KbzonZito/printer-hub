@@ -12,7 +12,10 @@ y cualquier impresora que exponga Moonraker (lo mismo que usa Mobileraker).
   (puerto 8080). Gira el teléfono para verla en horizontal.
 - **Archivos**: G-codes de la memoria de la impresora con miniatura, tiempo y filamento;
   imprimir, eliminar y subir archivos nuevos.
-- **Ajustes**: varias impresoras, prueba de conexión y modo de cámara.
+- **Ajustes**: varias impresoras, prueba de conexión, modo de cámara, idioma (español /
+  inglés), tema claro / oscuro / sistema y método de cálculo del tiempo restante
+  (automático, laminador, impresora M73, avance del archivo o filamento).
+- Diseño adaptado a tablet: barra lateral y panel en dos columnas en horizontal.
 
 ## Instalar en Android
 

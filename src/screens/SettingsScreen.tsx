@@ -1,14 +1,24 @@
 import { useState } from 'react';
-import { Check, Pencil, Plus, Printer as PrinterIcon, Trash2 } from 'lucide-react';
+import { Check, Monitor, Moon, Pencil, Plus, Printer as PrinterIcon, Sun, Trash2 } from 'lucide-react';
 import { testConnection } from '../api/moonraker';
 import { ConfirmSheet, Sheet, useToast } from '../components/ui';
-import { newPrinter, useStore, type CameraMode, type Printer } from '../store';
+import { useT, type MessageKey } from '../i18n';
+import {
+  newPrinter,
+  useSettings,
+  useStore,
+  type CameraMode,
+  type EtaMethod,
+  type Printer,
+  type Theme,
+} from '../store';
 
-const CAMERA_MODES: { id: CameraMode; label: string }[] = [
-  { id: 'auto', label: 'Automático' },
-  { id: 'webrtc', label: 'WebRTC (Creality)' },
-  { id: 'mjpeg', label: 'MJPEG stream' },
-  { id: 'snapshot', label: 'Snapshot' },
+const CAMERA_MODES: CameraMode[] = ['auto', 'webrtc', 'mjpeg', 'snapshot'];
+const ETA_METHODS: EtaMethod[] = ['auto', 'slicer', 'printer', 'file', 'filament'];
+const THEMES: { id: Theme; key: MessageKey; icon: typeof Sun }[] = [
+  { id: 'system', key: 'settings.themeSystem', icon: Monitor },
+  { id: 'light', key: 'settings.themeLight', icon: Sun },
+  { id: 'dark', key: 'settings.themeDark', icon: Moon },
 ];
 
 export function PrinterForm({
@@ -20,6 +30,7 @@ export function PrinterForm({
   onSave: (p: Printer) => void;
   onCancel?: () => void;
 }) {
+  const t = useT();
   const [p, setP] = useState(initial);
   const [testing, setTesting] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
@@ -35,12 +46,12 @@ export function PrinterForm({
       }}
     >
       <label>
-        <span>Nombre</span>
+        <span>{t('form.name')}</span>
         <input className="input" value={p.name} onChange={(e) => set('name', e.target.value)} />
       </label>
       <div className="row gap">
         <label className="grow">
-          <span>IP de la impresora</span>
+          <span>{t('form.host')}</span>
           <input
             className="input"
             placeholder="192.168.1.50"
@@ -52,7 +63,7 @@ export function PrinterForm({
           />
         </label>
         <label style={{ width: 96 }}>
-          <span>Puerto</span>
+          <span>{t('form.port')}</span>
           <input
             className="input"
             type="number"
@@ -62,21 +73,21 @@ export function PrinterForm({
         </label>
       </div>
       <label>
-        <span>Cámara</span>
+        <span>{t('form.camera')}</span>
         <select
           className="input"
           value={p.cameraMode}
           onChange={(e) => set('cameraMode', e.target.value as CameraMode)}
         >
           {CAMERA_MODES.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label}
+            <option key={m} value={m}>
+              {t(`form.cam.${m}` as MessageKey)}
             </option>
           ))}
         </select>
       </label>
       <label>
-        <span>URL de cámara (opcional)</span>
+        <span>{t('form.cameraUrl')}</span>
         <input
           className="input"
           placeholder="http://192.168.1.50:8080/?action=stream"
@@ -104,63 +115,127 @@ export function PrinterForm({
             setTesting(false);
           }}
         >
-          {testing ? <div className="loader small" /> : 'Probar conexión'}
+          {testing ? <div className="loader small" /> : t('form.test')}
         </button>
         {onCancel && (
           <button type="button" className="btn ghost" onClick={onCancel}>
-            Cancelar
+            {t('common.cancel')}
           </button>
         )}
         <button type="submit" className="btn primary grow" disabled={!clean.host}>
-          Guardar
+          {t('common.save')}
         </button>
       </div>
     </form>
   );
 }
 
+/** Language, theme and ETA preferences; also shown during onboarding. */
+export function AppPreferences({ compact }: { compact?: boolean }) {
+  const t = useT();
+  const { settings, updateSettings } = useSettings();
+  return (
+    <div className="form">
+      <div className="field">
+        <span>{t('settings.language')}</span>
+        <div className="segmented">
+          {(['es', 'en'] as const).map((l) => (
+            <button
+              type="button"
+              key={l}
+              className={settings.lang === l ? 'active' : ''}
+              onClick={() => updateSettings({ lang: l })}
+            >
+              {l === 'es' ? 'Español' : 'English'}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="field">
+        <span>{t('settings.theme')}</span>
+        <div className="segmented">
+          {THEMES.map(({ id, key, icon: Icon }) => (
+            <button
+              type="button"
+              key={id}
+              className={settings.theme === id ? 'active' : ''}
+              onClick={() => updateSettings({ theme: id })}
+            >
+              <Icon size={15} /> {t(key)}
+            </button>
+          ))}
+        </div>
+      </div>
+      {!compact && (
+        <label>
+          <span>{t('settings.eta')}</span>
+          <select
+            className="input"
+            value={settings.eta}
+            onChange={(e) => updateSettings({ eta: e.target.value as EtaMethod })}
+          >
+            {ETA_METHODS.map((m) => (
+              <option key={m} value={m}>
+                {t(`eta.${m}` as MessageKey)}
+              </option>
+            ))}
+          </select>
+          <small className="muted">{t('settings.etaHint')}</small>
+        </label>
+      )}
+    </div>
+  );
+}
+
 export function SettingsScreen() {
+  const t = useT();
   const { printers, active, savePrinter, removePrinter, selectPrinter } = useStore();
   const [editing, setEditing] = useState<Printer | null>(null);
   const [deleting, setDeleting] = useState<Printer | null>(null);
   const toast = useToast();
 
   return (
-    <div className="screen">
-      <h2 className="section-title">Impresoras</h2>
-      <div className="list">
-        {printers.map((p) => (
-          <div key={p.id} className={`list-item ${active?.id === p.id ? 'selected' : ''}`}>
-            <button className="list-main" onClick={() => selectPrinter(p.id)}>
-              <PrinterIcon size={20} />
-              <div>
-                <strong>{p.name}</strong>
-                <span className="muted small">
-                  {p.host}:{p.port}
-                </span>
-              </div>
-              {active?.id === p.id && <Check size={18} className="accent" />}
-            </button>
-            <button className="btn icon ghost" onClick={() => setEditing(p)} aria-label="Editar">
-              <Pencil size={16} />
-            </button>
-            <button className="btn icon ghost" onClick={() => setDeleting(p)} aria-label="Eliminar">
-              <Trash2 size={16} />
-            </button>
-          </div>
-        ))}
-      </div>
-      <button className="btn" onClick={() => setEditing(newPrinter())}>
-        <Plus size={18} /> Añadir impresora
-      </button>
+    <div className="screen settings">
+      <section className="settings-group">
+        <h2 className="section-title">{t('settings.printers')}</h2>
+        <div className="list">
+          {printers.map((p) => (
+            <div key={p.id} className={`list-item ${active?.id === p.id ? 'selected' : ''}`}>
+              <button className="list-main" onClick={() => selectPrinter(p.id)}>
+                <PrinterIcon size={20} />
+                <div>
+                  <strong>{p.name}</strong>
+                  <span className="muted small">
+                    {p.host}:{p.port}
+                  </span>
+                </div>
+                {active?.id === p.id && <Check size={18} className="accent" />}
+              </button>
+              <button className="btn icon ghost" onClick={() => setEditing(p)} aria-label={t('settings.edit')}>
+                <Pencil size={16} />
+              </button>
+              <button className="btn icon ghost" onClick={() => setDeleting(p)} aria-label={t('common.delete')}>
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <button className="btn" onClick={() => setEditing(newPrinter())}>
+          <Plus size={18} /> {t('settings.add')}
+        </button>
+      </section>
 
-      <h2 className="section-title">Acerca de</h2>
-      <p className="muted small">
-        Printer Hub se conecta a impresoras con Klipper a través de Moonraker (Creality Hi, K1, K2,
-        Sovol, Voron, Elegoo…). Necesitas estar en la misma red Wi-Fi que la impresora.
-      </p>
+      <section className="settings-group">
+        <h2 className="section-title">{t('settings.app')}</h2>
+        <AppPreferences />
+      </section>
 
-      <Sheet open={!!editing} onClose={() => setEditing(null)} title="Impresora">
+      <section className="settings-group">
+        <h2 className="section-title">{t('settings.about')}</h2>
+        <p className="muted small">{t('settings.aboutText')}</p>
+      </section>
+
+      <Sheet open={!!editing} onClose={() => setEditing(null)} title={t('settings.printer')}>
         {editing && (
           <PrinterForm
             key={editing.id}
@@ -169,15 +244,15 @@ export function SettingsScreen() {
             onSave={(p) => {
               savePrinter(p);
               setEditing(null);
-              toast('Guardado');
+              toast(t('common.saved'));
             }}
           />
         )}
       </Sheet>
       <ConfirmSheet
         open={!!deleting}
-        title={`¿Eliminar ${deleting?.name}?`}
-        confirmLabel="Eliminar"
+        title={t('settings.deleteTitle', { name: deleting?.name ?? '' })}
+        confirmLabel={t('common.delete')}
         danger
         onConfirm={() => deleting && removePrinter(deleting.id)}
         onClose={() => setDeleting(null)}
