@@ -1,0 +1,78 @@
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VERSION_CODE: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Build web app
+        run: |
+          npm ci
+          npm run build
+          npx cap sync android
+
+      - name: Restore signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        if: env.KEYSTORE_BASE64 != ''
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.p12"
+          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
+
+      - name: Build APK
+        working-directory: android
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            export VERSION_NAME="${GITHUB_REF_NAME#v}"
+          else
+            export VERSION_NAME="0.1.$GITHUB_RUN_NUMBER"
+          fi
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          mv app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/printer-hub.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: printer-hub-apk
+          path: printer-hub.apk
+
+      # Every push to main refreshes the "latest" release so the phone always
+      # has a stable download link; version tags get their own release.
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            gh release create "$GITHUB_REF_NAME" printer-hub.apk --title "$GITHUB_REF_NAME" --generate-notes
+          elif [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            gh release delete latest --cleanup-tag --yes || true
+            gh release create latest printer-hub.apk --prerelease --target "$GITHUB_SHA" \
+              --title "Última compilación (#$GITHUB_RUN_NUMBER)" \
+              --notes "APK compilado automáticamente desde \`main\` (${GITHUB_SHA::7})."
+          fi
