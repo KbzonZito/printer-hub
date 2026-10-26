@@ -238,7 +238,7 @@ main {
   font-weight: 600;
   transition: color 0.25s var(--ease);
 }
-/* The pill: fades in on the pressed item and always fills it exactly. */
+/* The pill is the pressed button's own background, so it always matches its size. */
 .tabbar button::before {
   content: '';
   position: absolute;
@@ -247,14 +247,10 @@ main {
   border-radius: inherit;
   background: var(--accent-soft);
   opacity: 0;
-  transform: scale(0.85);
-  transition:
-    opacity 0.2s var(--ease),
-    transform 0.3s var(--ease);
+  transition: opacity 0.3s var(--ease);
 }
 .tabbar button.active::before {
   opacity: 1;
-  transform: none;
 }
 .tabbar button.active {
   color: var(--on-accent-soft);
@@ -262,31 +258,31 @@ main {
 .tabbar button svg {
   flex-shrink: 0;
 }
-/* The label column animates from 0 to the text's exact width (0fr -> 1fr), so the
-   pill grows exactly as the text is revealed and the content stays centred. */
+/* The label grows from 0 to its measured width (--label-w, set by NavBar.tsx), so the
+   button goes smoothly from icon size to icon + label size and nothing overshoots. */
 .tab-label {
-  display: grid;
-  grid-template-columns: 0fr;
+  display: block;
+  max-width: 0;
   margin-left: 0;
-  opacity: 0;
-  transition:
-    grid-template-columns 0.35s var(--ease),
-    margin 0.35s var(--ease),
-    opacity 0.15s linear;
-}
-.tab-label > span {
-  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
+  opacity: 0;
+  transition:
+    max-width 0.4s var(--ease),
+    margin-left 0.4s var(--ease),
+    opacity 0.2s linear;
+}
+.tab-label > span {
+  display: inline-block;
 }
 .tabbar button.active .tab-label {
-  grid-template-columns: 1fr;
+  max-width: var(--label-w, 6em);
   margin-left: 8px;
   opacity: 1;
   transition:
-    grid-template-columns 0.35s var(--ease),
-    margin 0.35s var(--ease),
-    opacity 0.3s linear 0.05s;
+    max-width 0.4s var(--ease),
+    margin-left 0.4s var(--ease),
+    opacity 0.3s linear 0.1s;
 }
 .rail-logo {
   display: none;
@@ -935,7 +931,7 @@ main {
   }
   .tab-label,
   .tabbar button.active .tab-label {
-    grid-template-columns: 1fr;
+    max-width: none;
     margin: 0;
     opacity: 1;
     transition: none;
@@ -1491,8 +1487,10 @@ a.btn {
   pointer-events: none;
   animation: ripple 0.55s var(--ease) forwards;
 }
-.tabbar button svg,
-.tabbar button span {
+/* Only the content is lifted above the pill; the ripple must stay absolute, or it
+   would take up space and stretch the button while it plays. */
+.tabbar button > svg,
+.tabbar button > .tab-label {
   position: relative;
 }
 
