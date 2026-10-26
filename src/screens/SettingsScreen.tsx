@@ -12,7 +12,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { testConnection } from '../api/moonraker';
-import { ConfirmSheet, Sheet, useToast } from '../components/ui';
+import { ConfirmSheet, Select, Sheet, useToast } from '../components/ui';
 import { localSubnet, scanNetwork, type Found } from '../discovery';
 import { isNative, PrinterMonitor } from '../native';
 import { useT, type MessageKey } from '../i18n';
@@ -132,20 +132,15 @@ export function PrinterForm({
       {scan && !scanning && scan.found.length === 0 && (
         <p className="muted small">{t('discovery.none', { subnet: scan.subnet })}</p>
       )}
-      <label>
+      <div className="field">
         <span>{t('form.camera')}</span>
-        <select
-          className="input"
+        <Select
+          title={t('form.camera')}
           value={p.cameraMode}
-          onChange={(e) => set('cameraMode', e.target.value as CameraMode)}
-        >
-          {CAMERA_MODES.map((m) => (
-            <option key={m} value={m}>
-              {t(`form.cam.${m}` as MessageKey)}
-            </option>
-          ))}
-        </select>
-      </label>
+          onChange={(v) => set('cameraMode', v)}
+          options={CAMERA_MODES.map((m) => ({ value: m, label: t(`form.cam.${m}` as MessageKey) }))}
+        />
+      </div>
       <label>
         <span>{t('form.cameraUrl')}</span>
         <input
@@ -228,21 +223,16 @@ export function AppPreferences({ compact }: { compact?: boolean }) {
         </div>
       </div>
       {!compact && (
-        <label>
+        <div className="field">
           <span>{t('settings.eta')}</span>
-          <select
-            className="input"
+          <Select
+            title={t('settings.eta')}
             value={settings.eta}
-            onChange={(e) => updateSettings({ eta: e.target.value as EtaMethod })}
-          >
-            {ETA_METHODS.map((m) => (
-              <option key={m} value={m}>
-                {t(`eta.${m}` as MessageKey)}
-              </option>
-            ))}
-          </select>
+            onChange={(eta) => updateSettings({ eta })}
+            options={ETA_METHODS.map((m) => ({ value: m, label: t(`eta.${m}` as MessageKey) }))}
+          />
           <small className="muted">{t('settings.etaHint')}</small>
-        </label>
+        </div>
       )}
       {!compact && isNative && (
         <label className="toggle">
@@ -253,6 +243,8 @@ export function AppPreferences({ compact }: { compact?: boolean }) {
           </span>
           <input
             type="checkbox"
+            role="switch"
+            className="switch"
             checked={settings.notify}
             onChange={async (e) => {
               const on = e.target.checked;

@@ -1,6 +1,17 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
+import { ChevronDown } from 'lucide-react';
 import { useT } from '../i18n';
 
+/** Bottom sheet (dialog on tablets) that animates in and out. */
 export function Sheet({
   open,
   onClose,
@@ -12,15 +23,85 @@ export function Sheet({
   title?: string;
   children: ReactNode;
 }) {
-  if (!open) return null;
-  return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+  const [mounted, setMounted] = useState(open);
+  const [closing, setClosing] = useState(false);
+  // Keep showing the last content while the exit animation runs.
+  const last = useRef({ title, children });
+  if (open) last.current = { title, children };
+
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      setClosing(false);
+    } else if (mounted) {
+      setClosing(true);
+    }
+  }, [open]);
+
+  if (!mounted) return null;
+  // Portal to <body> so sheets opened from inside another sheet stack correctly.
+  return createPortal(
+    <div
+      className={`sheet-backdrop ${closing ? 'closing' : ''}`}
+      onClick={onClose}
+      onAnimationEnd={(e) => {
+        if (closing && e.target === e.currentTarget) {
+          setMounted(false);
+          setClosing(false);
+        }
+      }}
+    >
+      <div className="sheet" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-handle" />
-        {title && <h2 className="sheet-title">{title}</h2>}
-        {children}
+        {last.current.title && <h2 className="sheet-title">{last.current.title}</h2>}
+        {last.current.children}
       </div>
-    </div>
+    </div>,
+    document.body,
+  );
+}
+
+/** Replaces the native <select>, whose Android picker doesn't match the app's style. */
+export function Select<T extends string>({
+  value,
+  options,
+  onChange,
+  title,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+  title: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = options.find((o) => o.value === value);
+  return (
+    <>
+      <button type="button" className="select-field" onClick={() => setOpen(true)}>
+        <span>{current?.label ?? value}</span>
+        <ChevronDown size={20} />
+      </button>
+      <Sheet open={open} onClose={() => setOpen(false)} title={title}>
+        <div className="select-options" role="radiogroup">
+          {options.map((o) => (
+            <button
+              type="button"
+              key={o.value}
+              role="radio"
+              aria-checked={o.value === value}
+              className={`select-option ${o.value === value ? 'active' : ''}`}
+              onClick={() => {
+                onChange(o.value);
+                setOpen(false);
+              }}
+            >
+              <span className="radio" />
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </Sheet>
+    </>
   );
 }
 

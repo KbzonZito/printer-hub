@@ -1,50 +1,68 @@
 # Printer Hub
 
-App Android para controlar impresoras 3D con **Klipper + Moonraker** desde la red local.
-Pensada para la **Creality Hi** (con root), y compatible con K1, K2, Sovol, Voron, Elegoo
-y cualquier impresora que exponga Moonraker (lo mismo que usa Mobileraker).
+An Android app to control 3D printers running **Klipper + Moonraker** over your local network.
+Built for the **Creality Hi** (rooted), and works with the K1, K2, Sovol, Voron, Elegoo and any
+other printer that exposes Moonraker (the same API Mobileraker uses).
 
-## Funciones
+## Features
 
-- **Inicio**: estado, progreso, capa, tiempo restante, temperaturas (toca para ajustar),
-  ventilador, luz, pausar / reanudar / cancelar, home y paro de emergencia.
-- **Cámara**: WebRTC de Creality (puerto 8000), cámaras configuradas en Moonraker o MJPEG
-  (puerto 8080). Gira el teléfono para verla en horizontal.
-- **Archivos**: G-codes de la memoria de la impresora con miniatura, tiempo y filamento;
-  imprimir, eliminar y subir archivos nuevos.
-- **Ajustes**: varias impresoras, prueba de conexión, modo de cámara, idioma (español /
-  inglés), tema claro / oscuro / sistema y método de cálculo del tiempo restante
-  (automático, laminador, impresora M73, avance del archivo o filamento).
-- Diseño adaptado a tablet: barra lateral y panel en dos columnas en horizontal.
-- **Control**: mover ejes, home, extruir / retraer, macros de Klipper y consola G-code.
-- **Ajustes en vivo** durante la impresión: velocidad, flujo, Z-offset y ventilador.
-- **Gráfica de temperaturas** de los últimos 5, 10 o 20 minutos.
-- **Historial** con estadísticas y reimpresión, y **timelapses** (plugin moonraker-timelapse).
-- **Notificaciones** al terminar, pausar o fallar una impresión, aunque la app esté cerrada,
-  y **widget** de pantalla de inicio con progreso y hora de fin.
-- **Compartir un .gcode** desde otra app (Drive, WhatsApp, el laminador…) para subirlo o imprimirlo.
-- **Buscar la impresora** en la red automáticamente.
+- **Home**: status, progress, layer, remaining time and estimated finish time, temperatures (tap
+  to set), fan, light, pause / resume / cancel, homing and emergency stop.
+- **Live tuning** while printing: speed, flow, Z offset (babystepping) and part fan.
+- **Temperature chart** for the nozzle and bed over the last 5, 10 or 20 minutes.
+- **Camera**: Creality WebRTC (port 8000), webcams configured in Moonraker, or MJPEG (port 8080).
+  Rotate the device for a landscape view.
+- **Control**: jog the axes, home, extrude / retract, run Klipper macros and a G-code console.
+- **Files**: G-codes stored on the printer with thumbnails, print time and filament; print,
+  delete and upload new files.
+- **History** with totals and one-tap reprint, plus **timelapses** (requires the
+  moonraker-timelapse plugin).
+- **Notifications** when a print finishes, pauses or fails, even with the app closed, and a
+  **home screen widget** with progress and finish time.
+- **Share a .gcode** from another app (Drive, WhatsApp, your slicer…) to upload or print it.
+- **Network discovery** to find Moonraker printers on your Wi-Fi.
+- **Settings**: multiple printers, connection test, camera mode, language (English / Spanish),
+  light / dark / system theme, and the remaining-time method (automatic, slicer, printer M73,
+  file progress or filament used).
+- Material 3 look with a floating navigation bar on phones and a navigation rail with a
+  two-column dashboard on tablets.
 
-## Instalar en Android
+## Install on Android
 
-1. Abre [Releases](https://github.com/KbzonZito/printer-hub/releases) en el teléfono.
-2. Descarga `printer-hub.apk` de **Última compilación** y ábrelo (acepta "instalar apps de
-   origen desconocido" la primera vez).
-3. Introduce la IP de la impresora (pantalla de la impresora → Red) y el puerto `7125`.
+1. Open [Releases](https://github.com/KbzonZito/printer-hub/releases) on your phone.
+2. Download `printer-hub.apk` from **Latest build** and open it (allow "install unknown apps"
+   the first time).
+3. Tap **Scan network**, or enter the printer's IP (printer screen → Network) and port `7125`.
 
-Cada push a `main` compila un APK nuevo. Para una versión numerada: `git tag v1.0.0 && git push --tags`.
+Every push to `main` builds a new APK. For a numbered release: `git tag v1.0.0 && git push --tags`.
 
-## Desarrollo
+### Signing
+
+CI signs the APK with the key stored in the repository secrets so updates install over the
+previous version. Run this once to create the key and upload the secrets (requires `gh` and
+`openssl`):
+
+```bash
+./scripts/setup-signing.sh
+```
+
+The key is kept in `~/.config/printer-hub`; back it up, since an installed app can only be
+updated by an APK signed with the same key.
+
+## Development
 
 ```bash
 npm install
-npm run dev          # interfaz en el navegador
-npm run android:sync # compila y copia al proyecto Android
+npm run dev          # UI in the browser
+npm run android:sync # build and copy into the Android project
 ```
 
-En el navegador las peticiones a la impresora pueden fallar por CORS; en el APK van por
-HTTP nativo (`CapacitorHttp`) y no hay ese problema. Para probar desde el navegador añade
-`cors_domains: *` en la sección `[authorization]` de `moonraker.conf`.
+In the browser, requests to the printer may fail because of CORS; the APK uses native HTTP
+(`CapacitorHttp`) so it isn't affected. To test from a browser, add `cors_domains: *` to the
+`[authorization]` section of `moonraker.conf`.
 
-Stack: React + TypeScript + Vite, empaquetado con Capacitor. El APK lo compila GitHub
-Actions (`.github/workflows/android.yml`), así que no hace falta Android Studio.
+Notifications, the widget, file sharing and network discovery are native Android code in
+`android/app/src/main/java/com/kbzonzito/printerhub/` and only work in the APK.
+
+Stack: React + TypeScript + Vite, packaged with Capacitor. GitHub Actions builds the APK
+(`.github/workflows/android.yml`), so Android Studio isn't required.
