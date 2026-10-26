@@ -249,9 +249,8 @@ main {
   color: var(--text);
   font-size: 14px;
   font-weight: 600;
-  transition:
-    width 0.4s var(--ease),
-    color 0.3s var(--ease);
+  /* Widths and labels are animated by NavBar.tsx, frame by frame. */
+  transition: color 0.3s var(--ease);
 }
 .tabbar button svg {
   flex-shrink: 0;
@@ -261,10 +260,6 @@ main {
   overflow: hidden;
   white-space: nowrap;
   opacity: 0;
-  transition:
-    max-width 0.4s var(--ease),
-    margin 0.4s var(--ease),
-    opacity 0.1s linear;
 }
 .tabbar button.active {
   width: calc(var(--grow) * var(--unit));
@@ -274,10 +269,6 @@ main {
   max-width: 7em;
   margin-left: 8px;
   opacity: 1;
-  transition:
-    max-width 0.4s var(--ease),
-    margin 0.4s var(--ease),
-    opacity 0.2s linear 0.18s;
 }
 .rail-logo {
   display: none;
