@@ -42,6 +42,14 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.p12"
           echo "KEYSTORE_PATH=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
 
+      # Without the secrets every run gets a fresh debug key, so the APK can't be installed
+      # as an update over the previous one. Run scripts/setup-signing.sh once to fix it.
+      - name: Warn about missing signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        if: env.KEYSTORE_BASE64 == ''
+        run: echo "::warning::No signing secrets; this APK uses a throwaway debug key and won't update an installed app. Run scripts/setup-signing.sh."
+
       - name: Build APK
         working-directory: android
         env:

@@ -8,6 +8,7 @@ import {
   Plus,
   Printer as PrinterIcon,
   Radar,
+  Smartphone,
   Sun,
   Trash2,
 } from 'lucide-react';
@@ -15,6 +16,14 @@ import { testConnection } from '../api/moonraker';
 import { ConfirmSheet, Select, Sheet, useToast } from '../components/ui';
 import { localSubnet, scanNetwork, type Found } from '../discovery';
 import { isNative, PrinterMonitor } from '../native';
+import {
+  DEFAULT_SEED,
+  PALETTE_STYLES,
+  previewColors,
+  SEED_PRESETS,
+  useSeedColor,
+  useSystemColor,
+} from '../palette';
 import { useT, type MessageKey } from '../i18n';
 import {
   newPrinter,
@@ -186,6 +195,72 @@ export function PrinterForm({
 }
 
 /** Language, theme and ETA preferences; also shown during onboarding. */
+function PaletteDots({ colors }: { colors: string[] }) {
+  return (
+    <span className="palette-dots">
+      {colors.map((c, i) => (
+        <span key={i} style={{ background: c }} />
+      ))}
+    </span>
+  );
+}
+
+function ColorPicker() {
+  const t = useT();
+  const { settings, updateSettings } = useSettings();
+  const system = useSystemColor();
+  const seed = useSeedColor(settings);
+  const dark =
+    settings.theme === 'dark' ||
+    (settings.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+  const selected = settings.color === 'device' && !system ? DEFAULT_SEED : settings.color;
+  const swatches = [...(system ? ['device'] : []), ...SEED_PRESETS];
+  return (
+    <>
+      <div className="field">
+        <span>{t('settings.color')}</span>
+        <div className="swatches" role="radiogroup">
+          {swatches.map((c) => {
+            const color = c === 'device' ? system! : c;
+            return (
+              <button
+                type="button"
+                key={c}
+                role="radio"
+                aria-checked={selected === c}
+                aria-label={c === 'device' ? t('settings.colorDevice') : c}
+                title={c === 'device' ? t('settings.colorDevice') : undefined}
+                className={`swatch ${selected === c ? 'active' : ''}`}
+                onClick={() => updateSettings({ color: c })}
+              >
+                <PaletteDots colors={previewColors(color, settings.paletteStyle, dark)} />
+                {selected === c ? (
+                  <Check size={18} />
+                ) : (
+                  c === 'device' && <Smartphone size={16} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="field">
+        <span>{t('settings.paletteStyle')}</span>
+        <Select
+          title={t('settings.paletteStyle')}
+          value={settings.paletteStyle}
+          onChange={(paletteStyle) => updateSettings({ paletteStyle })}
+          options={PALETTE_STYLES.map((s) => ({
+            value: s,
+            label: t(`palette.${s}` as MessageKey),
+            extra: <PaletteDots colors={previewColors(seed, s, dark)} />,
+          }))}
+        />
+      </div>
+    </>
+  );
+}
+
 export function AppPreferences({ compact }: { compact?: boolean }) {
   const t = useT();
   const { settings, updateSettings } = useSettings();
@@ -222,6 +297,7 @@ export function AppPreferences({ compact }: { compact?: boolean }) {
           ))}
         </div>
       </div>
+      <ColorPicker />
       {!compact && (
         <div className="field">
           <span>{t('settings.eta')}</span>

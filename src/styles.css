@@ -205,68 +205,81 @@ main {
   background: var(--danger);
 }
 
-/* Floating, rounded navigation bar; only the active item shows its label. */
+/* Floating, rounded navigation bar with a fixed width. The active item widens to
+   --grow units and a single pill indicator slides underneath to it. */
 .tabbar {
+  --n: 5;
+  --grow: 2.5;
+  --unit: calc(100% / (var(--n) - 1 + var(--grow)));
   position: fixed;
   z-index: 10;
   left: 50%;
   bottom: calc(env(safe-area-inset-bottom) + 14px);
   transform: translateX(-50%);
   display: flex;
-  gap: 2px;
+  width: min(calc(100vw - 32px), 460px);
   padding: 8px;
   border-radius: 999px;
   background: var(--surface-3);
   box-shadow: var(--shadow);
-  max-width: calc(100vw - 24px);
+}
+.tab-indicator {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: calc(8px + var(--i) * (100% - 16px) / (var(--n) - 1 + var(--grow)));
+  width: calc(var(--grow) * (100% - 16px) / (var(--n) - 1 + var(--grow)));
+  border-radius: 999px;
+  background: var(--accent-soft);
+  transition:
+    left 0.4s var(--ease),
+    background-color 0.3s var(--ease);
 }
 .tabbar button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0;
+  flex: none;
+  width: var(--unit);
+  min-width: 0;
   height: 52px;
-  min-width: 52px;
-  padding: 0 14px;
+  padding: 0 12px;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--text);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   transition:
-    background-color 0.3s var(--ease),
-    color 0.3s var(--ease),
-    padding 0.35s var(--ease-emph);
+    width 0.4s var(--ease),
+    color 0.3s var(--ease);
+}
+.tabbar button svg {
+  flex-shrink: 0;
 }
 .tabbar button span {
   max-width: 0;
   overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
   opacity: 0;
   transition:
-    max-width 0.35s var(--ease-emph),
-    opacity 0.2s var(--ease),
-    margin 0.35s var(--ease-emph);
+    max-width 0.4s var(--ease),
+    margin 0.4s var(--ease),
+    opacity 0.15s linear;
 }
 .tabbar button.active {
-  padding: 0 18px;
-  background: var(--accent-soft);
+  width: calc(var(--grow) * var(--unit));
   color: var(--on-accent-soft);
 }
 .tabbar button.active span {
-  max-width: 120px;
+  max-width: 100%;
   margin-left: 8px;
   opacity: 1;
-}
-@media (max-width: 380px) {
-  .tabbar button {
-    min-width: 46px;
-    padding: 0 10px;
-  }
-  .tabbar button.active {
-    padding: 0 14px;
-  }
+  transition:
+    max-width 0.4s var(--ease),
+    margin 0.4s var(--ease),
+    opacity 0.25s linear 0.12s;
 }
 .rail-logo {
   display: none;
@@ -880,6 +893,9 @@ main {
     background: var(--bg);
     box-shadow: none;
   }
+  .tab-indicator {
+    display: none;
+  }
   .rail-logo {
     display: block;
     border-radius: 14px;
@@ -888,6 +904,7 @@ main {
   .tabbar button,
   .tabbar button.active {
     flex-direction: column;
+    flex: none;
     width: 84px;
     height: auto;
     padding: 4px 0;
@@ -914,6 +931,7 @@ main {
     max-width: none;
     margin: 0;
     opacity: 1;
+    transition: none;
   }
   .topbar {
     padding: calc(env(safe-area-inset-top) + 20px) 28px 6px;
@@ -1568,4 +1586,61 @@ a.btn {
   height: 24px;
   transform: translateX(16px);
   background: var(--on-accent);
+}
+
+/* Palette pickers: Android-style swatches (primary on top, secondary and tertiary below). */
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: 10px;
+}
+.swatch {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  max-width: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: #fff;
+  transition: border-radius 0.3s var(--ease);
+}
+.swatch .palette-dots {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template: 1fr 1fr / 1fr 1fr;
+  border-radius: inherit;
+  overflow: hidden;
+  gap: 0;
+}
+.swatch .palette-dots span {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+}
+.swatch .palette-dots span:first-child {
+  grid-column: 1 / 3;
+}
+.swatch svg {
+  position: relative;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+.swatch.active {
+  border-radius: 16px;
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 4px var(--text);
+}
+.palette-dots {
+  display: inline-flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.palette-dots span {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
 }

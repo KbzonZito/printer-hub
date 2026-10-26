@@ -24,6 +24,9 @@ other printer that exposes Moonraker (the same API Mobileraker uses).
 - **Settings**: multiple printers, connection test, camera mode, language (English / Spanish),
   light / dark / system theme, and the remaining-time method (automatic, slicer, printer M73,
   file progress or filament used).
+- Material 3 dynamic color: use the device's Material You color or pick one of the preset
+  colors, with any palette style (tonal spot, neutral, vibrant, expressive, fidelity, content,
+  rainbow, fruit salad, monochrome).
 - Material 3 look with a floating navigation bar on phones and a navigation rail with a
   two-column dashboard on tablets.
 

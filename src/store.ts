@@ -4,6 +4,16 @@ export type CameraMode = 'auto' | 'webrtc' | 'mjpeg' | 'snapshot';
 export type Lang = 'es' | 'en';
 export type Theme = 'system' | 'light' | 'dark';
 export type EtaMethod = 'auto' | 'slicer' | 'printer' | 'file' | 'filament';
+export type PaletteStyle =
+  | 'tonalSpot'
+  | 'neutral'
+  | 'vibrant'
+  | 'expressive'
+  | 'fidelity'
+  | 'content'
+  | 'rainbow'
+  | 'fruitSalad'
+  | 'monochrome';
 
 export interface Printer {
   id: string;
@@ -18,6 +28,9 @@ export interface Printer {
 export interface Settings {
   lang: Lang;
   theme: Theme;
+  /** Seed color for the palette: 'device' uses the Android wallpaper color, else a hex. */
+  color: string;
+  paletteStyle: PaletteStyle;
   eta: EtaMethod;
   /** Background notifications and widget updates while printing (Android). */
   notify: boolean;
@@ -34,7 +47,7 @@ const KEY = 'printer-hub:v1';
 function defaultSettings(): Settings {
   const lang =
     typeof navigator !== 'undefined' && !navigator.language.startsWith('es') ? 'en' : 'es';
-  return { lang, theme: 'system', eta: 'auto', notify: true };
+  return { lang, theme: 'system', color: 'device', paletteStyle: 'tonalSpot', eta: 'auto', notify: true };
 }
 
 function load(): State {

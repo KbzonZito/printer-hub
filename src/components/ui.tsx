@@ -69,7 +69,7 @@ export function Select<T extends string>({
   title,
 }: {
   value: T;
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; extra?: ReactNode }[];
   onChange: (value: T) => void;
   title: string;
 }) {
@@ -78,7 +78,8 @@ export function Select<T extends string>({
   return (
     <>
       <button type="button" className="select-field" onClick={() => setOpen(true)}>
-        <span>{current?.label ?? value}</span>
+        <span className="grow">{current?.label ?? value}</span>
+        {current?.extra}
         <ChevronDown size={20} />
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title={title}>
@@ -96,7 +97,8 @@ export function Select<T extends string>({
               }}
             >
               <span className="radio" />
-              {o.label}
+              <span className="grow">{o.label}</span>
+              {o.extra}
             </button>
           ))}
         </div>

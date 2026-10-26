@@ -128,6 +128,17 @@ public class PrinterMonitorPlugin extends Plugin {
         call.resolve(ret);
     }
 
+    /** Accent color of the system theme (Material You, Android 12+), used as the palette seed. */
+    @PluginMethod
+    public void getSystemColor(PluginCall call) {
+        JSObject ret = new JSObject();
+        if (Build.VERSION.SDK_INT >= 31) {
+            int color = getContext().getColor(android.R.color.system_accent1_500);
+            ret.put("color", String.format("#%06x", color & 0xffffff));
+        }
+        call.resolve(ret);
+    }
+
     /** Returns (once) a file that was shared to the app before JS was listening. */
     @PluginMethod
     public void takeSharedFile(PluginCall call) {

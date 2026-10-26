@@ -21,6 +21,7 @@ interface PrinterMonitorPlugin {
     printDuration: number;
   }): Promise<void>;
   getLocalIp(): Promise<{ ip?: string }>;
+  getSystemColor(): Promise<{ color?: string }>;
   takeSharedFile(): Promise<SharedFile>;
   addListener(event: 'sharedFile', fn: (file: SharedFile) => void): Promise<PluginListenerHandle>;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -16,12 +16,13 @@ import { Sheet, ToastProvider, useAction } from './components/ui';
 import { formatBytes } from './format';
 import { useT, type MessageKey } from './i18n';
 import { readSharedFile, type SharedFile } from './native';
+import { applyPalette, useSeedColor } from './palette';
 import { CameraScreen } from './screens/CameraScreen';
 import { ControlScreen } from './screens/ControlScreen';
 import { Dashboard } from './screens/Dashboard';
 import { FilesScreen } from './screens/FilesScreen';
 import { AppPreferences, PrinterForm, SettingsScreen } from './screens/SettingsScreen';
-import { newPrinter, useSettings, useStore, type Printer, type Theme } from './store';
+import { newPrinter, useSettings, useStore, type Printer, type Settings as AppSettings } from './store';
 import { useNativeSync, useSharedFiles } from './useNativeBridge';
 import { StatusContext, usePrinterStatusPoll } from './usePrinterStatus';
 
@@ -38,7 +39,9 @@ const TABS: { id: Tab; icon: typeof Gauge }[] = [
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
 /** Applies the theme to the page and keeps the Android status bar in sync. */
-function useTheme(theme: Theme) {
+function useTheme(settings: AppSettings) {
+  const { theme, paletteStyle } = settings;
+  const seed = useSeedColor(settings);
   const [systemDark, setSystemDark] = useState(darkQuery.matches);
   useEffect(() => {
     const onChange = (e: MediaQueryListEvent) => setSystemDark(e.matches);
@@ -51,13 +54,14 @@ function useTheme(theme: Theme) {
     const root = document.documentElement;
     if (theme === 'system') delete root.dataset.theme;
     else root.dataset.theme = theme;
+    applyPalette(seed, paletteStyle);
     const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
     if (Capacitor.isNativePlatform()) {
       StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => {});
       StatusBar.setBackgroundColor({ color: bg }).catch(() => {});
     }
-  }, [theme, dark]);
+  }, [theme, dark, seed, paletteStyle]);
 }
 
 function SharedFileSheet({
@@ -147,7 +151,7 @@ export default function App() {
   const { active, savePrinter } = useStore();
   const [tab, setTab] = useState<Tab>('home');
   const status = usePrinterStatusPoll(active);
-  useTheme(settings.theme);
+  useTheme(settings);
   useNativeSync(active, status.status, settings);
   const [sharedFile, clearSharedFile] = useSharedFiles();
 
@@ -183,6 +187,10 @@ export default function App() {
         <div className="app">
           <nav className="tabbar">
             <img className="rail-logo" src="./icon.svg" alt="" width={40} height={40} />
+            <span
+              className="tab-indicator"
+              style={{ '--i': TABS.findIndex((x) => x.id === tab) } as CSSProperties}
+            />
             {TABS.map(({ id, icon: Icon }) => (
               <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
                 <Icon size={22} />
