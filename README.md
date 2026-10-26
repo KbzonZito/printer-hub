@@ -36,17 +36,39 @@ other printer that exposes Moonraker (the same API Mobileraker uses).
 ## Install on Android
 
 1. Open [Releases](https://github.com/KbzonZito/printer-hub/releases) on your phone.
-2. Download `printer-hub.apk` from **Latest build** and open it (allow "install unknown apps"
-   the first time).
+2. Download `printer-hub-X.Y.Z.apk` from the latest release and open it (allow "install unknown
+   apps" the first time). Newer releases install as updates.
 3. Tap **Scan network**, or enter the printer's IP (printer screen → Network) and port `7125`.
 
-Every push to `main` builds a new APK. For a numbered release: `git tag v1.0.0 && git push --tags`.
+## Versions and releases
+
+The version lives in `package.json` (`MAJOR.MINOR.PATCH`); the Android `versionCode` is derived
+from it. Changes are listed under `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md).
+
+1. Work and commit locally; don't push yet.
+2. Build a test APK and install it on the phone:
+   ```bash
+   npm run apk              # installs directly if the phone is connected with USB/Wi-Fi debugging
+   npm run apk -- --serve   # or download it from the phone over the local network
+   ```
+   Test builds are named `X.Y.Z-test.<commit>` and use the release key, so they install over
+   the released app.
+3. When it all works, publish:
+   ```bash
+   npm run release -- 0.3.0
+   ```
+   This dates the changelog, commits, tags `v0.3.0` and pushes. GitHub Actions builds the APK
+   and creates the release with the changelog as notes. Pushes to `main` without a tag only
+   check that the app builds.
+
+Local builds need JDK 21 and the Android SDK (`brew install openjdk@21` and
+`brew install --cask android-commandlinetools`, then `sdkmanager "platform-tools"
+"platforms;android-36" "build-tools;36.0.0"`).
 
 ### Signing
 
-CI signs the APK with the key stored in the repository secrets so updates install over the
-previous version. Run this once to create the key and upload the secrets (requires `gh` and
-`openssl`):
+Releases and test builds are signed with the same key so they update each other. Run this once
+to create it and upload it to the repository secrets (requires `gh` and `openssl`):
 
 ```bash
 ./scripts/setup-signing.sh

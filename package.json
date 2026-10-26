@@ -7,7 +7,9 @@
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "android:sync": "npm run build && cap sync android"
+    "android:sync": "npm run build && cap sync android",
+    "apk": "scripts/build-apk.sh",
+    "release": "scripts/release.sh"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",

@@ -4,3 +4,4 @@ dist/
 *.keystore
 .DS_Store
 .env*
+builds/
