@@ -205,20 +205,19 @@ main {
   background: var(--danger);
 }
 
-/* Floating, rounded navigation bar with a fixed width. Idle items are just an icon;
-   the pressed item grows in place into a pill with its label. Widths always add up to
-   the same total, so the bar never changes size. */
+/* Floating, rounded navigation bar. Idle items are just an icon; the pressed item
+   grows in place into a pill that hugs its icon and label, and the bar, centred on
+   screen, grows and shrinks with it. */
 .tabbar {
-  --n: 5;
-  --grow: 2.5;
-  --unit: calc(100% / (var(--n) - 1 + var(--grow)));
   position: fixed;
   z-index: 10;
   left: 50%;
   bottom: calc(env(safe-area-inset-bottom) + 14px);
   transform: translateX(-50%);
   display: flex;
-  width: min(calc(100vw - 32px), 460px);
+  gap: 2px;
+  width: max-content;
+  max-width: calc(100vw - 16px);
   padding: 8px;
   border-radius: 999px;
   background: var(--surface-3);
@@ -228,22 +227,18 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: none;
-  width: var(--unit);
-  min-width: 0;
   height: 52px;
-  padding: 0 12px;
+  min-width: 52px;
+  padding: 0 15px;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--text);
   font-size: 14px;
   font-weight: 600;
-  transition:
-    width 0.35s var(--ease),
-    color 0.25s var(--ease);
+  transition: color 0.25s var(--ease);
 }
-/* The pill: fades and grows from the icon outwards on the pressed item. */
+/* The pill: fades in on the pressed item and always fills it exactly. */
 .tabbar button::before {
   content: '';
   position: absolute;
@@ -252,40 +247,46 @@ main {
   border-radius: inherit;
   background: var(--accent-soft);
   opacity: 0;
-  transform: scale(0.5, 0.8);
+  transform: scale(0.85);
   transition:
     opacity 0.2s var(--ease),
-    transform 0.35s var(--ease);
+    transform 0.3s var(--ease);
 }
 .tabbar button.active::before {
   opacity: 1;
   transform: none;
 }
+.tabbar button.active {
+  color: var(--on-accent-soft);
+}
 .tabbar button svg {
   flex-shrink: 0;
 }
-.tabbar button span {
-  max-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
+/* The label column animates from 0 to the text's exact width (0fr -> 1fr), so the
+   pill grows exactly as the text is revealed and the content stays centred. */
+.tab-label {
+  display: grid;
+  grid-template-columns: 0fr;
+  margin-left: 0;
   opacity: 0;
   transition:
-    max-width 0.35s var(--ease),
+    grid-template-columns 0.35s var(--ease),
     margin 0.35s var(--ease),
-    opacity 0.12s linear;
+    opacity 0.15s linear;
 }
-.tabbar button.active {
-  width: calc(var(--grow) * var(--unit));
-  color: var(--on-accent-soft);
+.tab-label > span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
-.tabbar button.active span {
-  max-width: 5em; /* longest label ("Archivos") fits; keeps the reveal in step with the width */
+.tabbar button.active .tab-label {
+  grid-template-columns: 1fr;
   margin-left: 8px;
   opacity: 1;
   transition:
-    max-width 0.35s var(--ease),
+    grid-template-columns 0.35s var(--ease),
     margin 0.35s var(--ease),
-    opacity 0.25s linear 0.1s;
+    opacity 0.3s linear 0.05s;
 }
 .rail-logo {
   display: none;
@@ -932,9 +933,9 @@ main {
   .tabbar button::before {
     display: none;
   }
-  .tabbar button span,
-  .tabbar button.active span {
-    max-width: none;
+  .tab-label,
+  .tabbar button.active .tab-label {
+    grid-template-columns: 1fr;
     margin: 0;
     opacity: 1;
     transition: none;

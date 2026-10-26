@@ -2,7 +2,8 @@ import type { ComponentType } from 'react';
 
 /**
  * Floating navigation bar. Idle items show only their icon; the pressed one grows in
- * place into a pill with its label (styles in .tabbar). The bar keeps a fixed width.
+ * place into a pill hugging its icon and label, and the bar resizes around them
+ * (styles in .tabbar).
  */
 export function NavBar<T extends string>({
   tabs,
@@ -26,7 +27,9 @@ export function NavBar<T extends string>({
           onClick={() => onSelect(id)}
         >
           <Icon size={22} />
-          <span>{label(id)}</span>
+          <span className="tab-label">
+            <span>{label(id)}</span>
+          </span>
         </button>
       ))}
     </nav>
