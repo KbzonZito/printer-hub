@@ -227,13 +227,12 @@ main {
   position: absolute;
   top: 8px;
   bottom: 8px;
-  left: calc(8px + var(--i) * (100% - 16px) / (var(--n) - 1 + var(--grow)));
-  width: calc(var(--grow) * (100% - 16px) / (var(--n) - 1 + var(--grow)));
+  left: 0;
+  width: 0;
   border-radius: 999px;
   background: var(--accent-soft);
-  transition:
-    left 0.4s var(--ease),
-    background-color 0.3s var(--ease);
+  will-change: transform, width;
+  transition: background-color 0.3s var(--ease);
 }
 .tabbar button {
   display: flex;
@@ -261,25 +260,24 @@ main {
   max-width: 0;
   overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
   opacity: 0;
   transition:
     max-width 0.4s var(--ease),
     margin 0.4s var(--ease),
-    opacity 0.15s linear;
+    opacity 0.1s linear;
 }
 .tabbar button.active {
   width: calc(var(--grow) * var(--unit));
   color: var(--on-accent-soft);
 }
 .tabbar button.active span {
-  max-width: 100%;
+  max-width: 7em;
   margin-left: 8px;
   opacity: 1;
   transition:
     max-width 0.4s var(--ease),
     margin 0.4s var(--ease),
-    opacity 0.25s linear 0.12s;
+    opacity 0.2s linear 0.18s;
 }
 .rail-logo {
   display: none;
@@ -738,7 +736,7 @@ main {
 }
 .detail-thumb {
   width: 100%;
-  max-height: 240px;
+  max-height: 200px;
   aspect-ratio: 1;
   object-fit: contain;
   border-radius: var(--radius);
@@ -1643,4 +1641,362 @@ a.btn {
   width: 14px;
   height: 14px;
   border-radius: 50%;
+}
+
+/* File browser: toolbar, breadcrumbs, grid view, folder picker */
+.files-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+}
+.files-toolbar .btn.icon {
+  min-height: 40px;
+  width: 40px;
+  height: 40px;
+}
+.breadcrumbs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+.breadcrumbs::-webkit-scrollbar {
+  display: none;
+}
+.breadcrumbs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 14px;
+}
+.breadcrumbs button.current {
+  color: var(--text);
+  background: var(--surface-2);
+}
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+}
+.sheet .breadcrumbs {
+  margin-bottom: 8px;
+}
+.file-list,
+.file-grid {
+  animation: screen-in 0.3s var(--ease-emph);
+}
+.file-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.file-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 8px 12px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: inherit;
+  text-align: left;
+}
+.file-card .file-thumb {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+}
+.file-card .file-name,
+.file-card .muted {
+  padding: 0 4px;
+}
+.file-card .muted {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.file-name.two-lines {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 14px;
+  line-height: 1.3;
+}
+.folder .file-thumb.placeholder {
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+.dir-menu {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: var(--muted);
+}
+.file-card .dir-menu {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--surface);
+}
+.folder-picker {
+  min-height: 120px;
+  max-height: 45vh;
+  overflow-y: auto;
+  margin-bottom: 14px;
+}
+.folder-picker .loader {
+  margin: 30px auto;
+}
+.center {
+  text-align: center;
+}
+.right {
+  text-align: right;
+}
+
+/* File details: time estimates and metadata */
+.estimate,
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.estimate-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--accent);
+}
+.estimate-head > div {
+  display: flex;
+  flex-direction: column;
+  color: var(--text);
+}
+.estimate-head strong {
+  font-size: 22px;
+}
+.estimate-head .right {
+  max-width: 45%;
+}
+.estimate-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+.estimate-row > :last-child {
+  text-align: right;
+}
+.sheet .row.gap + .row.gap {
+  margin-top: 10px;
+}
+
+/* Expandable settings sections */
+.section {
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: background-color 0.3s var(--ease);
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 18px 12px 14px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: inherit;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.section-head .grow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.section-head strong {
+  font-size: 16px;
+}
+.section-head small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.section-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+  transition: border-radius 0.3s var(--ease);
+}
+.section.open .section-icon {
+  border-radius: 14px;
+}
+.section-chevron {
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: transform 0.35s var(--ease);
+}
+.section.open .section-chevron {
+  transform: rotate(180deg);
+}
+.section-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s var(--ease);
+}
+.section.open .section-body {
+  grid-template-rows: 1fr;
+}
+.section-body > div {
+  overflow: hidden;
+}
+.section-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 16px 18px;
+  opacity: 0;
+  transition: opacity 0.2s linear;
+}
+.section.open .section-content {
+  opacity: 1;
+  transition: opacity 0.25s linear 0.1s;
+}
+.section-content .list-item:not(.selected),
+.section-content .select-field,
+.section-content .segmented,
+.section-content .toggle,
+.section-content .input {
+  background: var(--surface-2);
+}
+.settings-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Temperature presets */
+.preset-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px 6px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.preset-row .grow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* About */
+.about {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+.about h3 {
+  margin: 0;
+  font-size: 26px;
+}
+.about-images {
+  display: flex;
+  gap: 14px;
+}
+.about-images img {
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
+  background: var(--surface-2);
+  object-fit: cover;
+}
+.made-by {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.made-by svg {
+  color: #e5484d;
+  fill: #e5484d;
+}
+.made-by button {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--text);
+}
+.about .btn {
+  width: 100%;
+}
+.about .row {
+  width: 100%;
+}
+.about-meta {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  text-align: left;
+}
+.about-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 6px;
+  font-size: 14px;
+}
+.about-links button {
+  border: 0;
+  background: none;
+  padding: 4px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.about-links span {
+  color: var(--muted);
+}
+.file-card.folder .file-thumb {
+  aspect-ratio: 16 / 9;
+}
+.btn svg {
+  flex-shrink: 0;
 }

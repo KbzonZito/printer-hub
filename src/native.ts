@@ -22,6 +22,8 @@ interface PrinterMonitorPlugin {
   }): Promise<void>;
   getLocalIp(): Promise<{ ip?: string }>;
   getSystemColor(): Promise<{ color?: string }>;
+  openUrl(opts: { url: string }): Promise<void>;
+  shareText(opts: { text: string }): Promise<void>;
   takeSharedFile(): Promise<SharedFile>;
   addListener(event: 'sharedFile', fn: (file: SharedFile) => void): Promise<PluginListenerHandle>;
 }
@@ -35,4 +37,16 @@ export async function readSharedFile(file: SharedFile): Promise<File> {
   const res = await fetch(Capacitor.convertFileSrc(file.path!));
   const blob = await res.blob();
   return new File([blob], file.name ?? 'shared.gcode');
+}
+
+/** Opens a link outside the app (system browser on Android). */
+export function openExternal(url: string) {
+  if (isNative) PrinterMonitor.openUrl({ url }).catch(() => {});
+  else window.open(url, '_blank', 'noopener');
+}
+
+export async function shareText(text: string) {
+  if (isNative) return PrinterMonitor.shareText({ text });
+  if (navigator.share) return navigator.share({ text }).catch(() => {});
+  await navigator.clipboard?.writeText(text);
 }

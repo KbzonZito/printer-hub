@@ -128,6 +128,27 @@ public class PrinterMonitorPlugin extends Plugin {
         call.resolve(ret);
     }
 
+    /** Opens a link in the default browser. */
+    @PluginMethod
+    public void openUrl(PluginCall call) {
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(call.getString("url", "")));
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(intent);
+        call.resolve();
+    }
+
+    /** Shows the Android share sheet with a text. */
+    @PluginMethod
+    public void shareText(PluginCall call) {
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_TEXT, call.getString("text", ""));
+        Intent chooser = Intent.createChooser(send, null);
+        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(chooser);
+        call.resolve();
+    }
+
     /** Accent color of the system theme (Material You, Android 12+), used as the palette seed. */
     @PluginMethod
     public void getSystemColor(PluginCall call) {

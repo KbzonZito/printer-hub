@@ -31,19 +31,6 @@ import { useT, type MessageKey } from '../i18n';
 import { useSettings, type Printer } from '../store';
 import { usePrinterStatus } from '../usePrinterStatus';
 
-const PRESETS = {
-  extruder: [
-    { label: 'PLA', value: 210 },
-    { label: 'PETG', value: 240 },
-    { label: 'ABS', value: 250 },
-  ],
-  heater_bed: [
-    { label: 'PLA', value: 60 },
-    { label: 'PETG', value: 75 },
-    { label: 'ABS', value: 100 },
-  ],
-};
-
 function ProgressRing({ value }: { value: number }) {
   const r = 34;
   const c = 2 * Math.PI * r;
@@ -111,6 +98,7 @@ export function Dashboard({
   const [meta, setMeta] = useState<{ file: string; data: FileMetadata } | null>(null);
   const [tempSheet, setTempSheet] = useState<'extruder' | 'heater_bed' | null>(null);
   const [customTemp, setCustomTemp] = useState('');
+  const [preheat, setPreheat] = useState(false);
   const [confirm, setConfirm] = useState<'cancel' | 'estop' | null>(null);
   const [tune, setTune] = useState(false);
 
@@ -309,6 +297,11 @@ export function Dashboard({
               </button>
             )}
             {!active && (
+              <button className="btn grow" onClick={() => setPreheat(true)}>
+                <Flame size={18} /> {t('home.preheat')}
+              </button>
+            )}
+            {!active && (
               <button
                 className="btn grow"
                 onClick={() => act(() => printerActions.gcode(printer, 'G28'), t('home.homing'))}
@@ -330,9 +323,16 @@ export function Dashboard({
       >
         <div className="presets">
           {tempSheet &&
-            [{ label: t('home.turnOff'), value: 0 }, ...PRESETS[tempSheet]].map((p) => (
+            [
+              { id: 'off', label: t('home.turnOff'), value: 0 },
+              ...settings.presets.map((p) => ({
+                id: p.id,
+                label: p.name,
+                value: tempSheet === 'extruder' ? p.nozzle : p.bed,
+              })),
+            ].map((p) => (
               <button
-                key={p.label}
+                key={p.id}
                 className="btn"
                 onClick={() => {
                   act(() => printerActions.setTemp(printer, tempSheet, p.value));
@@ -368,6 +368,45 @@ export function Dashboard({
             {t('common.apply')}
           </button>
         </form>
+      </Sheet>
+
+      <Sheet open={preheat} onClose={() => setPreheat(false)} title={t('home.preheat')}>
+        <div className="presets">
+          <button
+            className="btn"
+            onClick={() => {
+              setPreheat(false);
+              act(async () => {
+                await printerActions.setTemp(printer, 'extruder', 0);
+                await printerActions.setTemp(printer, 'heater_bed', 0);
+              }, t('home.cooling'));
+            }}
+          >
+            <strong>{t('home.cooldown')}</strong>
+            <span className="muted small">0° / 0°</span>
+          </button>
+          {settings.presets.map((p) => (
+            <button
+              key={p.id}
+              className="btn"
+              onClick={() => {
+                setPreheat(false);
+                act(
+                  async () => {
+                    await printerActions.setTemp(printer, 'extruder', p.nozzle);
+                    await printerActions.setTemp(printer, 'heater_bed', p.bed);
+                  },
+                  t('home.preheating', { name: p.name }),
+                );
+              }}
+            >
+              <strong>{p.name}</strong>
+              <span className="muted small">
+                {p.nozzle}° / {p.bed}°
+              </span>
+            </button>
+          ))}
+        </div>
       </Sheet>
 
       <TuneSheet open={tune} onClose={() => setTune(false)} printer={printer} status={status} />

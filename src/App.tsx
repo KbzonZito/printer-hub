@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -12,6 +12,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { uploadFile } from './api/moonraker';
+import { NavBar } from './components/NavBar';
 import { Sheet, ToastProvider, useAction } from './components/ui';
 import { formatBytes } from './format';
 import { useT, type MessageKey } from './i18n';
@@ -21,7 +22,7 @@ import { CameraScreen } from './screens/CameraScreen';
 import { ControlScreen } from './screens/ControlScreen';
 import { Dashboard } from './screens/Dashboard';
 import { FilesScreen } from './screens/FilesScreen';
-import { AppPreferences, PrinterForm, SettingsScreen } from './screens/SettingsScreen';
+import { AppearancePrefs, PrinterForm, SettingsScreen } from './screens/SettingsScreen';
 import { newPrinter, useSettings, useStore, type Printer, type Settings as AppSettings } from './store';
 import { useNativeSync, useSharedFiles } from './useNativeBridge';
 import { StatusContext, usePrinterStatusPoll } from './usePrinterStatus';
@@ -137,7 +138,7 @@ function Onboarding() {
           </div>
           <h1>Printer Hub</h1>
           <p className="muted">{t('onboarding.text')}</p>
-          <AppPreferences compact />
+          <AppearancePrefs />
           <PrinterForm initial={newPrinter()} onSave={savePrinter} />
         </div>
       </main>
@@ -185,19 +186,12 @@ export default function App() {
     <ToastProvider>
       <StatusContext.Provider value={status}>
         <div className="app">
-          <nav className="tabbar">
-            <img className="rail-logo" src="./icon.svg" alt="" width={40} height={40} />
-            <span
-              className="tab-indicator"
-              style={{ '--i': TABS.findIndex((x) => x.id === tab) } as CSSProperties}
-            />
-            {TABS.map(({ id, icon: Icon }) => (
-              <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
-                <Icon size={22} />
-                <span>{t(`tab.${id}` as MessageKey)}</span>
-              </button>
-            ))}
-          </nav>
+          <NavBar
+            tabs={TABS}
+            active={tab}
+            onSelect={setTab}
+            label={(id) => t(`tab.${id}` as MessageKey)}
+          />
 
           <div className="content">
             <header className="topbar">

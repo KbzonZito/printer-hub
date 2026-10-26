@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type ComponentType,
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
@@ -187,5 +188,61 @@ export function useAction() {
       }
     },
     [toast],
+  );
+}
+
+const SECTIONS_KEY = 'printer-hub:sections';
+
+function readOpenSections(): Record<string, boolean> {
+  try {
+    return JSON.parse(localStorage.getItem(SECTIONS_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+/** Expandable settings card; remembers whether it was left open. */
+export function Section({
+  id,
+  icon: Icon,
+  title,
+  summary,
+  defaultOpen = false,
+  children,
+}: {
+  id: string;
+  icon: ComponentType<{ size?: number }>;
+  title: string;
+  summary?: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(() => readOpenSections()[id] ?? defaultOpen);
+  const toggle = () => {
+    setOpen(!open);
+    try {
+      localStorage.setItem(SECTIONS_KEY, JSON.stringify({ ...readOpenSections(), [id]: !open }));
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  return (
+    <section className={`section ${open ? 'open' : ''}`}>
+      <button type="button" className="section-head" onClick={toggle} aria-expanded={open}>
+        <span className="section-icon">
+          <Icon size={20} />
+        </span>
+        <span className="grow">
+          <strong>{title}</strong>
+          {summary && <small className="muted">{summary}</small>}
+        </span>
+        <ChevronDown size={20} className="section-chevron" />
+      </button>
+      <div className="section-body">
+        <div>
+          <div className="section-content">{children}</div>
+        </div>
+      </div>
+    </section>
   );
 }

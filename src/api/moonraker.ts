@@ -50,6 +50,11 @@ export interface FileMetadata {
   layer_height?: number;
   object_height?: number;
   slicer?: string;
+  filament_type?: string;
+  filament_name?: string;
+  first_layer_extr_temp?: number;
+  first_layer_bed_temp?: number;
+  nozzle_diameter?: number;
   thumbnails?: { width: number; height: number; relative_path: string }[];
 }
 
@@ -214,6 +219,53 @@ export async function listFiles(p: Printer): Promise<GcodeFile[]> {
     .sort((a, b) => b.modified - a.modified);
 }
 
+export interface GcodeDir {
+  name: string;
+  /** Path relative to the gcodes root. */
+  path: string;
+  modified: number;
+  size: number;
+}
+
+const GCODE_EXT = /\.(gcode|g|gco)$/i;
+const joinPath = (dir: string, name: string) => (dir ? `${dir}/${name}` : name);
+
+/** One folder of the gcodes root: its subfolders and G-code files. */
+export async function listDirectory(
+  p: Printer,
+  dir: string,
+): Promise<{ dirs: GcodeDir[]; files: GcodeFile[] }> {
+  const res = await get<{
+    dirs: { dirname: string; modified: number; size: number }[];
+    files: { filename: string; modified: number; size: number }[];
+  }>(p, `/server/files/directory?path=${encodeURIComponent(joinPath('gcodes', dir))}`);
+  return {
+    dirs: res.dirs
+      .filter((d) => !d.dirname.startsWith('.'))
+      .map((d) => ({ ...d, name: d.dirname, path: joinPath(dir, d.dirname) })),
+    files: res.files
+      .filter((f) => GCODE_EXT.test(f.filename))
+      .map((f) => ({ path: joinPath(dir, f.filename), modified: f.modified, size: f.size })),
+  };
+}
+
+export async function createDirectory(p: Printer, path: string): Promise<void> {
+  await post(p, `/server/files/directory?path=${encodeURIComponent(`gcodes/${path}`)}`);
+}
+
+export async function deleteDirectory(p: Printer, path: string): Promise<void> {
+  await request(
+    `${baseUrl(p)}/server/files/directory?path=${encodeURIComponent(`gcodes/${path}`)}&force=true`,
+    { method: 'DELETE' },
+  );
+}
+
+/** Moves or renames a file or folder inside the gcodes root. */
+export async function moveItem(p: Printer, source: string, dest: string): Promise<void> {
+  const q = `source=${encodeURIComponent(`gcodes/${source}`)}&dest=${encodeURIComponent(`gcodes/${dest}`)}`;
+  await post(p, `/server/files/move?${q}`);
+}
+
 export function fetchMetadata(p: Printer, filename: string): Promise<FileMetadata> {
   return get<FileMetadata>(p, `/server/files/metadata?filename=${encodeURIComponent(filename)}`);
 }
@@ -232,10 +284,11 @@ export async function deleteFile(p: Printer, filename: string): Promise<void> {
   });
 }
 
-export async function uploadFile(p: Printer, file: File, print = false): Promise<void> {
+export async function uploadFile(p: Printer, file: File, print = false, dir = ''): Promise<void> {
   const form = new FormData();
   form.append('file', file, file.name);
   form.append('root', 'gcodes');
+  if (dir) form.append('path', dir);
   if (print) form.append('print', 'true');
   await request(`${baseUrl(p)}/server/files/upload`, {
     method: 'POST',
@@ -341,6 +394,24 @@ export function timelapseUrl(p: Printer, path: string): string {
 
 export function gcodeFileUrl(p: Printer, path: string): string {
   return `${baseUrl(p)}/server/files/gcodes/${encodePath(path)}`;
+}
+
+export interface SystemVersions {
+  hostname?: string;
+  klipper?: string;
+  moonraker?: string;
+}
+
+export async function fetchVersions(p: Printer): Promise<SystemVersions> {
+  const [printer, server] = await Promise.all([
+    get<{ hostname?: string; software_version?: string }>(p, '/printer/info').catch(() => null),
+    get<{ moonraker_version?: string }>(p, '/server/info').catch(() => null),
+  ]);
+  return {
+    hostname: printer?.hostname,
+    klipper: printer?.software_version,
+    moonraker: server?.moonraker_version,
+  };
 }
 
 /** Probes one address for Moonraker; returns the printer's hostname when found. */

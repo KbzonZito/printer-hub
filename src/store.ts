@@ -25,6 +25,22 @@ export interface Printer {
   cameraUrl: string;
 }
 
+export type FileSort = 'date' | 'name' | 'size';
+
+export interface TempPreset {
+  id: string;
+  name: string;
+  nozzle: number;
+  bed: number;
+}
+
+export const DEFAULT_PRESETS: TempPreset[] = [
+  { id: 'pla', name: 'PLA', nozzle: 210, bed: 60 },
+  { id: 'petg', name: 'PETG', nozzle: 240, bed: 75 },
+  { id: 'abs', name: 'ABS', nozzle: 250, bed: 100 },
+  { id: 'tpu', name: 'TPU', nozzle: 225, bed: 50 },
+];
+
 export interface Settings {
   lang: Lang;
   theme: Theme;
@@ -32,6 +48,10 @@ export interface Settings {
   color: string;
   paletteStyle: PaletteStyle;
   eta: EtaMethod;
+  presets: TempPreset[];
+  fileSort: FileSort;
+  fileSortDesc: boolean;
+  fileView: 'list' | 'grid';
   /** Background notifications and widget updates while printing (Android). */
   notify: boolean;
 }
@@ -47,7 +67,18 @@ const KEY = 'printer-hub:v1';
 function defaultSettings(): Settings {
   const lang =
     typeof navigator !== 'undefined' && !navigator.language.startsWith('es') ? 'en' : 'es';
-  return { lang, theme: 'system', color: 'device', paletteStyle: 'tonalSpot', eta: 'auto', notify: true };
+  return {
+    lang,
+    theme: 'system',
+    color: 'device',
+    paletteStyle: 'tonalSpot',
+    eta: 'auto',
+    presets: DEFAULT_PRESETS,
+    fileSort: 'date',
+    fileSortDesc: true,
+    fileView: 'list',
+    notify: true,
+  };
 }
 
 function load(): State {
@@ -85,9 +116,11 @@ function subscribe(l: () => void) {
 /** Current settings for code that runs outside React (e.g. API error messages). */
 export const getSettings = () => state.settings;
 
+export const newId = () => Math.random().toString(36).slice(2, 10);
+
 export function newPrinter(): Printer {
   return {
-    id: Math.random().toString(36).slice(2, 10),
+    id: newId(),
     name: 'Creality Hi',
     host: '',
     port: 7125,

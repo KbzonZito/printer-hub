@@ -13,15 +13,18 @@ other printer that exposes Moonraker (the same API Mobileraker uses).
 - **Camera**: Creality WebRTC (port 8000), webcams configured in Moonraker, or MJPEG (port 8080).
   Rotate the device for a landscape view.
 - **Control**: jog the axes, home, extrude / retract, run Klipper macros and a G-code console.
-- **Files**: G-codes stored on the printer with thumbnails, print time and filament; print,
-  delete and upload new files.
+- **Files**: browse the printer's folders in a list or grid, sort by date, name or size,
+  create folders, and move, rename, delete or upload files. Tapping a file shows its details
+  and a time estimate adjusted with your own print history (last real print time, slicer
+  estimate corrected by how fast your printer really is, or a filament-based estimate).
 - **History** with totals and one-tap reprint, plus **timelapses** (requires the
   moonraker-timelapse plugin).
 - **Notifications** when a print finishes, pauses or fails, even with the app closed, and a
   **home screen widget** with progress and finish time.
 - **Share a .gcode** from another app (Drive, WhatsApp, your slicer…) to upload or print it.
 - **Network discovery** to find Moonraker printers on your Wi-Fi.
-- **Settings**: multiple printers, connection test, camera mode, language (English / Spanish),
+- **Preheat presets**: add, edit or remove materials with their nozzle and bed temperatures.
+- **Settings** in collapsible sections: multiple printers, connection test, camera mode, language (English / Spanish),
   light / dark / system theme, and the remaining-time method (automatic, slicer, printer M73,
   file progress or filament used).
 - Material 3 dynamic color: use the device's Material You color or pick one of the preset
