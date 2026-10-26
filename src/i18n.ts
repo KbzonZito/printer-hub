@@ -30,7 +30,8 @@ const es = {
     'Conecta tu Creality Hi (o cualquier impresora con Klipper + Moonraker) introduciendo su IP local. La encuentras en la pantalla de la impresora, en Ajustes → Red.',
 
   'home.offline': 'Sin conexión',
-  'home.offlineHint': '{error}. Revisa la IP {host} y que el puerto {port} (Moonraker) esté accesible.',
+  'home.offlineHint':
+    '{error}. Revisa la IP {host} y que el puerto {port} (Moonraker) esté accesible.',
   'home.connecting': 'Conectando con {name}…',
   'home.unstable': 'Conexión inestable: {error}',
   'home.firmwareRestart': 'Reiniciar firmware',
@@ -123,6 +124,66 @@ const es = {
   'form.cam.webrtc': 'WebRTC (Creality)',
   'form.cam.mjpeg': 'MJPEG stream',
   'form.cam.snapshot': 'Snapshot',
+
+  'tab.control': 'Control',
+  'chart.title': 'Temperaturas',
+
+  'tune.title': 'Ajustes de impresión',
+  'tune.speed': 'Velocidad',
+  'tune.flow': 'Flujo',
+  'tune.zOffset': 'Z-offset',
+  'tune.hint': 'Los cambios se aplican al instante. Toca un valor para volver al 100 %.',
+  'home.tune': 'Ajustar',
+
+  'control.move': 'Movimiento',
+  'control.printingLocked': 'El movimiento está bloqueado mientras imprime.',
+  'control.notHomed': 'Haz home antes de mover los ejes.',
+  'control.motorsOff': 'Motores off',
+  'control.motorsOffDone': 'Motores desactivados',
+  'control.extruder': 'Extrusor',
+  'control.coldExtruder': 'Calienta la boquilla a {temp} °C o más para extruir.',
+  'control.extrude': 'Extruir',
+  'control.retract': 'Retraer',
+  'control.macros': 'Macros',
+  'control.running': 'Ejecutando…',
+  'control.console': 'Consola',
+  'control.consoleEmpty': 'Sin mensajes todavía',
+  'control.send': 'Enviar',
+
+  'files.tab.files': 'Archivos',
+  'files.tab.history': 'Historial',
+  'files.tab.timelapse': 'Timelapse',
+
+  'history.jobs': 'Trabajos',
+  'history.printTime': 'Tiempo',
+  'history.successRate': 'Éxito',
+  'history.empty': 'Todavía no hay impresiones',
+  'history.result': 'Resultado',
+  'history.reprint': 'Volver a imprimir',
+  'history.fileGone': 'El archivo ya no existe',
+  'history.completed': 'Completada',
+  'history.cancelled': 'Cancelada',
+  'history.error': 'Error',
+  'history.klippy_shutdown': 'Klipper detenido',
+  'history.in_progress': 'En curso',
+
+  'timelapse.empty': 'No hay timelapses. Requiere el plugin moonraker-timelapse.',
+  'timelapse.download': 'Abrir / descargar',
+
+  'discovery.scan': 'Buscar en la red',
+  'discovery.scanning': 'Buscando… {pct}%',
+  'discovery.none': 'No se encontró ninguna impresora en {subnet}.x',
+  'discovery.pick': 'Toca una para usarla',
+
+  'settings.notify': 'Notificaciones y widget',
+  'settings.notifyHint':
+    'Avisa cuando la impresión termina, se pausa o falla, aunque la app esté cerrada. Añade el widget desde la pantalla de inicio de Android.',
+  'settings.notifyDenied': 'Permiso de notificaciones denegado',
+
+  'share.title': 'Archivo recibido',
+  'share.upload': 'Subir',
+  'share.uploadPrint': 'Subir e imprimir',
+  'share.uploading': 'Subiendo…',
 };
 
 export type MessageKey = keyof typeof es;
@@ -249,6 +310,66 @@ const en: Record<MessageKey, string> = {
   'form.cam.webrtc': 'WebRTC (Creality)',
   'form.cam.mjpeg': 'MJPEG stream',
   'form.cam.snapshot': 'Snapshot',
+
+  'tab.control': 'Control',
+  'chart.title': 'Temperatures',
+
+  'tune.title': 'Print tuning',
+  'tune.speed': 'Speed',
+  'tune.flow': 'Flow',
+  'tune.zOffset': 'Z offset',
+  'tune.hint': 'Changes apply immediately. Tap a value to reset it to 100%.',
+  'home.tune': 'Tune',
+
+  'control.move': 'Movement',
+  'control.printingLocked': 'Movement is locked while printing.',
+  'control.notHomed': 'Home the printer before moving the axes.',
+  'control.motorsOff': 'Motors off',
+  'control.motorsOffDone': 'Motors disabled',
+  'control.extruder': 'Extruder',
+  'control.coldExtruder': 'Heat the nozzle to {temp} °C or more to extrude.',
+  'control.extrude': 'Extrude',
+  'control.retract': 'Retract',
+  'control.macros': 'Macros',
+  'control.running': 'Running…',
+  'control.console': 'Console',
+  'control.consoleEmpty': 'No messages yet',
+  'control.send': 'Send',
+
+  'files.tab.files': 'Files',
+  'files.tab.history': 'History',
+  'files.tab.timelapse': 'Timelapse',
+
+  'history.jobs': 'Jobs',
+  'history.printTime': 'Time',
+  'history.successRate': 'Success',
+  'history.empty': 'No prints yet',
+  'history.result': 'Result',
+  'history.reprint': 'Print again',
+  'history.fileGone': 'File no longer exists',
+  'history.completed': 'Completed',
+  'history.cancelled': 'Cancelled',
+  'history.error': 'Error',
+  'history.klippy_shutdown': 'Klipper shutdown',
+  'history.in_progress': 'In progress',
+
+  'timelapse.empty': 'No timelapses. Requires the moonraker-timelapse plugin.',
+  'timelapse.download': 'Open / download',
+
+  'discovery.scan': 'Scan network',
+  'discovery.scanning': 'Scanning… {pct}%',
+  'discovery.none': 'No printers found on {subnet}.x',
+  'discovery.pick': 'Tap one to use it',
+
+  'settings.notify': 'Notifications & widget',
+  'settings.notifyHint':
+    'Alerts you when a print finishes, pauses or fails, even with the app closed. Add the widget from your Android home screen.',
+  'settings.notifyDenied': 'Notification permission denied',
+
+  'share.title': 'File received',
+  'share.upload': 'Upload',
+  'share.uploadPrint': 'Upload and print',
+  'share.uploading': 'Uploading…',
 };
 
 const messages: Record<Lang, Record<MessageKey, string>> = { es, en };

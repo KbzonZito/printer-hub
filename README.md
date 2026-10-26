@@ -16,6 +16,14 @@ y cualquier impresora que exponga Moonraker (lo mismo que usa Mobileraker).
   inglés), tema claro / oscuro / sistema y método de cálculo del tiempo restante
   (automático, laminador, impresora M73, avance del archivo o filamento).
 - Diseño adaptado a tablet: barra lateral y panel en dos columnas en horizontal.
+- **Control**: mover ejes, home, extruir / retraer, macros de Klipper y consola G-code.
+- **Ajustes en vivo** durante la impresión: velocidad, flujo, Z-offset y ventilador.
+- **Gráfica de temperaturas** de los últimos 5, 10 o 20 minutos.
+- **Historial** con estadísticas y reimpresión, y **timelapses** (plugin moonraker-timelapse).
+- **Notificaciones** al terminar, pausar o fallar una impresión, aunque la app esté cerrada,
+  y **widget** de pantalla de inicio con progreso y hora de fin.
+- **Compartir un .gcode** desde otra app (Drive, WhatsApp, el laminador…) para subirlo o imprimirlo.
+- **Buscar la impresora** en la red automáticamente.
 
 ## Instalar en Android
 

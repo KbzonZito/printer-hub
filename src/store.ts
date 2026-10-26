@@ -19,6 +19,8 @@ export interface Settings {
   lang: Lang;
   theme: Theme;
   eta: EtaMethod;
+  /** Background notifications and widget updates while printing (Android). */
+  notify: boolean;
 }
 
 interface State {
@@ -30,8 +32,9 @@ interface State {
 const KEY = 'printer-hub:v1';
 
 function defaultSettings(): Settings {
-  const lang = typeof navigator !== 'undefined' && !navigator.language.startsWith('es') ? 'en' : 'es';
-  return { lang, theme: 'system', eta: 'auto' };
+  const lang =
+    typeof navigator !== 'undefined' && !navigator.language.startsWith('es') ? 'en' : 'es';
+  return { lang, theme: 'system', eta: 'auto', notify: true };
 }
 
 function load(): State {
@@ -97,7 +100,9 @@ export function useStore() {
     const exists = state.printers.some((x) => x.id === p.id);
     setState({
       ...state,
-      printers: exists ? state.printers.map((x) => (x.id === p.id ? p : x)) : [...state.printers, p],
+      printers: exists
+        ? state.printers.map((x) => (x.id === p.id ? p : x))
+        : [...state.printers, p],
       activeId: state.activeId ?? p.id,
     });
   }, []);

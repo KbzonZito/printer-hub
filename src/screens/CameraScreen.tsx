@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Thermometer } from 'lucide-react';
 import { CameraView } from '../components/CameraView';
 import { useT, type MessageKey } from '../i18n';
 import type { CameraMode, Printer } from '../store';
@@ -29,10 +29,16 @@ export function CameraScreen({
         <CameraView printer={printer} retryKey={retry} />
         {status && (
           <div className="camera-overlay">
-            <span className={`pill ${status.state}`}>{t(`state.${status.state}` as MessageKey)}</span>
+            <span className={`pill ${status.state}`}>
+              {t(`state.${status.state}` as MessageKey)}
+            </span>
             {status.state === 'printing' && <span>{Math.round(status.progress * 100)}%</span>}
-            <span>🔥 {status.extruder.temperature.toFixed(0)}°</span>
-            <span>▭ {status.bed.temperature.toFixed(0)}°</span>
+            <span className="overlay-temp">
+              <Thermometer size={14} /> {t('home.nozzle')} {status.extruder.temperature.toFixed(0)}°
+            </span>
+            <span className="overlay-temp">
+              <Thermometer size={14} /> {t('home.bed')} {status.bed.temperature.toFixed(0)}°
+            </span>
           </div>
         )}
       </div>
@@ -48,7 +54,11 @@ export function CameraScreen({
             </button>
           ))}
         </div>
-        <button className="btn icon" onClick={() => setRetry((n) => n + 1)} aria-label={t('camera.reconnect')}>
+        <button
+          className="btn icon"
+          onClick={() => setRetry((n) => n + 1)}
+          aria-label={t('camera.reconnect')}
+        >
           <RefreshCw size={18} />
         </button>
       </div>

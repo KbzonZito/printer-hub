@@ -16,14 +16,20 @@ function fromProgress(elapsed: number, progress: number): number | null {
   return Math.max(elapsed / progress - elapsed, 0);
 }
 
-export function computeEta(s: PrinterStatus, meta: FileMetadata | undefined, method: EtaMethod): Eta {
+export function computeEta(
+  s: PrinterStatus,
+  meta: FileMetadata | undefined,
+  method: EtaMethod,
+): Eta {
   const elapsed = s.printDuration;
   const slicerTotal = meta?.estimated_time ?? null;
   const byMethod = {
     slicer: slicerTotal != null ? Math.max(slicerTotal - elapsed, 0) : null,
     printer: fromProgress(elapsed, s.displayProgress),
     file: fromProgress(elapsed, s.progress),
-    filament: meta?.filament_total ? fromProgress(elapsed, s.filamentUsed / meta.filament_total) : null,
+    filament: meta?.filament_total
+      ? fromProgress(elapsed, s.filamentUsed / meta.filament_total)
+      : null,
   };
 
   let used: Eta['method'] = null;

@@ -2,21 +2,35 @@ import { useEffect, useState } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { Camera, FolderOpen, Gauge, Settings } from 'lucide-react';
-import { ToastProvider } from './components/ui';
+import {
+  Camera,
+  FileUp,
+  FolderOpen,
+  Gauge,
+  Move,
+  Printer as PrinterIcon,
+  Settings,
+} from 'lucide-react';
+import { uploadFile } from './api/moonraker';
+import { Sheet, ToastProvider, useAction } from './components/ui';
+import { formatBytes } from './format';
 import { useT, type MessageKey } from './i18n';
+import { readSharedFile, type SharedFile } from './native';
 import { CameraScreen } from './screens/CameraScreen';
+import { ControlScreen } from './screens/ControlScreen';
 import { Dashboard } from './screens/Dashboard';
 import { FilesScreen } from './screens/FilesScreen';
 import { AppPreferences, PrinterForm, SettingsScreen } from './screens/SettingsScreen';
-import { newPrinter, useSettings, useStore, type Theme } from './store';
+import { newPrinter, useSettings, useStore, type Printer, type Theme } from './store';
+import { useNativeSync, useSharedFiles } from './useNativeBridge';
 import { StatusContext, usePrinterStatusPoll } from './usePrinterStatus';
 
-type Tab = 'home' | 'camera' | 'files' | 'settings';
+type Tab = 'home' | 'camera' | 'control' | 'files' | 'settings';
 
 const TABS: { id: Tab; icon: typeof Gauge }[] = [
   { id: 'home', icon: Gauge },
   { id: 'camera', icon: Camera },
+  { id: 'control', icon: Move },
   { id: 'files', icon: FolderOpen },
   { id: 'settings', icon: Settings },
 ];
@@ -46,6 +60,67 @@ function useTheme(theme: Theme) {
   }, [theme, dark]);
 }
 
+function SharedFileSheet({
+  file,
+  printer,
+  onClose,
+  onPrinted,
+}: {
+  file: SharedFile | null;
+  printer: Printer;
+  onClose: () => void;
+  onPrinted: () => void;
+}) {
+  const t = useT();
+  const run = useAction();
+  const [busy, setBusy] = useState(false);
+  const upload = async (print: boolean) => {
+    if (!file) return;
+    setBusy(true);
+    const ok = await run(
+      async () => uploadFile(printer, await readSharedFile(file), print),
+      t('files.uploaded', { name: file.name ?? '' }),
+    );
+    setBusy(false);
+    if (ok) {
+      onClose();
+      if (print) onPrinted();
+    }
+  };
+  return (
+    <Sheet open={!!file} onClose={() => !busy && onClose()} title={t('share.title')}>
+      {file && (
+        <>
+          <div className="shared-file">
+            <FileUp size={22} className="accent" />
+            <div className="file-info">
+              <span className="file-name">{file.name}</span>
+              <span className="muted small">
+                {formatBytes(file.size ?? 0)} → {printer.name}
+              </span>
+            </div>
+          </div>
+          {busy ? (
+            <div className="row gap center-v">
+              <div className="loader small" />
+              <span className="muted">{t('share.uploading')}</span>
+            </div>
+          ) : (
+            <div className="row gap">
+              <button className="btn grow" onClick={() => upload(false)}>
+                {t('share.upload')}
+              </button>
+              <button className="btn primary grow" onClick={() => upload(true)}>
+                <PrinterIcon size={18} /> {t('share.uploadPrint')}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </Sheet>
+  );
+}
+
 function Onboarding() {
   const t = useT();
   const { savePrinter } = useStore();
@@ -73,6 +148,8 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('home');
   const status = usePrinterStatusPoll(active);
   useTheme(settings.theme);
+  useNativeSync(active, status.status, settings);
+  const [sharedFile, clearSharedFile] = useSharedFiles();
 
   useEffect(() => {
     document.documentElement.lang = settings.lang;
@@ -129,18 +206,29 @@ export default function App() {
             </header>
 
             <main key={active.id}>
-              {tab === 'home' && <Dashboard printer={active} onOpenCamera={() => setTab('camera')} />}
+              {tab === 'home' && (
+                <Dashboard printer={active} onOpenCamera={() => setTab('camera')} />
+              )}
               {tab === 'camera' && (
                 <CameraScreen
                   printer={active}
                   onModeChange={(cameraMode) => savePrinter({ ...active, cameraMode })}
                 />
               )}
-              {tab === 'files' && <FilesScreen printer={active} onPrintStarted={() => setTab('home')} />}
+              {tab === 'control' && <ControlScreen printer={active} />}
+              {tab === 'files' && (
+                <FilesScreen printer={active} onPrintStarted={() => setTab('home')} />
+              )}
               {tab === 'settings' && <SettingsScreen />}
             </main>
           </div>
         </div>
+        <SharedFileSheet
+          file={sharedFile}
+          printer={active}
+          onClose={clearSharedFile}
+          onPrinted={() => setTab('home')}
+        />
       </StatusContext.Provider>
     </ToastProvider>
   );

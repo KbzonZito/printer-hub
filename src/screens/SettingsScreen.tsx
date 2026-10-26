@@ -1,7 +1,20 @@
 import { useState } from 'react';
-import { Check, Monitor, Moon, Pencil, Plus, Printer as PrinterIcon, Sun, Trash2 } from 'lucide-react';
+import {
+  Bell,
+  Check,
+  Monitor,
+  Moon,
+  Pencil,
+  Plus,
+  Printer as PrinterIcon,
+  Radar,
+  Sun,
+  Trash2,
+} from 'lucide-react';
 import { testConnection } from '../api/moonraker';
 import { ConfirmSheet, Sheet, useToast } from '../components/ui';
+import { localSubnet, scanNetwork, type Found } from '../discovery';
+import { isNative, PrinterMonitor } from '../native';
 import { useT, type MessageKey } from '../i18n';
 import {
   newPrinter,
@@ -34,8 +47,16 @@ export function PrinterForm({
   const [p, setP] = useState(initial);
   const [testing, setTesting] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const [scan, setScan] = useState<{ pct: number; subnet: string; found: Found[] } | null>(null);
+  const scanning = scan != null && scan.pct < 100;
   const set = <K extends keyof Printer>(k: K, v: Printer[K]) => setP((x) => ({ ...x, [k]: v }));
-  const clean = { ...p, host: p.host.trim().replace(/^https?:\/\//, '').replace(/[/:].*$/, '') };
+  const clean = {
+    ...p,
+    host: p.host
+      .trim()
+      .replace(/^https?:\/\//, '')
+      .replace(/[/:].*$/, ''),
+  };
 
   return (
     <form
@@ -72,6 +93,45 @@ export function PrinterForm({
           />
         </label>
       </div>
+      <button
+        type="button"
+        className="btn"
+        disabled={scanning}
+        onClick={async () => {
+          const subnet = await localSubnet();
+          setScan({ pct: 0, subnet, found: [] });
+          await scanNetwork(
+            subnet,
+            (f) => setScan((s) => s && { ...s, found: [...s.found, f] }),
+            (fr) => setScan((s) => s && { ...s, pct: Math.round(fr * 100) }),
+            () => false,
+          );
+          setScan((s) => s && { ...s, pct: 100 });
+        }}
+      >
+        {scanning ? <div className="loader small" /> : <Radar size={18} />}
+        {scanning ? t('discovery.scanning', { pct: scan.pct }) : t('discovery.scan')}
+      </button>
+      {scan && scan.found.length > 0 && (
+        <div className="found-list">
+          <span className="muted small">{t('discovery.pick')}</span>
+          {scan.found.map((f) => (
+            <button
+              type="button"
+              key={f.host}
+              className={`found ${p.host === f.host ? 'selected' : ''}`}
+              onClick={() => setP((x) => ({ ...x, host: f.host }))}
+            >
+              <PrinterIcon size={18} />
+              <strong>{f.name}</strong>
+              <span className="muted small">{f.host}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {scan && !scanning && scan.found.length === 0 && (
+        <p className="muted small">{t('discovery.none', { subnet: scan.subnet })}</p>
+      )}
       <label>
         <span>{t('form.camera')}</span>
         <select
@@ -134,6 +194,7 @@ export function PrinterForm({
 export function AppPreferences({ compact }: { compact?: boolean }) {
   const t = useT();
   const { settings, updateSettings } = useSettings();
+  const toast = useToast();
   return (
     <div className="form">
       <div className="field">
@@ -183,6 +244,29 @@ export function AppPreferences({ compact }: { compact?: boolean }) {
           <small className="muted">{t('settings.etaHint')}</small>
         </label>
       )}
+      {!compact && isNative && (
+        <label className="toggle">
+          <Bell size={18} />
+          <span className="grow">
+            <strong>{t('settings.notify')}</strong>
+            <small className="muted">{t('settings.notifyHint')}</small>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.notify}
+            onChange={async (e) => {
+              const on = e.target.checked;
+              if (on) {
+                const { granted } = await PrinterMonitor.requestNotifications();
+                if (!granted) toast(t('settings.notifyDenied'), true);
+              } else {
+                PrinterMonitor.stopMonitor();
+              }
+              updateSettings({ notify: on });
+            }}
+          />
+        </label>
+      )}
     </div>
   );
 }
@@ -211,10 +295,18 @@ export function SettingsScreen() {
                 </div>
                 {active?.id === p.id && <Check size={18} className="accent" />}
               </button>
-              <button className="btn icon ghost" onClick={() => setEditing(p)} aria-label={t('settings.edit')}>
+              <button
+                className="btn icon ghost"
+                onClick={() => setEditing(p)}
+                aria-label={t('settings.edit')}
+              >
                 <Pencil size={16} />
               </button>
-              <button className="btn icon ghost" onClick={() => setDeleting(p)} aria-label={t('common.delete')}>
+              <button
+                className="btn icon ghost"
+                onClick={() => setDeleting(p)}
+                aria-label={t('common.delete')}
+              >
                 <Trash2 size={16} />
               </button>
             </div>

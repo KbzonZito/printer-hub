@@ -4,7 +4,10 @@ import { tr } from '../i18n';
 // (see capacitor.config.ts), so requests to the printer skip browser CORS checks.
 
 export class HttpError extends Error {
-  constructor(message: string, readonly status?: number) {
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
     super(message);
   }
 }

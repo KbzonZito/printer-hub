@@ -33,5 +33,8 @@ export function formatClock(date: Date | null, lang: Lang): string {
 }
 
 export function baseName(path: string): string {
-  return path.split('/').pop()!.replace(/\.(gcode|g|gco)$/i, '');
+  return path
+    .split('/')
+    .pop()!
+    .replace(/\.(gcode|g|gco)$/i, '');
 }

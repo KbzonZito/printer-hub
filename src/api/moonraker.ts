@@ -29,6 +29,12 @@ export interface PrinterStatus {
   chamber: Heater | null;
   fanSpeed: number;
   light: { pin: string; on: boolean } | null;
+  homedAxes: string;
+  position: [number, number, number];
+  speedFactor: number;
+  extrudeFactor: number;
+  zOffset: number;
+  canExtrude: boolean;
 }
 
 export interface GcodeFile {
@@ -81,6 +87,7 @@ async function post<T = unknown>(p: Printer, path: string, timeout?: number): Pr
 interface Discovered {
   chamber: string | null;
   lightPin: string | null;
+  macros: string[];
 }
 const discovered = new Map<string, Discovered>();
 
@@ -90,15 +97,20 @@ async function discover(p: Printer): Promise<Discovered> {
   const { objects } = await get<{ objects: string[] }>(p, '/printer/objects/list');
   const chamber =
     objects.find((o) => /^(heater_generic|temperature_sensor) .*chamber/i.test(o)) ?? null;
-  const light =
-    objects.find((o) => /^output_pin .*(led|light|lamp)/i.test(o)) ?? null;
-  const result = { chamber, lightPin: light };
+  const light = objects.find((o) => /^output_pin .*(led|light|lamp)/i.test(o)) ?? null;
+  const macros = objects
+    .filter((o) => o.startsWith('gcode_macro ') && !o.startsWith('gcode_macro _'))
+    .map((o) => o.slice('gcode_macro '.length))
+    .sort();
+  const result = { chamber, lightPin: light, macros };
   discovered.set(p.id, result);
   return result;
 }
 
 export async function fetchStatus(p: Printer): Promise<PrinterStatus> {
-  const extra = await discover(p).catch(() => ({ chamber: null, lightPin: null }) as Discovered);
+  const extra = await discover(p).catch(
+    () => ({ chamber: null, lightPin: null, macros: [] }) as Discovered,
+  );
   const objects = [
     'webhooks',
     'print_stats',
@@ -107,6 +119,8 @@ export async function fetchStatus(p: Printer): Promise<PrinterStatus> {
     'extruder',
     'heater_bed',
     'fan',
+    'toolhead',
+    'gcode_move',
     extra.chamber,
     extra.lightPin,
   ].filter(Boolean) as string[];
@@ -139,6 +153,12 @@ export async function fetchStatus(p: Printer): Promise<PrinterStatus> {
     light: extra.lightPin
       ? { pin: extra.lightPin.replace(/^output_pin /, ''), on: (s[extra.lightPin]?.value ?? 0) > 0 }
       : null,
+    homedAxes: s.toolhead?.homed_axes ?? '',
+    position: (s.toolhead?.position?.slice(0, 3) ?? [0, 0, 0]) as [number, number, number],
+    speedFactor: s.gcode_move?.speed_factor ?? 1,
+    extrudeFactor: s.gcode_move?.extrude_factor ?? 1,
+    zOffset: s.gcode_move?.homing_origin?.[2] ?? 0,
+    canExtrude: s.extruder?.can_extrude ?? false,
   };
 }
 
@@ -165,6 +185,26 @@ export const printerActions = {
     printerActions.gcode(p, `SET_HEATER_TEMPERATURE HEATER=${heater} TARGET=${target}`),
   setLight: (p: Printer, pin: string, on: boolean) =>
     printerActions.gcode(p, `SET_PIN PIN=${pin} VALUE=${on ? 1 : 0}`),
+  home: (p: Printer, axes = '') => printerActions.gcode(p, `G28 ${axes}`.trim()),
+  motorsOff: (p: Printer) => printerActions.gcode(p, 'M84'),
+  jog: (p: Printer, axis: 'X' | 'Y' | 'Z', distance: number) =>
+    printerActions.gcode(
+      p,
+      `SAVE_GCODE_STATE NAME=_ph_jog\nG91\nG1 ${axis}${distance} F${axis === 'Z' ? 600 : 6000}\nRESTORE_GCODE_STATE NAME=_ph_jog`,
+    ),
+  extrude: (p: Printer, length: number, speed = 300) =>
+    printerActions.gcode(
+      p,
+      `SAVE_GCODE_STATE NAME=_ph_ext\nM83\nG1 E${length} F${speed}\nRESTORE_GCODE_STATE NAME=_ph_ext`,
+    ),
+  setSpeedFactor: (p: Printer, percent: number) =>
+    printerActions.gcode(p, `M220 S${Math.round(percent)}`),
+  setFlowFactor: (p: Printer, percent: number) =>
+    printerActions.gcode(p, `M221 S${Math.round(percent)}`),
+  adjustZOffset: (p: Printer, delta: number) =>
+    printerActions.gcode(p, `SET_GCODE_OFFSET Z_ADJUST=${delta} MOVE=1`),
+  setFan: (p: Printer, percent: number) =>
+    printerActions.gcode(p, `M106 S${Math.round((percent / 100) * 255)}`),
 };
 
 export async function listFiles(p: Printer): Promise<GcodeFile[]> {
@@ -213,4 +253,105 @@ export async function listWebcams(p: Printer): Promise<Webcam[]> {
 export function resolveWebcamUrl(p: Printer, url: string): string {
   if (/^https?:\/\//i.test(url)) return url;
   return `http://${p.host}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+export async function listMacros(p: Printer): Promise<string[]> {
+  discovered.delete(p.id);
+  return (await discover(p)).macros;
+}
+
+export interface GcodeLine {
+  message: string;
+  time: number;
+  type: 'command' | 'response';
+}
+
+export async function gcodeStore(p: Printer, count = 100): Promise<GcodeLine[]> {
+  const { gcode_store } = await get<{ gcode_store: GcodeLine[] }>(
+    p,
+    `/server/gcode_store?count=${count}`,
+  );
+  return gcode_store;
+}
+
+export interface TempSeries {
+  temperatures: number[];
+  targets?: number[];
+}
+
+/** Last ~20 minutes of 1 s temperature samples, keyed by heater/sensor name. */
+export function temperatureStore(p: Printer): Promise<Record<string, TempSeries>> {
+  return get(p, '/server/temperature_store?include_monitors=false', 8000);
+}
+
+export interface HistoryJob {
+  job_id: string;
+  filename: string;
+  status: string;
+  start_time: number;
+  end_time: number | null;
+  print_duration: number;
+  total_duration: number;
+  filament_used: number;
+  exists?: boolean;
+  metadata?: FileMetadata;
+}
+
+export interface HistoryTotals {
+  total_jobs: number;
+  total_time: number;
+  total_print_time: number;
+  total_filament_used: number;
+  longest_job: number;
+  longest_print: number;
+}
+
+export async function fetchHistory(p: Printer, limit = 50): Promise<HistoryJob[]> {
+  const { jobs } = await get<{ jobs: HistoryJob[] }>(
+    p,
+    `/server/history/list?limit=${limit}&order=desc`,
+  );
+  return jobs;
+}
+
+export async function fetchHistoryTotals(p: Printer): Promise<HistoryTotals> {
+  const { job_totals } = await get<{ job_totals: HistoryTotals }>(p, '/server/history/totals');
+  return job_totals;
+}
+
+export interface TimelapseFile {
+  path: string;
+  modified: number;
+  size: number;
+}
+
+/** Timelapse videos from the moonraker-timelapse plugin, if it is installed. */
+export async function listTimelapses(p: Printer): Promise<TimelapseFile[]> {
+  const roots = await get<{ name: string }[]>(p, '/server/files/roots');
+  if (!roots.some((r) => r.name === 'timelapse')) return [];
+  const files = await get<TimelapseFile[]>(p, '/server/files/list?root=timelapse');
+  return files
+    .filter((f) => /\.(mp4|webm|mkv)$/i.test(f.path))
+    .sort((a, b) => b.modified - a.modified);
+}
+
+export function timelapseUrl(p: Printer, path: string): string {
+  return `${baseUrl(p)}/server/files/timelapse/${encodePath(path)}`;
+}
+
+export function gcodeFileUrl(p: Printer, path: string): string {
+  return `${baseUrl(p)}/server/files/gcodes/${encodePath(path)}`;
+}
+
+/** Probes one address for Moonraker; returns the printer's hostname when found. */
+export async function probeMoonraker(host: string, port = 7125): Promise<string | null> {
+  try {
+    const data = await requestJson<Envelope<{ hostname?: string }>>(
+      `http://${host}:${port}/printer/info`,
+      { timeout: 1500 },
+    );
+    return data.result.hostname ?? host;
+  } catch {
+    return null;
+  }
 }

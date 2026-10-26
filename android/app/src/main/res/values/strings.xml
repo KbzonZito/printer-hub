@@ -4,4 +4,5 @@
     <string name="title_activity_main">Printer Hub</string>
     <string name="package_name">com.kbzonzito.printerhub</string>
     <string name="custom_url_scheme">com.kbzonzito.printerhub</string>
+    <string name="widget_description">Estado y progreso de la impresora</string>
 </resources>

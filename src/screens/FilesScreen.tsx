@@ -14,6 +14,8 @@ import { ConfirmSheet, Sheet, useAction } from '../components/ui';
 import { baseName, formatBytes, formatDate, formatDuration } from '../format';
 import { useLang, useT } from '../i18n';
 import type { Printer } from '../store';
+import { HistoryView } from './HistoryView';
+import { TimelapseView } from './TimelapseView';
 import { usePrinterStatus } from '../usePrinterStatus';
 
 const metaCache = new Map<string, FileMetadata>();
@@ -37,7 +39,15 @@ function useMetadata(printer: Printer, file: GcodeFile, visible: boolean) {
   return meta;
 }
 
-function FileRow({ printer, file, onOpen }: { printer: Printer; file: GcodeFile; onOpen: () => void }) {
+function FileRow({
+  printer,
+  file,
+  onOpen,
+}: {
+  printer: Printer;
+  file: GcodeFile;
+  onOpen: () => void;
+}) {
   const ref = useRef<HTMLButtonElement>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -73,7 +83,13 @@ function FileRow({ printer, file, onOpen }: { printer: Printer; file: GcodeFile;
   );
 }
 
-export function FilesScreen({ printer, onPrintStarted }: { printer: Printer; onPrintStarted: () => void }) {
+export function FilesScreen({
+  printer,
+  onPrintStarted,
+}: {
+  printer: Printer;
+  onPrintStarted: () => void;
+}) {
   const t = useT();
   const { status, refresh: refreshStatus } = usePrinterStatus();
   const run = useAction();
@@ -83,6 +99,7 @@ export function FilesScreen({ printer, onPrintStarted }: { printer: Printer; onP
   const [selected, setSelected] = useState<GcodeFile | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [view, setView] = useState<'files' | 'history' | 'timelapse'>('files');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
@@ -112,59 +129,74 @@ export function FilesScreen({ printer, onPrintStarted }: { printer: Printer; onP
 
   return (
     <div className="screen wide">
-      <div className="row gap">
-        <label className="search grow">
-          <Search size={18} />
-          <input
-            placeholder={t('files.search')}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </label>
-        <button className="btn icon" onClick={load} aria-label={t('files.reload')}>
-          <RefreshCw size={18} />
-        </button>
-        <button
-          className="btn icon primary"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          aria-label={t('files.upload')}
-        >
-          {uploading ? <div className="loader small" /> : <Upload size={18} />}
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".gcode,.g,.gco"
-          hidden
-          onChange={(e) => onUpload(e.target.files?.[0])}
-        />
-      </div>
-
-      {error && (
-        <div className="empty">
-          <p className="muted">{error}</p>
-          <button className="btn primary" onClick={load}>
-            {t('common.retry')}
+      <div className="segmented">
+        {(['files', 'history', 'timelapse'] as const).map((v) => (
+          <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>
+            {t(`files.tab.${v}`)}
           </button>
-        </div>
-      )}
-      {!files && !error && (
-        <div className="empty">
-          <div className="loader" />
-        </div>
-      )}
-      {files && filtered.length === 0 && (
-        <div className="empty">
-          <FileBox size={36} />
-          <p className="muted">{query ? t('files.noResults') : t('files.none')}</p>
-        </div>
-      )}
-      <div className="file-list">
-        {filtered.map((f) => (
-          <FileRow key={f.path} printer={printer} file={f} onOpen={() => setSelected(f)} />
         ))}
       </div>
+      {view === 'history' && (
+        <HistoryView printer={printer} busy={busy} onPrintStarted={onPrintStarted} />
+      )}
+      {view === 'timelapse' && <TimelapseView printer={printer} />}
+      {view === 'files' && (
+        <>
+          <div className="row gap">
+            <label className="search grow">
+              <Search size={18} />
+              <input
+                placeholder={t('files.search')}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </label>
+            <button className="btn icon" onClick={load} aria-label={t('files.reload')}>
+              <RefreshCw size={18} />
+            </button>
+            <button
+              className="btn icon primary"
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading}
+              aria-label={t('files.upload')}
+            >
+              {uploading ? <div className="loader small" /> : <Upload size={18} />}
+            </button>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".gcode,.g,.gco"
+              hidden
+              onChange={(e) => onUpload(e.target.files?.[0])}
+            />
+          </div>
+
+          {error && (
+            <div className="empty">
+              <p className="muted">{error}</p>
+              <button className="btn primary" onClick={load}>
+                {t('common.retry')}
+              </button>
+            </div>
+          )}
+          {!files && !error && (
+            <div className="empty">
+              <div className="loader" />
+            </div>
+          )}
+          {files && filtered.length === 0 && (
+            <div className="empty">
+              <FileBox size={36} />
+              <p className="muted">{query ? t('files.noResults') : t('files.none')}</p>
+            </div>
+          )}
+          <div className="file-list">
+            {filtered.map((f) => (
+              <FileRow key={f.path} printer={printer} file={f} onOpen={() => setSelected(f)} />
+            ))}
+          </div>
+        </>
+      )}
 
       <Sheet open={!!selected} onClose={() => setSelected(null)}>
         {selected && (
@@ -200,14 +232,21 @@ export function FilesScreen({ printer, onPrintStarted }: { printer: Printer; onP
               </div>
             </div>
             <div className="row gap">
-              <button className="btn danger-outline icon" onClick={() => setConfirmDelete(true)} aria-label={t('common.delete')}>
+              <button
+                className="btn danger-outline icon"
+                onClick={() => setConfirmDelete(true)}
+                aria-label={t('common.delete')}
+              >
                 <Trash2 size={18} />
               </button>
               <button
                 className="btn primary grow"
                 disabled={busy}
                 onClick={async () => {
-                  const ok = await run(() => printerActions.start(printer, selected.path), t('files.started'));
+                  const ok = await run(
+                    () => printerActions.start(printer, selected.path),
+                    t('files.started'),
+                  );
                   if (ok) {
                     setSelected(null);
                     refreshStatus();

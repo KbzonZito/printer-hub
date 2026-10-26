@@ -9,6 +9,7 @@ import {
   OctagonX,
   Pause,
   Play,
+  SlidersHorizontal,
   Square,
   Thermometer,
   WifiOff,
@@ -21,6 +22,8 @@ import {
   type Heater,
 } from '../api/moonraker';
 import { CameraView } from '../components/CameraView';
+import { TempChart } from '../components/TempChart';
+import { TuneSheet } from '../components/TuneSheet';
 import { ConfirmSheet, Sheet, useAction } from '../components/ui';
 import { computeEta } from '../eta';
 import { baseName, formatClock, formatDuration } from '../format';
@@ -86,21 +89,30 @@ function TempTile({
         <small>°C</small>
       </div>
       {onClick && (
-        <div className="tile-sub">{heating ? `→ ${heater.target.toFixed(0)}°C` : t('home.off')}</div>
+        <div className="tile-sub">
+          {heating ? `→ ${heater.target.toFixed(0)}°C` : t('home.off')}
+        </div>
       )}
     </button>
   );
 }
 
-export function Dashboard({ printer, onOpenCamera }: { printer: Printer; onOpenCamera: () => void }) {
+export function Dashboard({
+  printer,
+  onOpenCamera,
+}: {
+  printer: Printer;
+  onOpenCamera: () => void;
+}) {
   const t = useT();
   const { settings } = useSettings();
-  const { status, error, refresh } = usePrinterStatus();
+  const { status, error, refresh, tempHistory } = usePrinterStatus();
   const run = useAction();
   const [meta, setMeta] = useState<{ file: string; data: FileMetadata } | null>(null);
   const [tempSheet, setTempSheet] = useState<'extruder' | 'heater_bed' | null>(null);
   const [customTemp, setCustomTemp] = useState('');
   const [confirm, setConfirm] = useState<'cancel' | 'estop' | null>(null);
+  const [tune, setTune] = useState(false);
 
   const filename = status?.filename;
   useEffect(() => {
@@ -152,7 +164,10 @@ export function Dashboard({ printer, onOpenCamera }: { printer: Printer; onOpenC
         <div className="banner error">
           Klipper: {status.klippyState}
           {status.message ? ` — ${status.message}` : ''}
-          <button className="btn small" onClick={() => act(() => printerActions.firmwareRestart(printer))}>
+          <button
+            className="btn small"
+            onClick={() => act(() => printerActions.firmwareRestart(printer))}
+          >
             {t('home.firmwareRestart')}
           </button>
         </div>
@@ -166,6 +181,7 @@ export function Dashboard({ printer, onOpenCamera }: { printer: Printer; onOpenC
               <Maximize2 size={16} />
             </span>
           </div>
+          <TempChart history={tempHistory} />
         </div>
 
         <div className="dash-side">
@@ -234,6 +250,13 @@ export function Dashboard({ printer, onOpenCamera }: { printer: Printer; onOpenC
                       <Play size={18} /> {t('home.resume')}
                     </button>
                   )}
+                  <button
+                    className="btn icon"
+                    onClick={() => setTune(true)}
+                    aria-label={t('home.tune')}
+                  >
+                    <SlidersHorizontal size={18} />
+                  </button>
                   <button className="btn danger-outline grow" onClick={() => setConfirm('cancel')}>
                     <Square size={16} /> {t('home.cancel')}
                   </button>
@@ -256,7 +279,11 @@ export function Dashboard({ printer, onOpenCamera }: { printer: Printer; onOpenC
               onClick={() => setTempSheet('heater_bed')}
             />
             {status.chamber && (
-              <TempTile icon={<Thermometer size={16} />} label={t('home.chamber')} heater={status.chamber} />
+              <TempTile
+                icon={<Thermometer size={16} />}
+                label={t('home.chamber')}
+                heater={status.chamber}
+              />
             )}
             <div className="tile">
               <div className="tile-label">
@@ -343,6 +370,7 @@ export function Dashboard({ printer, onOpenCamera }: { printer: Printer; onOpenC
         </form>
       </Sheet>
 
+      <TuneSheet open={tune} onClose={() => setTune(false)} printer={printer} status={status} />
       <ConfirmSheet
         open={confirm === 'cancel'}
         title={t('home.cancelTitle')}
