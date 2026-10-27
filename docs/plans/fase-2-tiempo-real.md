@@ -205,7 +205,7 @@ reproducir.
 **Acepta:** `npm test` en verde, y la app se comporta igual que antes (sigue con la consulta
 periódica).
 
-### 2.4 Cliente JSON-RPC y transporte del navegador — **high**
+### 2.4 Cliente JSON-RPC y transporte del navegador — **high** ✅
 - La interfaz `Transport`: `open`, `send`, `close`, y los eventos `message`, `open` y
   `close(code, reason)`.
 - `WebTransport` sobre el `WebSocket` del navegador.
@@ -216,7 +216,7 @@ periódica).
 
 **Acepta:** pruebas de petición y respuesta, timeout, error y cierre con peticiones pendientes.
 
-### 2.5 Transporte nativo de Android — **high**
+### 2.5 Transporte nativo de Android — **high** ✅
 - Añadir `org.java-websocket:Java-WebSocket` a `android/app/build.gradle`.
 - `NativeSocket.java`: abrir, enviar y cerrar por id de conexión, en un hilo propio, sin enviar
   `Origin`.
@@ -225,16 +225,21 @@ periódica).
 - `nativeTransport.ts` implementa `Transport` sobre esos métodos. Se elige automáticamente con
   `isNative`.
 
-**Acepta:** en el APK de prueba la consola registra la conexión. Solo se puede comprobar en el
-teléfono, por eso va en high.
+**Acepta:** en el APK de prueba la conexión funciona. Solo se puede comprobar en el teléfono, por
+eso va en high. Hasta el paso 2.7 hay un botón temporal en Ajustes → Acerca de → "Probar tiempo
+real" (`src/connection/ConnectionTest.tsx`), que se quitará al integrar la conexión.
 
-### 2.6 `PrinterConnection`: la máquina de estados — **high** (xhigh si falla dos veces)
+### 2.6 `PrinterConnection`: la máquina de estados — **high** (xhigh si falla dos veces) ✅
 Implementar todo lo de la sección anterior: arranque, suscripción, `mergeStatus` de los avisos,
 estados de Klipper, reconexión con esperas, vigilancia, ciclo de vida de la app (`appStateChange`
 de Capacitor), respaldo por consulta periódica (D4) y emisión agrupada (≤ 4/s, D6).
 
 **Acepta:** contra el simulador se cumplen todos los escenarios de 2.2 (ver "Pruebas"). Es la
 pieza más delicada: conviene implementarla en una sesión dedicada y con el simulador en marcha.
+
+Hecho: 20 pruebas unitarias con tiempo simulado (`PrinterConnection.test.ts`) y 6 pruebas de
+extremo a extremo contra el simulador real (`integration.test.ts`: tiempo real, consola, Klipper
+iniciando, apagado y `FIRMWARE_RESTART`, corte y conexión silenciosa).
 
 ### 2.7 Integración con las pantallas — **medium**
 - `manager.ts` y `hooks.ts`.

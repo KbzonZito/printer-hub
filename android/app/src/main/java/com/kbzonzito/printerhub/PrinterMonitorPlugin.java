@@ -25,6 +25,8 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Inet4Address;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Bridge for the native pieces of the app: the background print monitor, the widget,
@@ -126,6 +128,78 @@ public class PrinterMonitorPlugin extends Plugin {
             }
         }
         call.resolve(ret);
+    }
+
+    // ---- Native WebSockets (see NativeSocket.java and src/connection/nativeTransport.ts)
+
+    private final Map<String, NativeSocket> sockets = new ConcurrentHashMap<>();
+
+    private void emitSocket(String id, String type, JSObject extra) {
+        JSObject event = extra != null ? extra : new JSObject();
+        event.put("id", id);
+        event.put("type", type);
+        notifyListeners("socketEvent", event);
+    }
+
+    @PluginMethod
+    public void socketOpen(PluginCall call) {
+        String id = call.getString("id");
+        String url = call.getString("url");
+        if (id == null || url == null) {
+            call.reject("id and url are required");
+            return;
+        }
+        try {
+            NativeSocket socket = new NativeSocket(url, new NativeSocket.Listener() {
+                @Override
+                public void onOpen() {
+                    emitSocket(id, "open", null);
+                }
+
+                @Override
+                public void onMessage(String data) {
+                    JSObject e = new JSObject();
+                    e.put("data", data);
+                    emitSocket(id, "message", e);
+                }
+
+                @Override
+                public void onClose(int code, String reason) {
+                    sockets.remove(id);
+                    JSObject e = new JSObject();
+                    e.put("code", code);
+                    e.put("reason", reason);
+                    emitSocket(id, "close", e);
+                }
+            });
+            NativeSocket old = sockets.put(id, socket);
+            if (old != null) old.close();
+            socket.connect();
+            call.resolve();
+        } catch (Exception e) {
+            call.reject(e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void socketSend(PluginCall call) {
+        NativeSocket socket = sockets.get(call.getString("id", ""));
+        if (socket != null) socket.send(call.getString("data", ""));
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void socketClose(PluginCall call) {
+        NativeSocket socket = sockets.remove(call.getString("id", ""));
+        if (socket != null) socket.close();
+        call.resolve();
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        for (NativeSocket socket : sockets.values()) socket.close();
+        sockets.clear();
+        super.handleOnDestroy();
     }
 
     /** Opens a link in the default browser. */

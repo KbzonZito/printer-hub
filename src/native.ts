@@ -8,6 +8,14 @@ export interface SharedFile {
   size?: number;
 }
 
+export interface SocketEvent {
+  id: string;
+  type: 'open' | 'message' | 'close';
+  data?: string;
+  code?: number;
+  reason?: string;
+}
+
 interface PrinterMonitorPlugin {
   configure(opts: { host?: string; port?: number; name?: string; lang?: string }): Promise<void>;
   startMonitor(): Promise<void>;
@@ -26,6 +34,10 @@ interface PrinterMonitorPlugin {
   shareText(opts: { text: string }): Promise<void>;
   takeSharedFile(): Promise<SharedFile>;
   addListener(event: 'sharedFile', fn: (file: SharedFile) => void): Promise<PluginListenerHandle>;
+  addListener(event: 'socketEvent', fn: (e: SocketEvent) => void): Promise<PluginListenerHandle>;
+  socketOpen(opts: { id: string; url: string }): Promise<void>;
+  socketSend(opts: { id: string; data: string }): Promise<void>;
+  socketClose(opts: { id: string }): Promise<void>;
 }
 
 export const isNative = Capacitor.isNativePlatform();

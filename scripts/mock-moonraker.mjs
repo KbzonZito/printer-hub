@@ -15,7 +15,7 @@ const SCENARIOS = {
   'klippy-startup': 'Klipper reports "startup" for 10 s, then becomes ready',
   shutdown: 'Klipper is shut down until FIRMWARE_RESTART',
   drop: 'Every WebSocket connection is closed every 30 s',
-  silent: 'After 15 s the WebSocket stops sending and answering, without closing',
+  silent: '15 s after opening, each WebSocket stops sending and answering, without closing',
   'reject-origin': 'WebSocket handshakes that carry an Origin header get 403 (like cors_domains)',
   slow: 'Every HTTP and JSON-RPC response is delayed 2 s',
 };
@@ -31,6 +31,13 @@ const COMPONENTS = (
   process.env.MOCK_COMPONENTS ??
   'klippy_connection,file_manager,history,proc_stats,webcam,job_queue,timelapse,authorization'
 ).split(',');
+// Scenario timings in ms, shorter in the automated tests (src/connection/integration.test.ts).
+const MS = {
+  startup: Number(process.env.MOCK_STARTUP_MS ?? 10_000),
+  restart: Number(process.env.MOCK_RESTART_MS ?? 3000),
+  silentAfter: Number(process.env.MOCK_SILENT_AFTER_MS ?? 15_000),
+  drop: Number(process.env.MOCK_DROP_MS ?? 30_000),
+};
 const delay = () => new Promise((r) => setTimeout(r, scenario === 'slow' ? 2000 : 0));
 const now = () => Date.now() / 1000;
 
@@ -111,9 +118,10 @@ function setKlippy(state, message) {
 
 function restartKlippy() {
   setKlippy('startup', 'Klipper is starting');
-  setTimeout(() => setKlippy('ready', 'Printer is ready'), 3000);
+  setTimeout(() => setKlippy('ready', 'Printer is ready'), MS.restart);
 }
-if (scenario === 'klippy-startup') setTimeout(() => setKlippy('ready', 'Printer is ready'), 10_000);
+if (scenario === 'klippy-startup')
+  setTimeout(() => setKlippy('ready', 'Printer is ready'), MS.startup);
 
 function respond(line) {
   gcodeStore.push({ message: line, time: now(), type: 'response' });
@@ -448,8 +456,8 @@ function move(q) {
 // ---------------------------------------------------------------- WebSocket (JSON-RPC 2.0)
 
 const wss = new WebSocketServer({ noServer: true });
-const startedAt = Date.now();
-const isSilent = () => scenario === 'silent' && Date.now() - startedAt > 15_000;
+// In the "silent" scenario each connection goes quiet a while after it opens.
+const isSilent = (ws) => scenario === 'silent' && Date.now() - ws.openedAt > MS.silentAfter;
 
 server.on('upgrade', (req, socket, head) => {
   if (new URL(req.url, 'http://x').pathname !== '/websocket') return socket.destroy();
@@ -461,17 +469,17 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 function broadcast(method, params) {
-  if (isSilent()) return;
   const msg = JSON.stringify({ jsonrpc: '2.0', method, ...(params ? { params } : {}) });
-  for (const ws of wss.clients) if (ws.readyState === ws.OPEN) ws.send(msg);
+  for (const ws of wss.clients) if (ws.readyState === ws.OPEN && !isSilent(ws)) ws.send(msg);
 }
 
 wss.on('connection', (ws) => {
   // Subscribed objects and the last values sent to this client.
   ws.subscription = null;
   ws.lastSent = {};
+  ws.openedAt = Date.now();
   ws.on('message', async (raw) => {
-    if (isSilent()) return;
+    if (isSilent(ws)) return;
     let msg;
     try {
       msg = JSON.parse(raw.toString());
@@ -499,9 +507,9 @@ wss.on('connection', (ws) => {
 
 // Status updates every 250 ms (only what changed) and process stats every second.
 setInterval(() => {
-  if (isSilent() || klippy.state !== 'ready') return;
+  if (klippy.state !== 'ready') return;
   for (const ws of wss.clients) {
-    if (!ws.subscription || ws.readyState !== ws.OPEN) continue;
+    if (!ws.subscription || ws.readyState !== ws.OPEN || isSilent(ws)) continue;
     const next = pick(ws.subscription);
     const changed = diff(ws.lastSent, next);
     ws.lastSent = next;
@@ -526,7 +534,7 @@ if (scenario === 'drop')
   setInterval(() => {
     for (const ws of wss.clients) ws.terminate();
     console.log('drop: closed all WebSocket connections');
-  }, 30_000);
+  }, MS.drop);
 
 server.listen(PORT, () => {
   console.log(`Mock Moonraker on http://localhost:${PORT} (ws://localhost:${PORT}/websocket)`);

@@ -1,6 +1,13 @@
 import { request, requestJson } from './http';
 import type { Printer } from '../store';
-import { parseStatus, queryString, subscription, type RawStatus } from '../connection/statusModel';
+import {
+  namesFromObjects,
+  parseStatus,
+  queryString,
+  subscription,
+  type ObjectNames,
+  type RawStatus,
+} from '../connection/statusModel';
 
 // Moonraker REST API: https://moonraker.readthedocs.io/en/latest/web_api/
 
@@ -90,33 +97,51 @@ async function post<T = unknown>(p: Printer, path: string, timeout?: number): Pr
 }
 
 // Object names vary between printers; these are discovered once per printer.
-interface Discovered {
-  chamber: string | null;
-  lightPin: string | null;
-  macros: string[];
-}
+type Discovered = ObjectNames;
 const discovered = new Map<string, Discovered>();
 
 async function discover(p: Printer): Promise<Discovered> {
   const cached = discovered.get(p.id);
   if (cached) return cached;
   const { objects } = await get<{ objects: string[] }>(p, '/printer/objects/list');
-  const chamber =
-    objects.find((o) => /^(heater_generic|temperature_sensor) .*chamber/i.test(o)) ?? null;
-  const light = objects.find((o) => /^output_pin .*(led|light|lamp)/i.test(o)) ?? null;
-  const macros = objects
-    .filter((o) => o.startsWith('gcode_macro ') && !o.startsWith('gcode_macro _'))
-    .map((o) => o.slice('gcode_macro '.length))
-    .sort();
-  const result = { chamber, lightPin: light, macros };
+  const result = namesFromObjects(objects);
   discovered.set(p.id, result);
   return result;
 }
 
+export interface ServerInfo {
+  klippy_state: 'ready' | 'startup' | 'shutdown' | 'error' | 'disconnected' | string;
+  klippy_connected?: boolean;
+  components?: string[];
+  moonraker_version?: string;
+  api_version_string?: string;
+}
+
+export interface KlippyInfo {
+  state?: string;
+  state_message?: string;
+  hostname?: string;
+  software_version?: string;
+}
+
+export function websocketUrl(p: Printer): string {
+  return `ws://${p.host}:${p.port}/websocket`;
+}
+
+export const fetchServerInfo = (p: Printer) => get<ServerInfo>(p, '/server/info', 5000);
+export const fetchPrinterInfo = (p: Printer) => get<KlippyInfo>(p, '/printer/info', 5000);
+export const fetchObjectList = async (p: Printer) =>
+  (await get<{ objects: string[] }>(p, '/printer/objects/list', 5000)).objects;
+export const queryObjects = async (p: Printer, objects: Record<string, string[]>) =>
+  (await get<{ status: RawStatus }>(p, `/printer/objects/query?${queryString(objects)}`, 5000))
+    .status;
+
 export async function fetchStatus(p: Printer): Promise<PrinterStatus> {
-  const names = await discover(p).catch(
-    () => ({ chamber: null, lightPin: null, macros: [] }) as Discovered,
-  );
+  const names = await discover(p).catch((): Discovered => ({
+    chamber: null,
+    lightPin: null,
+    macros: [],
+  }));
   const { status } = await get<{ status: RawStatus }>(
     p,
     `/printer/objects/query?${queryString(subscription(names))}`,

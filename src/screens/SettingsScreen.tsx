@@ -22,6 +22,7 @@ import {
   Thermometer,
   Trash2,
 } from 'lucide-react';
+import { ConnectionTest } from '../connection/ConnectionTest';
 import { Wizard } from '../onboarding/Wizard';
 import { fetchVersions, testConnection, type SystemVersions } from '../api/moonraker';
 import { ConfirmSheet, Section, Select, Sheet, useToast } from '../components/ui';
@@ -606,6 +607,7 @@ function About({ printer }: { printer: Printer | null }) {
           )}
         </div>
       )}
+      {printer && <ConnectionTest printer={printer} />}
       <p className="muted small">{t('settings.aboutText')}</p>
       <div className="about-links">
         <button type="button" onClick={() => openExternal(REPO_URL)}>

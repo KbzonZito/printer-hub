@@ -10,6 +10,19 @@ export type RawStatus = Record<string, Record<string, any>>;
 export interface ObjectNames {
   chamber: string | null;
   lightPin: string | null;
+  /** User-facing macros (names starting with "_" are internal). */
+  macros: string[];
+}
+
+export function namesFromObjects(objects: string[]): ObjectNames {
+  return {
+    chamber: objects.find((o) => /^(heater_generic|temperature_sensor) .*chamber/i.test(o)) ?? null,
+    lightPin: objects.find((o) => /^output_pin .*(led|light|lamp)/i.test(o)) ?? null,
+    macros: objects
+      .filter((o) => o.startsWith('gcode_macro ') && !o.startsWith('gcode_macro _'))
+      .map((o) => o.slice('gcode_macro '.length))
+      .sort(),
+  };
 }
 
 /**
@@ -17,7 +30,9 @@ export interface ObjectNames {
  * Klipper from sending constant updates for values we never show, like
  * toolhead.estimated_print_time.
  */
-export function subscription(names: ObjectNames): Record<string, string[]> {
+export function subscription(
+  names: Pick<ObjectNames, 'chamber' | 'lightPin'>,
+): Record<string, string[]> {
   const objects: Record<string, string[]> = {
     webhooks: ['state', 'state_message'],
     print_stats: [
@@ -62,7 +77,10 @@ export function mergeStatus(raw: RawStatus, update: RawStatus): RawStatus {
   return next;
 }
 
-export function parseStatus(s: RawStatus, names: ObjectNames): PrinterStatus {
+export function parseStatus(
+  s: RawStatus,
+  names: Pick<ObjectNames, 'chamber' | 'lightPin'>,
+): PrinterStatus {
   const ps = s.print_stats ?? {};
   const chamber = names.chamber ? s[names.chamber] : null;
   return {
