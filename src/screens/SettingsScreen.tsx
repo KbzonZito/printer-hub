@@ -5,6 +5,7 @@ import {
   Bug,
   Check,
   Clock,
+  GraduationCap,
   Heart,
   Info,
   Palette,
@@ -21,6 +22,7 @@ import {
   Thermometer,
   Trash2,
 } from 'lucide-react';
+import { Wizard } from '../onboarding/Wizard';
 import { fetchVersions, testConnection, type SystemVersions } from '../api/moonraker';
 import { ConfirmSheet, Section, Select, Sheet, useToast } from '../components/ui';
 import { localSubnet, scanNetwork, type Found } from '../discovery';
@@ -37,7 +39,6 @@ import { useT, type MessageKey } from '../i18n';
 import {
   DEFAULT_PRESETS,
   newId,
-  newPrinter,
   useSettings,
   useStore,
   type CameraMode,
@@ -625,9 +626,10 @@ function About({ printer }: { printer: Printer | null }) {
 
 export function SettingsScreen() {
   const t = useT();
-  const { settings } = useSettings();
+  const { settings, updateSettings } = useSettings();
   const { printers, active, savePrinter, removePrinter, selectPrinter } = useStore();
   const [editing, setEditing] = useState<Printer | null>(null);
+  const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState<Printer | null>(null);
   const toast = useToast();
   const themeKey = THEMES.find((x) => x.id === settings.theme)!.key;
@@ -671,7 +673,7 @@ export function SettingsScreen() {
             </div>
           ))}
         </div>
-        <button className="btn" onClick={() => setEditing(newPrinter())}>
+        <button className="btn" onClick={() => setAdding(true)}>
           <Plus size={18} /> {t('settings.add')}
         </button>
       </Section>
@@ -718,8 +720,23 @@ export function SettingsScreen() {
 
       <Section id="about" icon={Info} title={t('settings.about')} summary="KbzonZito">
         <About printer={active} />
+        <button className="btn" onClick={() => updateSettings({ onboarded: false })}>
+          <GraduationCap size={18} /> {t('wizard.tutorial')}
+        </button>
       </Section>
 
+      <Sheet open={adding} onClose={() => setAdding(false)}>
+        {adding && (
+          <Wizard
+            mode="printer"
+            onCancel={() => setAdding(false)}
+            onDone={() => {
+              setAdding(false);
+              toast(t('common.saved'));
+            }}
+          />
+        )}
+      </Sheet>
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={t('settings.printer')}>
         {editing && (
           <PrinterForm

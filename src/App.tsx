@@ -22,8 +22,9 @@ import { CameraScreen } from './screens/CameraScreen';
 import { ControlScreen } from './screens/ControlScreen';
 import { Dashboard } from './screens/Dashboard';
 import { FilesScreen } from './screens/FilesScreen';
-import { AppearancePrefs, PrinterForm, SettingsScreen } from './screens/SettingsScreen';
-import { newPrinter, useSettings, useStore, type Printer, type Settings as AppSettings } from './store';
+import { SettingsScreen } from './screens/SettingsScreen';
+import { Wizard } from './onboarding/Wizard';
+import { useSettings, useStore, type Printer, type Settings as AppSettings } from './store';
 import { useNativeSync, useSharedFiles } from './useNativeBridge';
 import { StatusContext, usePrinterStatusPoll } from './usePrinterStatus';
 
@@ -126,20 +127,16 @@ function SharedFileSheet({
   );
 }
 
-function Onboarding() {
-  const t = useT();
-  const { savePrinter } = useStore();
+function Onboarding({ firstRun }: { firstRun: boolean }) {
+  const { updateSettings } = useSettings();
   return (
     <div className="app">
       <main>
         <div className="screen onboarding">
-          <div className="brand-mark">
-            <img src="./icon.svg" alt="" width={64} height={64} />
-          </div>
-          <h1>Printer Hub</h1>
-          <p className="muted">{t('onboarding.text')}</p>
-          <AppearancePrefs />
-          <PrinterForm initial={newPrinter()} onSave={savePrinter} />
+          <Wizard
+            mode={firstRun ? 'full' : 'printer'}
+            onDone={() => updateSettings({ onboarded: true })}
+          />
         </div>
       </main>
     </div>
@@ -171,10 +168,10 @@ export default function App() {
     };
   }, [tab]);
 
-  if (!active) {
+  if (!settings.onboarded || !active) {
     return (
       <ToastProvider>
-        <Onboarding />
+        <Onboarding firstRun={!settings.onboarded} />
       </ToastProvider>
     );
   }

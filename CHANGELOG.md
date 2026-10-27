@@ -25,6 +25,9 @@ First numbered release.
 - Print history with totals, and timelapses.
 
 ### App
+- Welcome wizard on first launch: welcome screen, appearance, notifications and a guided
+  "add your printer" step (network scan or IP with help, connection check, camera detection
+  and name). It can be reopened from Settings, and "Add printer" uses the same guide.
 - Material 3 design with dynamic color (device color or presets) and palette styles.
 - Floating navigation bar on phones, navigation rail on tablets.
 - Notifications when a print finishes, pauses or fails, and a home screen widget.

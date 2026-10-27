@@ -1,7 +1,7 @@
 // Material-style touch ripple for every tappable surface, wired once at startup.
 
 const SELECTOR =
-  '.btn, .tabbar button, .segmented button, .file-row, .list-main, .chip, .tile, .found, .select-option, .select-field';
+  '.btn, .tabbar button, .segmented button, .file-row, .list-main, .chip, .tile, .found, .select-option, .select-field, .choice, .section-head';
 
 export function installRipple() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;

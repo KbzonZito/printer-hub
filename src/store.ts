@@ -52,6 +52,8 @@ export interface Settings {
   fileSort: FileSort;
   fileSortDesc: boolean;
   fileView: 'list' | 'grid';
+  /** The welcome wizard was completed (or skipped). */
+  onboarded: boolean;
   /** Background notifications and widget updates while printing (Android). */
   notify: boolean;
 }
@@ -78,6 +80,7 @@ function defaultSettings(): Settings {
     fileSortDesc: true,
     fileView: 'list',
     notify: true,
+    onboarded: false,
   };
 }
 
@@ -87,7 +90,13 @@ function load(): State {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const saved = JSON.parse(raw);
-      return { ...fallback, ...saved, settings: { ...fallback.settings, ...saved.settings } };
+      // Installs from before the welcome wizard already have their printers set up.
+      const onboarded = saved.settings?.onboarded ?? (saved.printers?.length ?? 0) > 0;
+      return {
+        ...fallback,
+        ...saved,
+        settings: { ...fallback.settings, ...saved.settings, onboarded },
+      };
     }
   } catch {
     /* storage unavailable or corrupt */
