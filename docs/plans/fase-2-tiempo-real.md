@@ -168,7 +168,11 @@ Reconexión:
 
 Cada paso termina con la app funcionando (commit local) y su criterio de aceptación.
 
-### 2.1 Verificar la impresora real — **low**
+### 2.1 Verificar la impresora real — **low** ✅
+
+Resultado en [creality-hi.md](creality-hi.md): la impresora rechaza el `Origin` del WebView
+(403) y acepta la conexión nativa, lo que confirma D2.
+
 Con la IP de tu Creality Hi, desde el Mac (sin tocar la impresora):
 - `GET /server/info`: versión de Moonraker, `api_version` y lista de componentes (`job_queue`,
   `timelapse`, `spoolman`, `power`…).
@@ -248,6 +252,8 @@ segundo y los cambios de temperatura del simulador se ven en menos de 1 s.
 - `useCapabilities()`.
 - Primer uso: la pestaña Timelapse solo aparece si existe el componente `timelapse`. La luz y el
   recinto ya dependen de los objetos descubiertos.
+- **Ventilador:** detectar el objeto del ventilador de pieza (`fan` o, como en la Creality Hi,
+  `output_pin fan0`) igual que la luz. Hoy la Hi muestra siempre 0 % porque no tiene `fan`.
 
 **Acepta:** sin `timelapse` en el simulador, la pestaña no aparece.
 
