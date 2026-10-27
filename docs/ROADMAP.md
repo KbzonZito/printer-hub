@@ -4,21 +4,62 @@ Cada fase termina en una versión publicada con el flujo habitual: cambios en lo
 (`npm run apk`), confirmación en el teléfono y `npm run release`. Las funciones nuevas suben la
 versión menor (0.x.0) y las correcciones la de parche (0.x.y).
 
-| Versión | Contenido | Estado |
-| --- | --- | --- |
-| 0.2.0 | Estado actual (carpetas, colores dinámicos, presets, versiones numeradas) | Pendiente de tu prueba |
-| 0.3.0 | Bienvenida y tutorial para añadir la impresora | |
-| 0.4.0 | Conexión en tiempo real y conexión robusta | |
-| 0.5.0 | Excluir objetos y cola de impresión | |
-| 0.6.0 | Notificaciones con foto, widget y ajuste rápido | |
-| 0.7.0 | Filamento (Spoolman) y estadísticas | |
-| 0.8.0 | Malla de la cama, calibraciones, enchufes y editor de configuración | |
-| 0.9.0 | Vista previa del G-code y vista de todas las impresoras | |
-| 1.0.0-rc | Optimización, limpieza, pruebas y documentación | |
-| 1.0.0 | Publicación tras la lista de comprobación final | |
+| Versión | Contenido | Planear | Implementar | Estado |
+| --- | --- | --- | --- | --- |
+| 0.2.0 | Estado actual (carpetas, colores dinámicos, presets, versiones numeradas) | — | — | Pendiente de tu prueba |
+| 0.3.0 | Bienvenida y tutorial para añadir la impresora | high | medium | |
+| 0.4.0 | Conexión en tiempo real y conexión robusta | xhigh | high | |
+| 0.5.0 | Excluir objetos y cola de impresión | high | high / medium | |
+| 0.6.0 | Notificaciones con foto, widget y ajuste rápido | high | high | |
+| 0.7.0 | Filamento (Spoolman) y estadísticas | medium | medium | |
+| 0.8.0 | Malla de la cama, calibraciones, enchufes y editor de configuración | high | medium / high | |
+| 0.9.0 | Vista previa del G-code y vista de todas las impresoras | xhigh | high | |
+| 1.0.0-rc | Optimización, limpieza, pruebas y documentación | high | low a high | |
+| 1.0.0 | Publicación tras la lista de comprobación final | — | low | |
+
+Cada paso lleva entre corchetes el nivel de esfuerzo de Opus 5.5 recomendado para
+implementarlo, por ejemplo **[medium]**. La sección siguiente explica cómo se decide.
 
 El orden pone primero la bienvenida (es lo que ve un usuario nuevo) y después la conexión en
 tiempo real, porque casi todas las funciones siguientes la aprovechan.
+
+---
+
+## Cómo elegir el nivel de esfuerzo
+
+Es siempre el mismo modelo. El nivel decide cuánto piensa antes de actuar: más nivel significa
+más cuidado con los casos difíciles, pero también más tiempo y más consumo. No hace un trabajo
+"mejor" en lo que ya es fácil.
+
+Hazte tres preguntas sobre la tarea:
+
+1. **¿Está claro qué hay que hacer?** Si la tarea se describe en una frase y ya existe algo
+   parecido en la app, el nivel puede ser bajo. Si hay que decidir cómo hacerlo, sube.
+2. **¿Cuántas piezas se tocan a la vez?** Un archivo o una pantalla es poco. Estado compartido,
+   conexión de red, código nativo de Android o varias pantallas a la vez es mucho.
+3. **¿Puedo comprobar el resultado fácilmente?** Si se ve en el navegador al momento, un fallo
+   se detecta enseguida. Si solo se puede probar en el teléfono, con la impresora real o en
+   situaciones raras (cortes de red, segundo plano), conviene que piense más antes de escribir.
+
+| Nivel | Cuándo usarlo | Ejemplos de este proyecto |
+| --- | --- | --- |
+| **low** | Cambios mecánicos y bien definidos | Textos y traducciones, un color, un icono, renombrar, quitar código muerto |
+| **medium** | Funciones normales siguiendo patrones que ya existen | Una pantalla nueva parecida a otras, un ajuste más, una lista con datos de Moonraker |
+| **high** | Varias piezas a la vez, decisiones de diseño, código nativo o fallos difíciles | Notificaciones nativas, animaciones delicadas, cola de impresión, planificar una fase |
+| **xhigh** | Arquitectura que condiciona lo que viene después, o un fallo que no se resolvió con high | Conexión por WebSocket con reconexión, visor de G-code con buen rendimiento |
+| **max** | Rara vez: cuando todo lo anterior falló o un error puede ser grave | Un fallo intermitente que nadie consigue reproducir |
+
+**Reglas prácticas:**
+- **Planear un nivel por encima de implementar.** Tu costumbre (high para planear, medium para
+  implementar) es una buena base. Un buen plan hace que la implementación sea más mecánica.
+- **Si tras dos intentos algo sigue fallando, sube un nivel**, en vez de insistir con el mismo.
+  La barra de navegación es un ejemplo: con medium se probaron varias animaciones sin encontrar
+  la causa (el ripple ensanchaba el botón). Con high desde el segundo intento probablemente se
+  habría investigado la causa antes de cambiar el diseño.
+- **Para depurar, sube; para repetir, baja.** Encontrar por qué falla algo pide más nivel que
+  aplicar la misma corrección en varios sitios.
+- **El riesgo también cuenta.** Lo que puede mover la impresora, calentar o borrar archivos
+  merece un nivel más aunque parezca sencillo.
 
 ---
 
@@ -27,21 +68,21 @@ tiempo real, porque casi todas las funciones siguientes la aprovechan.
 Sustituye la pantalla actual de "Conecta tu impresora" por un asistente de varios pasos, con
 indicador de progreso (puntos), botones Atrás / Siguiente y transiciones animadas.
 
-1. **Bienvenida**: logo, nombre, frase corta y botón "Empezar". Fondo con el color dinámico.
-2. **Apariencia**: idioma (detectado del sistema), tema claro / oscuro / sistema, color y estilo
-   de paleta. Los cambios se ven al momento en la propia pantalla.
-3. **Notificaciones** (solo Android): explica para qué sirven y pide el permiso. Se puede omitir.
-4. **Requisitos**: qué necesita la impresora (Klipper + Moonraker, misma Wi-Fi; en la Creality Hi,
+1. **[medium] Bienvenida**: logo, nombre, frase corta y botón "Empezar". Fondo con el color dinámico.
+2. **[low] Apariencia**: idioma (detectado del sistema), tema claro / oscuro / sistema, color y estilo
+   de paleta. Los cambios se ven al momento en la propia pantalla. Reutiliza `AppearancePrefs`.
+3. **[medium] Notificaciones** (solo Android): explica para qué sirven y pide el permiso. Se puede omitir.
+4. **[low] Requisitos**: qué necesita la impresora (Klipper + Moonraker, misma Wi-Fi; en la Creality Hi,
    root activado) con un enlace a la ayuda.
-5. **Añadir impresora**, con dos caminos:
+5. **[medium] Añadir impresora**, con dos caminos:
    - **Buscar en la red**: escanea, muestra las encontradas y se elige una.
    - **Manual**: explica dónde ver la IP en la pantalla de la Creality Hi (Ajustes → Red) con una
      ilustración, y pide IP y puerto.
    Después prueba la conexión, detecta la cámara y propone un nombre (el hostname).
-6. **Listo**: resumen y 3 consejos rápidos (tocar las temperaturas, deslizar en archivos, el
+6. **[low] Listo**: resumen y 3 consejos rápidos (tocar las temperaturas, deslizar en archivos, el
    widget).
 
-Detalles:
+Detalles **[medium]**:
 - El asistente se puede reabrir desde Ajustes ("Ver tutorial") y "Añadir impresora" usa los
   pasos 4 y 5.
 - Si se cierra a medias, se recuerda el paso.
@@ -49,109 +90,113 @@ Detalles:
 
 ## Fase 2 — Conexión en tiempo real (0.4.0)
 
-Base técnica para todo lo demás.
+Base técnica para todo lo demás. Cambia cómo llegan los datos a todas las pantallas, por eso
+conviene planearla con **xhigh**.
 
-- **WebSocket de Moonraker** (`/websocket`, `printer.objects.subscribe`) en lugar de consultar
+- **[xhigh] WebSocket de Moonraker** (`/websocket`, `printer.objects.subscribe`) en lugar de consultar
   cada 2 segundos: datos al instante, menos batería y menos tráfico. Si el WebSocket falla,
   vuelve a la consulta periódica.
-- **Detección de capacidades**: leer `/server/info` (componentes como `job_queue`, `spoolman`,
+- **[medium] Detección de capacidades**: leer `/server/info` (componentes como `job_queue`, `spoolman`,
   `power`, `timelapse`) y `printer.objects.list`. Cada función solo aparece si la impresora la
   soporta. Es importante porque el Moonraker de Creality puede ser antiguo o venir recortado.
-- **Conexión robusta**: banner de "Reconectando…" con reintentos crecientes, y pantalla clara
+- **[high] Conexión robusta**: banner de "Reconectando…" con reintentos crecientes, y pantalla clara
   cuando Klipper está en error o apagado, con el mensaje y los botones "Reiniciar firmware" y
   "Reiniciar Klipper".
 
 ## Fase 3 — Funciones nuevas
 
 ### 0.5.0 — Durante la impresión
-- **Excluir objetos**: mapa de la cama con los contornos de cada pieza (objeto
+- **[high] Excluir objetos**: mapa de la cama con los contornos de cada pieza (objeto
   `exclude_object` de Klipper). Al tocar una pieza se pide confirmación y se excluye con
   `EXCLUDE_OBJECT`. Las piezas excluidas aparecen tachadas. Requiere que el laminador marque los
-  objetos (Creality Print y OrcaSlicer lo hacen).
-- **Cola de impresión** (`/server/job_queue/*`): "Añadir a la cola" desde un archivo, una
+  objetos (Creality Print y OrcaSlicer lo hacen). Es high por la geometría (convertir las
+  coordenadas de la cama al dibujo) y porque un error excluye la pieza equivocada.
+- **[medium] Cola de impresión** (`/server/job_queue/*`): "Añadir a la cola" desde un archivo, una
   pestaña "Cola" en Archivos para reordenar o quitar, e iniciar / pausar la cola.
 
 ### 0.6.0 — Avisos
-- **Notificación con foto** al terminar, pausar o fallar, con una captura de la cámara
+- **[high] Notificación con foto** al terminar, pausar o fallar, con una captura de la cámara
   (BigPicture).
-- Aviso opcional al terminar la **primera capa**.
-- **Progreso en vivo** en la notificación (estilo de Android 16 cuando esté disponible).
-- **Widget** con los colores dinámicos y un tamaño grande con miniatura.
-- **Ajuste rápido** (Quick Settings tile) con el progreso; al tocarlo abre la app.
+- **[medium]** Aviso opcional al terminar la **primera capa**.
+- **[high] Progreso en vivo** en la notificación (estilo de Android 16 cuando esté disponible).
+- **[medium] Widget** con los colores dinámicos y un tamaño grande con miniatura.
+- **[high] Ajuste rápido** (Quick Settings tile) con el progreso; al tocarlo abre la app.
 
 ### 0.7.0 — Filamento y estadísticas
-- **Spoolman** (si está instalado): bobina activa, peso restante y cambiar de bobina. Antes de
+- **[medium] Spoolman** (si está instalado): bobina activa, peso restante y cambiar de bobina. Antes de
   imprimir, aviso si no queda filamento suficiente.
-- **Coste** por impresión (precio por kg configurable por material, en los presets).
-- **Estadísticas**: horas, filamento y número de impresiones por semana / mes, tasa de éxito y
+- **[low] Coste** por impresión (precio por kg configurable por material, en los presets).
+- **[medium] Estadísticas**: horas, filamento y número de impresiones por semana / mes, tasa de éxito y
   gráficas sencillas (a partir del historial).
 
 ### 0.8.0 — Mantenimiento
-- **Malla de la cama**: mapa de calor del `bed_mesh` con la diferencia máxima, y botón para
+- **[medium] Malla de la cama**: mapa de calor del `bed_mesh` con la diferencia máxima, y botón para
   calibrar.
-- **Asistentes de calibración** guiados, cada uno con confirmación: PID de boquilla y cama,
+- **[high] Asistentes de calibración** guiados, cada uno con confirmación: PID de boquilla y cama,
   Z offset, input shaper (si hay acelerómetro).
-- **Enchufes inteligentes** (`/machine/device_power`): encender / apagar y apagado automático al
+- **[medium] Enchufes inteligentes** (`/machine/device_power`): encender / apagar y apagado automático al
   terminar y enfriar.
-- **Editor de configuración**: abrir `printer.cfg` y otros archivos de config, editar, guardar y
+- **[medium] Editor de configuración**: abrir `printer.cfg` y otros archivos de config, editar, guardar y
   reiniciar el firmware. Se avisa antes de guardar.
 
 ### 0.9.0 — Vista general
-- **Vista previa del G-code** capa a capa, de un archivo o de la impresión en curso (con la capa
-  actual resaltada). El G-code se procesa en un web worker para no bloquear la app.
-- **Todas las impresoras**: si hay más de una, una pantalla con el estado, el progreso y la
+- **[high] Vista previa del G-code** capa a capa, de un archivo o de la impresión en curso (con la capa
+  actual resaltada). El G-code se procesa en un web worker para no bloquear la app. Planear con
+  **xhigh**: archivos de decenas de MB en un teléfono obligan a pensar bien el rendimiento.
+- **[high] Todas las impresoras**: si hay más de una, una pantalla con el estado, el progreso y la
   cámara de cada una.
 
 ## Fase 4 — Mejoras propias
 
 Se reparten entre las versiones anteriores según encajen:
 
-- **Gesto atrás de Android**: cierra primero el panel abierto, sube de carpeta en Archivos y
+- **[medium] Gesto atrás de Android**: cierra primero el panel abierto, sube de carpeta en Archivos y
   solo después vuelve a Inicio.
-- **Deslizar para recargar** en Archivos, Historial y Timelapses.
-- **Vibración sutil** (Capacitor Haptics) al pausar, cancelar o en el paro de emergencia.
-- **Zoom con dos dedos** en la cámara a pantalla completa, y una captura que se pueda compartir.
-- **Icono temático** de Android 13+ (monocromo) y pantalla de inicio con el color dinámico.
-- **Copia de seguridad de los ajustes**: exportar / importar impresoras, presets y apariencia en
+- **[medium] Deslizar para recargar** en Archivos, Historial y Timelapses.
+- **[low] Vibración sutil** (Capacitor Haptics) al pausar, cancelar o en el paro de emergencia.
+- **[medium] Zoom con dos dedos** en la cámara a pantalla completa, y una captura que se pueda compartir.
+- **[low] Icono temático** de Android 13+ (monocromo) y pantalla de inicio con el color dinámico.
+- **[medium] Copia de seguridad de los ajustes**: exportar / importar impresoras, presets y apariencia en
   un archivo.
-- **Acceso desde fuera de casa**: guía en la ayuda para usar Tailscale o similar (sin cambios en
+- **[low] Acceso desde fuera de casa**: guía en la ayuda para usar Tailscale o similar (sin cambios en
   la app).
-- **Accesibilidad**: etiquetas en todos los botones de icono, contraste revisado, textos que
+- **[medium] Accesibilidad**: etiquetas en todos los botones de icono, contraste revisado, textos que
   respeten el tamaño de letra del sistema y áreas táctiles de al menos 48 px.
 
 ## Fase 5 — Optimización y limpieza para la 1.0
 
 ### Código
-- Dividir los archivos grandes: `FileBrowser.tsx` (864 líneas), `SettingsScreen.tsx` (747) y
+- **[medium]** Dividir los archivos grandes: `FileBrowser.tsx` (864 líneas), `SettingsScreen.tsx` (747) y
   `styles.css` (más de 2000 líneas, que pasaría a un CSS por pantalla o componente).
-- Eliminar código muerto: reglas CSS que quedaron de las barras anteriores, claves de traducción
+- **[low]** Eliminar código muerto: reglas CSS que quedaron de las barras anteriores, claves de traducción
   sin usar (`settings.app`…) y exports que ya no se usan. Un script en CI detecta claves de
   traducción sin uso o que falten en un idioma.
-- Unificar patrones repetidos: carga con error y reintento, listas vacías, hojas de confirmación.
+- **[medium]** Unificar patrones repetidos: carga con error y reintento, listas vacías, hojas de confirmación.
 
 ### Calidad
-- **ESLint + Prettier** con comprobación en CI.
-- **Pruebas unitarias** (Vitest) de la lógica: tiempos restantes (`eta.ts`), estimaciones
+- **[low] ESLint + Prettier** con comprobación en CI.
+- **[medium] Pruebas unitarias** (Vitest) de la lógica: tiempos restantes (`eta.ts`), estimaciones
   (`estimate.ts`), formatos, paletas y lectura de respuestas de Moonraker.
-- **Pruebas de extremo a extremo** (Playwright) contra un Moonraker simulado que pasa a formar
+- **[high] Pruebas de extremo a extremo** (Playwright) contra un Moonraker simulado que pasa a formar
   parte del repositorio (`scripts/mock-moonraker.mjs`): bienvenida, añadir impresora, archivos,
   carpetas e imprimir.
-- **Error boundary**: si una pantalla falla, se muestra un aviso con "Reintentar" en vez de una
+- **[low] Error boundary**: si una pantalla falla, se muestra un aviso con "Reintentar" en vez de una
   pantalla en blanco.
 
 ### Rendimiento
-- Cargar cada pantalla solo al abrirla (`React.lazy`) para que la app arranque antes. El paquete
+- **[medium]** Cargar cada pantalla solo al abrirla (`React.lazy`) para que la app arranque antes. El paquete
   JS pesa ahora unos 400 kB.
-- Listas virtualizadas para carpetas con cientos de archivos, y caché de miniaturas.
-- Android: activar R8 (minify y shrinkResources) con sus reglas para Capacitor, y corregir la API
-  obsoleta que avisa el compilador en `PrinterMonitorPlugin`.
-- Revisar el consumo de batería del servicio de notificaciones (intervalo adaptativo: más lento
+- **[medium]** Listas virtualizadas para carpetas con cientos de archivos, y caché de miniaturas.
+- **[high]** Android: activar R8 (minify y shrinkResources) con sus reglas para Capacitor, y corregir la API
+  obsoleta que avisa el compilador en `PrinterMonitorPlugin`. Es high porque R8 puede romper en
+  tiempo de ejecución el código que Capacitor usa por reflexión, y solo se nota en el APK.
+- **[high]** Revisar el consumo de batería del servicio de notificaciones (intervalo adaptativo: más lento
   cuando falta mucho para terminar).
 
 ### Publicación
-- README con capturas de pantalla, licencia (propongo MIT) y nota de privacidad (la app solo
+- **[low]** README con capturas de pantalla, licencia (propongo MIT) y nota de privacidad (la app solo
   habla con tu impresora en tu red y no envía datos a terceros).
-- **Lista de comprobación de la 1.0**:
+- **[low] Lista de comprobación de la 1.0** (la prueba la haces tú en el teléfono):
   - Instalación limpia y actualización desde la versión anterior.
   - Teléfono y tablet; Android 10 a 16.
   - Claro / oscuro, español / inglés y varios colores.
