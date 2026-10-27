@@ -69,6 +69,8 @@ public class PrinterMonitorPlugin extends Plugin {
                     .putInt("port", call.getInt("port", 7125))
                     .putString("name", call.getString("name", "Printer Hub"))
                     .putString("lang", call.getString("lang", "es"))
+                    .putBoolean("first_layer", call.getBoolean("firstLayer", false))
+                    .putString("power_off", call.getString("powerOff", ""))
                     .apply();
         }
         PrinterWidget.updateAll(getContext());
@@ -118,6 +120,7 @@ public class PrinterMonitorPlugin extends Plugin {
         s.printDuration = call.getDouble("printDuration", 0.0);
         Moonraker.saveSnapshot(getContext(), s);
         PrinterWidget.updateAll(getContext());
+        PrinterWidget.refreshThumbnailAsync(getContext(), s.filename);
         call.resolve();
     }
 

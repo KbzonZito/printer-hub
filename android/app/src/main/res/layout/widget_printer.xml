@@ -18,7 +18,7 @@
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:src="@drawable/ic_stat_printer"
-            android:tint="#FFFF7A1A" />
+            android:tint="@color/widget_accent" />
 
         <TextView
             android:id="@+id/widget_name"
@@ -28,7 +28,7 @@
             android:layout_marginStart="6dp"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="#FFE8EAED"
+            android:textColor="@color/widget_text"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -36,7 +36,7 @@
             android:id="@+id/widget_percent"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#FFFF7A1A"
+            android:textColor="@color/widget_accent"
             android:textSize="18sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -46,7 +46,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textColor="#FF8B929C"
+        android:textColor="@color/widget_muted"
         android:textSize="13sp" />
 
     <ProgressBar
@@ -65,6 +65,6 @@
         android:layout_marginTop="6dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textColor="#FF8B929C"
+        android:textColor="@color/widget_muted"
         android:textSize="12sp" />
 </LinearLayout>

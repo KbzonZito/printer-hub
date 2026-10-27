@@ -5,7 +5,27 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+### Fixed
+- Buttons in rows ("Motors off", "Emergency stop"…) cut their label on narrow phones; now
+  they move to the next line.
+
 ### Added
+- Print queue (when Moonraker has job_queue): "Add to queue" in a file's details, and a Queue
+  tab in Files to start / pause it, reorder, remove or clear jobs.
+- Optional notification when the first layer is done (Settings → Notifications).
+- Widget: follows the system colors on Android 12+, and when resized to two rows or more it
+  shows the thumbnail of the file being printed.
+- Spoolman (when installed): active spool with its remaining weight on Home, tap to change
+  it, and a warning before printing a file that needs more filament than the spool has.
+- Statistics from the history: prints, hours, filament and success rate per week or month,
+  with a bar chart.
+- Bed mesh in Control: heatmap with the maximum difference, a flatness rating, and buttons
+  to calibrate it and save it (SAVE_CONFIG).
+- Smart plugs (Moonraker power devices): switch them on / off from Control, also from the
+  "Klipper disconnected" screen; on Android they can switch off by themselves when a print
+  finishes and the nozzle is below 50 °C.
+- Klipper config editor in Control: open printer.cfg and the other config files, edit,
+  save, and optionally restart the firmware. Read-only files can't be edited.
 - Print cost: set a price per kg in each preheat preset (and your currency symbol), and file
   details and history show what each print costs, matched by the file's material.
 

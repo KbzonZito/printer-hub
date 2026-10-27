@@ -28,6 +28,12 @@ final class Texts {
         put("lost_text", "No responde desde hace 2 minutos.", "Not responding for 2 minutes.");
         put("no_printer", "Abre la app para configurar", "Open the app to set up");
         put("offline", "Sin conexión", "Offline");
+        put("cooling", "Enfriando para apagar (%d °C)", "Cooling down to power off (%d °C)");
+        put("powered_off_title", "Impresora apagada", "Printer powered off");
+        put("powered_off_text", "%s se apagó al terminar y enfriarse.", "%s was switched off after the print cooled down.");
+        put("first_layer_title", "Primera capa terminada", "First layer done");
+        put("first_layer_text", "%s · revisa que se haya pegado bien a la cama.",
+                "%s · check that it stuck well to the bed.");
     }
 
     private static void put(String key, String es, String en) {

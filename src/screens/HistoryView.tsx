@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, CircleSlash, FileBox, RotateCcw, XCircle } from 'lucide-react';
+import { ChartColumn, CheckCircle2, CircleSlash, FileBox, RotateCcw, XCircle } from 'lucide-react';
 import {
   fetchHistory,
   fetchHistoryTotals,
@@ -9,6 +9,7 @@ import {
   type HistoryTotals,
 } from '../api/moonraker';
 import { PullToRefresh } from '../components/PullToRefresh';
+import { StatsSheet } from '../components/StatsSheet';
 import { Sheet, useAction } from '../components/ui';
 import { baseName, formatDate, formatDuration } from '../format';
 import { useLang, useT, type MessageKey } from '../i18n';
@@ -38,6 +39,7 @@ export function HistoryView({
   const [totals, setTotals] = useState<HistoryTotals | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<HistoryJob | null>(null);
+  const [statsOpen, setStatsOpen] = useState(false);
   const { settings } = useSettings();
   const cost =
     selected &&
@@ -72,6 +74,7 @@ export function HistoryView({
 
   return (
     <PullToRefresh onRefresh={load}>
+      <StatsSheet printer={printer} open={statsOpen} onClose={() => setStatsOpen(false)} />
       {totals && (
         <div className="stats four">
           <div>
@@ -91,6 +94,11 @@ export function HistoryView({
             <strong>{jobs?.length ? `${Math.round((done / jobs.length) * 100)}%` : '—'}</strong>
           </div>
         </div>
+      )}
+      {totals && totals.total_jobs > 0 && (
+        <button className="btn" onClick={() => setStatsOpen(true)}>
+          <ChartColumn size={18} /> {t('stats.open')}
+        </button>
       )}
 
       {error && <p className="muted">{error}</p>}

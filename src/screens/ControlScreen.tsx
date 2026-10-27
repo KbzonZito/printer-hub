@@ -12,6 +12,9 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { gcodeStore, listMacros, printerActions, type GcodeLine } from '../api/moonraker';
+import { BedMeshCard } from '../components/BedMeshCard';
+import { ConfigCard } from '../components/ConfigEditor';
+import { PowerCard } from '../components/PowerCard';
 import { TuneSheet } from '../components/TuneSheet';
 import { useAction } from '../components/ui';
 import { useT } from '../i18n';
@@ -262,20 +265,6 @@ export function ControlScreen({ printer }: { printer: Printer }) {
           <section className="card">
             <h2 className="card-title">{t('control.macros')}</h2>
             <div className="chips">
-              {!macros.includes('BED_MESH_CALIBRATE') && (
-                <button
-                  className="chip"
-                  disabled={printing}
-                  onClick={() =>
-                    act(
-                      () => printerActions.gcode(printer, 'BED_MESH_CALIBRATE'),
-                      t('control.running'),
-                    )
-                  }
-                >
-                  BED_MESH_CALIBRATE
-                </button>
-              )}
               {macros.map((m) => (
                 <button
                   key={m}
@@ -287,10 +276,16 @@ export function ControlScreen({ printer }: { printer: Printer }) {
               ))}
             </div>
           </section>
+          <BedMeshCard printer={printer} printing={printing} />
         </div>
       </fieldset>
 
+      {/* Outside the fieldset: plugs work even when Klipper is off. */}
+      <PowerCard printer={printer} printing={printing} />
+
       <Console printer={printer} />
+
+      <ConfigCard printer={printer} printing={printing} />
 
       <TuneSheet open={tune} onClose={() => setTune(false)} printer={printer} status={status} />
     </div>

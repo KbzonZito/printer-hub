@@ -5,6 +5,7 @@ import type { Printer } from '../store';
 import { useCapabilities, usePrinterStatus } from '../usePrinterStatus';
 import { FileBrowser } from './FileBrowser';
 import { HistoryView } from './HistoryView';
+import { QueueView } from './QueueView';
 import { TimelapseView } from './TimelapseView';
 
 export function FilesScreen({
@@ -16,13 +17,16 @@ export function FilesScreen({
 }) {
   const t = useT();
   const { status } = usePrinterStatus();
-  const [view, setView] = useState<'files' | 'history' | 'timelapse'>('files');
+  const [view, setView] = useState<'files' | 'history' | 'queue' | 'timelapse'>('files');
   const busy = status?.state === 'printing' || status?.state === 'paused';
   // Timelapses need the moonraker-timelapse plugin (the Creality Hi doesn't have it).
   const caps = useCapabilities();
-  const views = caps.has('timelapse')
-    ? (['files', 'history', 'timelapse'] as const)
-    : (['files', 'history'] as const);
+  const views = [
+    'files',
+    'history',
+    ...(caps.has('job_queue') ? (['queue'] as const) : []),
+    ...(caps.has('timelapse') ? (['timelapse'] as const) : []),
+  ] as const;
   const shown = views.includes(view as never) ? view : 'files';
   useBackHandler(shown !== 'files', () => setView('files'));
 
@@ -39,6 +43,7 @@ export function FilesScreen({
       {shown === 'history' && (
         <HistoryView printer={printer} busy={busy} onPrintStarted={onPrintStarted} />
       )}
+      {shown === 'queue' && <QueueView printer={printer} />}
       {shown === 'timelapse' && <TimelapseView printer={printer} />}
     </div>
   );

@@ -3,4 +3,11 @@
     <!-- Splash screen; Android 12+ takes them from the system theme (values-v31). -->
     <color name="splash_background">#17120F</color>
     <color name="splash_icon">#FF9A5C</color>
+    <!-- Home screen widget; Android 12+ takes them from the system theme (values-v31). -->
+    <color name="widget_bg">#F2171A1F</color>
+    <color name="widget_text">#FFE8EAED</color>
+    <color name="widget_muted">#FF8B929C</color>
+    <color name="widget_accent">#FFFF7A1A</color>
+    <color name="widget_track">#FF2A2F37</color>
+    <color name="widget_thumb_bg">#FF22262D</color>
 </resources>

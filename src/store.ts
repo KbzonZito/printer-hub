@@ -60,6 +60,10 @@ export interface Settings {
   onboarded: boolean;
   /** Background notifications and widget updates while printing (Android). */
   notify: boolean;
+  /** Also notify when the first layer is done (needs layer info from the slicer). */
+  notifyFirstLayer: boolean;
+  /** Power device to switch off once a print finishes and the nozzle cools (Android). */
+  powerOffDevice: string;
 }
 
 export interface State {
@@ -85,6 +89,8 @@ export function defaultSettings(): Settings {
     fileSortDesc: true,
     fileView: 'list',
     notify: true,
+    notifyFirstLayer: false,
+    powerOffDevice: '',
     onboarded: false,
   };
 }

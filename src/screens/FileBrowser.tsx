@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpDown,
+  ListPlus,
   ChevronRight,
   Clock,
   FileBox,
@@ -35,6 +36,7 @@ import {
   type GcodeFile,
 } from '../api/moonraker';
 import { PullToRefresh } from '../components/PullToRefresh';
+import { useActiveSpool } from '../components/SpoolCard';
 import { ConfirmSheet, Sheet, useAction } from '../components/ui';
 import { useBackHandler } from '../backStack';
 import { formatCost, printCost } from '../cost';
@@ -42,7 +44,13 @@ import { estimateFile, loadCalibration, type Calibration } from '../estimate';
 import { baseName, formatBytes, formatClock, formatDate, formatDuration } from '../format';
 import { useLang, useT, type MessageKey } from '../i18n';
 import { useSettings, type FileSort, type Printer } from '../store';
-import { useConnectionEvent, usePrinterReady, usePrinterStatus } from '../usePrinterStatus';
+import {
+  useCapabilities,
+  useConnectionEvent,
+  usePrinterReady,
+  usePrinterStatus,
+} from '../usePrinterStatus';
+import { enqueue } from '../api/queue';
 
 const metaCache = new Map<string, FileMetadata>();
 const metaKey = (p: Printer, f: GcodeFile) => `${p.id}:${f.path}:${f.modified}`;
@@ -465,6 +473,10 @@ export function FileBrowser({
   const t = useT();
   const { status, refresh: refreshStatus } = usePrinterStatus();
   const ready = usePrinterReady();
+  const caps = useCapabilities();
+  const spool = useActiveSpool(printer);
+  // The active spool has less filament than the file needs (grams).
+  const [lowFilament, setLowFilament] = useState<{ need: number; have: number } | null>(null);
   const { settings, updateSettings } = useSettings();
   const run = useAction();
   const cal = useCalibration(printer);
@@ -566,6 +578,15 @@ export function FileBrowser({
     setUploading(false);
     if (inputRef.current) inputRef.current.value = '';
     load();
+  };
+
+  const startPrint = async (file: GcodeFile) => {
+    const ok = await run(() => printerActions.start(printer, file.path), t('files.started'));
+    if (ok) {
+      setSelected(null);
+      refreshStatus();
+      onPrintStarted();
+    }
   };
 
   const openAction = (kind: 'rename' | 'move' | 'delete', item: Item) => {
@@ -694,6 +715,20 @@ export function FileBrowser({
             <EstimateCard file={selected} meta={selMeta} cal={cal} />
             <FileDetails file={selected} meta={selMeta} />
             <div className="row gap wrap">
+              {caps.has('job_queue') && (
+                <button
+                  className="btn grow"
+                  onClick={async () => {
+                    const ok = await run(
+                      () => enqueue(printer, [selected.path]),
+                      t('queue.added', { name: baseName(selected.path) }),
+                    );
+                    if (ok) setSelected(null);
+                  }}
+                >
+                  <ListPlus size={18} /> {t('queue.add')}
+                </button>
+              )}
               <button
                 className="btn grow"
                 onClick={() => openAction('move', { kind: 'file', file: selected })}
@@ -718,16 +753,11 @@ export function FileBrowser({
               <button
                 className="btn primary grow"
                 disabled={busy || !ready}
-                onClick={async () => {
-                  const ok = await run(
-                    () => printerActions.start(printer, selected.path),
-                    t('files.started'),
-                  );
-                  if (ok) {
-                    setSelected(null);
-                    refreshStatus();
-                    onPrintStarted();
-                  }
+                onClick={() => {
+                  const need = selMeta?.filament_weight_total ?? 0;
+                  const have = spool.active?.remaining_weight;
+                  if (have != null && need > have) setLowFilament({ need, have });
+                  else startPrint(selected);
                 }}
               >
                 <Play size={18} /> {busy ? t('files.busy') : t('files.print')}
@@ -736,6 +766,22 @@ export function FileBrowser({
           </>
         )}
       </Sheet>
+
+      <ConfirmSheet
+        open={!!lowFilament}
+        title={t('spool.lowTitle')}
+        message={
+          lowFilament
+            ? t('spool.lowText', {
+                have: Math.round(lowFilament.have),
+                need: Math.round(lowFilament.need),
+              })
+            : undefined
+        }
+        confirmLabel={t('spool.printAnyway')}
+        onConfirm={() => selected && startPrint(selected)}
+        onClose={() => setLowFilament(null)}
+      />
 
       <Sheet open={!!dirMenu} onClose={() => setDirMenu(null)} title={dirMenu?.name}>
         {dirMenu && (

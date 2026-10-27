@@ -4,6 +4,7 @@ import { printerActions } from '../api/moonraker';
 import { useT } from '../i18n';
 import type { Printer } from '../store';
 import { useConnection, useConnectionSnapshot } from '../usePrinterStatus';
+import { PowerCard } from './PowerCard';
 import { ConfirmSheet, useAction } from './ui';
 
 /** Short drops shouldn't flash a banner. */
@@ -86,6 +87,8 @@ export function KlippyStateScreen({ printer }: { printer: Printer }) {
         </h2>
         <p className="muted">{disconnected ? t('klippy.disconnectedHint') : t('klippy.hint')}</p>
         {state.message && <pre className="klippy-message">{state.message}</pre>}
+        {/* A printer whose plug is off shows up as "Klipper disconnected": switch it on here. */}
+        <PowerCard printer={printer} printing={false} />
         <div className="row gap wrap center-row">
           {!disconnected && (
             <button className="btn primary" onClick={() => setConfirm('firmware')}>

@@ -84,13 +84,18 @@ function encodePath(path: string): string {
   return path.split('/').map(encodeURIComponent).join('/');
 }
 
-async function get<T>(p: Printer, path: string, timeout?: number): Promise<T> {
+export async function get<T>(p: Printer, path: string, timeout?: number): Promise<T> {
   const data = await requestJson<Envelope<T>>(baseUrl(p) + path, { timeout });
   return data.result;
 }
 
-async function post<T = unknown>(p: Printer, path: string, timeout?: number): Promise<T> {
+export async function post<T = unknown>(p: Printer, path: string, timeout?: number): Promise<T> {
   const data = await requestJson<Envelope<T>>(baseUrl(p) + path, { method: 'POST', timeout });
+  return data.result;
+}
+
+export async function del<T = unknown>(p: Printer, path: string): Promise<T> {
+  const data = await requestJson<Envelope<T>>(baseUrl(p) + path, { method: 'DELETE' });
   return data.result;
 }
 
@@ -327,10 +332,12 @@ export interface HistoryTotals {
   longest_print: number;
 }
 
-export async function fetchHistory(p: Printer, limit = 50): Promise<HistoryJob[]> {
+/** Newest first; `since` (Unix seconds) limits it to jobs started after that. */
+export async function fetchHistory(p: Printer, limit = 50, since?: number): Promise<HistoryJob[]> {
   const { jobs } = await get<{ jobs: HistoryJob[] }>(
     p,
-    `/server/history/list?limit=${limit}&order=desc`,
+    `/server/history/list?limit=${limit}&order=desc${since ? `&since=${Math.floor(since)}` : ''}`,
+    15000,
   );
   return jobs;
 }

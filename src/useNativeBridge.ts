@@ -20,10 +20,24 @@ export function useNativeSync(
     if (!isNative) return;
     PrinterMonitor.configure(
       printer
-        ? { host: printer.host, port: printer.port, name: printer.name, lang: settings.lang }
+        ? {
+            host: printer.host,
+            port: printer.port,
+            name: printer.name,
+            lang: settings.lang,
+            firstLayer: settings.notifyFirstLayer,
+            powerOff: settings.powerOffDevice,
+          }
         : {},
     ).catch(() => {});
-  }, [printer?.host, printer?.port, printer?.name, settings.lang]);
+  }, [
+    printer?.host,
+    printer?.port,
+    printer?.name,
+    settings.lang,
+    settings.notifyFirstLayer,
+    settings.powerOffDevice,
+  ]);
 
   const printing = status?.state === 'printing' || status?.state === 'paused';
   useEffect(() => {

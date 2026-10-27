@@ -4,6 +4,8 @@
     android:minHeight="90dp"
     android:targetCellWidth="3"
     android:targetCellHeight="1"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="70dp"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_printer"

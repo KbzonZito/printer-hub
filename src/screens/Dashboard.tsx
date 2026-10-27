@@ -22,6 +22,7 @@ import {
   type Heater,
 } from '../api/moonraker';
 import { CameraView } from '../components/CameraView';
+import { SpoolCard } from '../components/SpoolCard';
 import { TempChart } from '../components/TempChart';
 import { TuneSheet } from '../components/TuneSheet';
 import { ConfirmSheet, Sheet, useAction } from '../components/ui';
@@ -279,6 +280,8 @@ export function Dashboard({
               </div>
             </div>
           </div>
+
+          <SpoolCard printer={printer} />
 
           <div className="row gap wrap">
             {status.light && (

@@ -10,6 +10,7 @@ import {
   GraduationCap,
   Heart,
   Info,
+  Layers,
   Palette,
   Monitor,
   Moon,
@@ -562,6 +563,28 @@ function NotifyPref() {
   );
 }
 
+function FirstLayerPref() {
+  const t = useT();
+  const { settings, updateSettings } = useSettings();
+  return (
+    <label className="toggle">
+      <Layers size={18} />
+      <span className="grow">
+        <strong>{t('settings.firstLayer')}</strong>
+        <small className="muted">{t('settings.firstLayerHint')}</small>
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        className="switch"
+        checked={settings.notifyFirstLayer}
+        disabled={!settings.notify}
+        onChange={(e) => updateSettings({ notifyFirstLayer: e.target.checked })}
+      />
+    </label>
+  );
+}
+
 /** Export and import printers, presets and appearance as a JSON file. */
 function BackupPrefs() {
   const t = useT();
@@ -828,6 +851,7 @@ export function SettingsScreen() {
           summary={settings.notify ? t('settings.on') : t('settings.off')}
         >
           <NotifyPref />
+          <FirstLayerPref />
         </Section>
       )}
 

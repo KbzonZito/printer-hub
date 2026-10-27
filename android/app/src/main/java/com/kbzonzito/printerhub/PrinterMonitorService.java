@@ -32,6 +32,10 @@ public class PrinterMonitorService extends Service {
     static final String CHANNEL_ALERTS = "alerts";
     private static final int ONGOING_ID = 1;
     private static final int ALERT_ID = 2;
+    private static final int FIRST_LAYER_ID = 3;
+    /** The plug is switched off once the nozzle is below this. */
+    private static final double COOL_TEMP = 50;
+    private static final long COOL_TIMEOUT_MS = 2 * 60 * 60 * 1000;
     private static final long POLL_SECONDS = 15;
     private static final long LOST_AFTER_MS = 2 * 60 * 1000;
 
@@ -44,6 +48,14 @@ public class PrinterMonitorService extends Service {
     private String lastState;
     private long lastOk;
     private boolean lostNotified;
+    private boolean firstLayerAlert;
+    /** The current print was seen on its first layer, so finishing it is worth a notice. */
+    private boolean sawFirstLayer;
+    private boolean firstLayerNotified;
+    private String jobFile;
+    /** Power device to switch off after the print, and since when we are waiting to. */
+    private String powerOffDevice;
+    private long powerOffSince;
 
     static void start(Context ctx) {
         Intent intent = new Intent(ctx, PrinterMonitorService.class);
@@ -62,6 +74,8 @@ public class PrinterMonitorService extends Service {
         port = prefs.getInt("port", 7125);
         name = prefs.getString("name", "Printer Hub");
         lang = prefs.getString("lang", "es");
+        firstLayerAlert = prefs.getBoolean("first_layer", false);
+        powerOffDevice = prefs.getString("power_off", "");
         createChannels(this, lang);
 
         int type = Build.VERSION.SDK_INT >= 34 ? ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE : 0;
@@ -89,10 +103,15 @@ public class PrinterMonitorService extends Service {
             lastOk = System.currentTimeMillis();
             lostNotified = false;
             Moonraker.saveSnapshot(this, s);
+            PrinterWidget.refreshThumbnail(this, host, port, s.filename);
             PrinterWidget.updateAll(this);
             handleTransition(s);
+            checkFirstLayer(s);
             if (s.active() && s.klippy.equals("ready")) {
+                powerOffSince = 0;
                 notify(ONGOING_ID, ongoingFor(s));
+            } else if (powerOffSince > 0) {
+                waitToPowerOff(s);
             } else {
                 shutdown();
             }
@@ -114,6 +133,7 @@ public class PrinterMonitorService extends Service {
         switch (state) {
             case "complete":
                 alert(Texts.get(lang, "done_title"), file);
+                if (!powerOffDevice.isEmpty()) powerOffSince = System.currentTimeMillis();
                 break;
             case "paused":
                 alert(Texts.get(lang, "paused_title"),
@@ -127,6 +147,46 @@ public class PrinterMonitorService extends Service {
                 break;
             default:
                 break;
+        }
+    }
+
+    /** After a finished print: switch the plug off once the nozzle has cooled down. */
+    private void waitToPowerOff(Moonraker.Snapshot s) {
+        if (System.currentTimeMillis() - powerOffSince > COOL_TIMEOUT_MS) {
+            powerOffSince = 0;
+            shutdown();
+            return;
+        }
+        if (s.extruderTemp >= 0 && s.extruderTemp < COOL_TEMP) {
+            try {
+                Moonraker.powerOff(host, port, powerOffDevice);
+                alert(Texts.get(lang, "powered_off_title"),
+                        String.format(Texts.get(lang, "powered_off_text"), name));
+            } catch (Exception ignored) {
+                // Plug unreachable; leave the printer on.
+            }
+            powerOffSince = 0;
+            shutdown();
+            return;
+        }
+        notify(ONGOING_ID, ongoing(name, String.format(Texts.get(lang, "cooling"),
+                Math.round(s.extruderTemp)), -1));
+    }
+
+    private void checkFirstLayer(Moonraker.Snapshot s) {
+        if (!s.active() || !s.filename.equals(jobFile)) {
+            // A new print (or none): start watching from scratch.
+            jobFile = s.active() ? s.filename : null;
+            sawFirstLayer = false;
+            firstLayerNotified = false;
+        }
+        if (!firstLayerAlert || !s.state.equals("printing") || s.currentLayer < 0) return;
+        if (s.currentLayer <= 1) {
+            sawFirstLayer = true;
+        } else if (sawFirstLayer && !firstLayerNotified) {
+            firstLayerNotified = true;
+            alert(FIRST_LAYER_ID, Texts.get(lang, "first_layer_title"),
+                    String.format(Texts.get(lang, "first_layer_text"), Moonraker.baseName(s.filename)));
         }
     }
 
@@ -161,7 +221,11 @@ public class PrinterMonitorService extends Service {
     }
 
     private void alert(String title, String text) {
-        notify(ALERT_ID, new NotificationCompat.Builder(this, CHANNEL_ALERTS)
+        alert(ALERT_ID, title, text);
+    }
+
+    private void alert(int id, String title, String text) {
+        notify(id, new NotificationCompat.Builder(this, CHANNEL_ALERTS)
                 .setSmallIcon(R.drawable.ic_stat_printer)
                 .setContentTitle(title)
                 .setContentText(text)

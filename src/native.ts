@@ -17,7 +17,14 @@ export interface SocketEvent {
 }
 
 interface PrinterMonitorPlugin {
-  configure(opts: { host?: string; port?: number; name?: string; lang?: string }): Promise<void>;
+  configure(opts: {
+    host?: string;
+    port?: number;
+    name?: string;
+    lang?: string;
+    firstLayer?: boolean;
+    powerOff?: string;
+  }): Promise<void>;
   startMonitor(): Promise<void>;
   stopMonitor(): Promise<void>;
   requestNotifications(): Promise<{ granted: boolean }>;

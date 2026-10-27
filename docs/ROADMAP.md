@@ -115,32 +115,32 @@ nivel, arquitectura, máquina de estados, pruebas y riesgos).
   `EXCLUDE_OBJECT`. Las piezas excluidas aparecen tachadas. Requiere que el laminador marque los
   objetos (Creality Print y OrcaSlicer lo hacen). Es high por la geometría (convertir las
   coordenadas de la cama al dibujo) y porque un error excluye la pieza equivocada.
-- **[medium] Cola de impresión** (`/server/job_queue/*`): "Añadir a la cola" desde un archivo, una
+- **[medium] Cola de impresión** (**hecho**) (`/server/job_queue/*`): "Añadir a la cola" desde un archivo, una
   pestaña "Cola" en Archivos para reordenar o quitar, e iniciar / pausar la cola.
 
 ### 0.7.0 — Avisos
 - **[high] Notificación con foto** al terminar, pausar o fallar, con una captura de la cámara
   (BigPicture).
-- **[medium]** Aviso opcional al terminar la **primera capa**.
+- **[medium]** Aviso opcional al terminar la **primera capa** (**hecho**).
 - **[high] Progreso en vivo** en la notificación (estilo de Android 16 cuando esté disponible).
-- **[medium] Widget** con los colores dinámicos y un tamaño grande con miniatura.
+- **[medium] Widget** (**hecho**) con los colores dinámicos y un tamaño grande con miniatura.
 - **[high] Ajuste rápido** (Quick Settings tile) con el progreso; al tocarlo abre la app.
 
 ### 0.8.0 — Filamento y estadísticas
-- **[medium] Spoolman** (si está instalado): bobina activa, peso restante y cambiar de bobina. Antes de
+- **[medium] Spoolman** (**hecho**) (si está instalado): bobina activa, peso restante y cambiar de bobina. Antes de
   imprimir, aviso si no queda filamento suficiente.
 - **[low] Coste** por impresión (**hecho**, pendiente de publicar) (precio por kg configurable por material, en los presets).
-- **[medium] Estadísticas**: horas, filamento y número de impresiones por semana / mes, tasa de éxito y
+- **[medium] Estadísticas** (**hecho**): horas, filamento y número de impresiones por semana / mes, tasa de éxito y
   gráficas sencillas (a partir del historial).
 
 ### 0.9.0 — Mantenimiento
-- **[medium] Malla de la cama**: mapa de calor del `bed_mesh` con la diferencia máxima, y botón para
+- **[medium] Malla de la cama** (**hecho**): mapa de calor del `bed_mesh` con la diferencia máxima, y botón para
   calibrar.
 - **[high] Asistentes de calibración** guiados, cada uno con confirmación: PID de boquilla y cama,
   Z offset, input shaper (si hay acelerómetro).
-- **[medium] Enchufes inteligentes** (`/machine/device_power`): encender / apagar y apagado automático al
+- **[medium] Enchufes inteligentes** (**hecho**) (`/machine/device_power`): encender / apagar y apagado automático al
   terminar y enfriar.
-- **[medium] Editor de configuración**: abrir `printer.cfg` y otros archivos de config, editar, guardar y
+- **[medium] Editor de configuración** (**hecho**): abrir `printer.cfg` y otros archivos de config, editar, guardar y
   reiniciar el firmware. Se avisa antes de guardar.
 
 ### 0.10.0 — Vista general

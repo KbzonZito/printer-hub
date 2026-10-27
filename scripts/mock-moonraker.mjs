@@ -29,7 +29,7 @@ if (!SCENARIOS[scenario]) {
 const PORT = Number(process.env.MOCK_PORT ?? 7125);
 const COMPONENTS = (
   process.env.MOCK_COMPONENTS ??
-  'klippy_connection,file_manager,history,proc_stats,webcam,job_queue,timelapse,authorization'
+  'klippy_connection,file_manager,history,proc_stats,webcam,job_queue,timelapse,authorization,spoolman,power'
 ).split(',');
 // Scenario timings in ms, shorter in the automated tests (src/connection/integration.test.ts).
 const MS = {
@@ -91,10 +91,30 @@ const printer = {
   gcode_move: { speed_factor: 1.1, extrude_factor: 1, homing_origin: [0, 0, -0.02, 0] },
   idle_timeout: { state: 'Printing' },
   exclude_object: { objects: [], excluded_objects: [], current_object: null },
-  bed_mesh: { profile_name: 'default', probed_matrix: [[0]] },
+  bed_mesh: mockMesh(),
   [LIGHT]: { value: 1 },
   [CHAMBER]: { temperature: 31.2 },
 };
+
+/** A 7×7 mesh with a slight bowl and a tilt, like a real bed. */
+function mockMesh() {
+  const n = 7;
+  const matrix = Array.from({ length: n }, (_, y) =>
+    Array.from({ length: n }, (_, x) => {
+      const dx = x / (n - 1) - 0.5;
+      const dy = y / (n - 1) - 0.5;
+      return Math.round((0.18 * (dx * dx + dy * dy) - 0.06 * dx + 0.04 * dy - 0.02) * 1000) / 1000;
+    }),
+  );
+  return {
+    profile_name: 'default',
+    mesh_min: [10, 10],
+    mesh_max: [250, 250],
+    probed_matrix: matrix,
+    mesh_matrix: matrix,
+    profiles: { default: { points: matrix, mesh_params: {} } },
+  };
+}
 
 const gcodeStore = [
   { message: 'G28', time: now() - 60, type: 'command' },
@@ -141,6 +161,7 @@ function runGcode(script) {
     else if (m104) printer.extruder.target = Number(m104[1]);
     else if (m140) printer.heater_bed.target = Number(m140[2]);
     else if (/^FIRMWARE_RESTART|^RESTART/i.test(cmd)) return restartKlippy();
+    else if (/^BED_MESH_CALIBRATE/i.test(cmd)) printer.bed_mesh = mockMesh();
     else if (/^M115/i.test(cmd)) respond('// FIRMWARE_NAME:Klipper FIRMWARE_VERSION:v0.12.0-mock');
     respond('ok');
   }
@@ -240,6 +261,172 @@ const api = {
   'server.gcode_store': (p) => ({ gcode_store: gcodeStore.slice(-(p.count ?? 100)) }),
 };
 
+// ---------------------------------------------------------------- extra services
+
+/** Three months of past prints for the statistics (deterministic pseudo-random). */
+const olderJobs = (() => {
+  let seed = 7;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const out = [];
+  for (let i = 0; i < 70; i++) {
+    const r = rand();
+    const status = r < 0.8 ? 'completed' : r < 0.92 ? 'cancelled' : 'error';
+    const duration = Math.round(1800 + rand() * 6 * 3600);
+    out.push({
+      job_id: String(100 + i),
+      filename: ['Benchy_PLA_0.2mm.gcode', 'models/Soporte_movil.gcode', 'Calibration_cube.gcode'][i % 3],
+      status,
+      start_time: now() - (6 + i * 1.3) * 86400,
+      end_time: 1,
+      print_duration: status === 'completed' ? duration : Math.round(duration * rand()),
+      total_duration: duration + 120,
+      filament_used: Math.round(duration * 0.9),
+      exists: true,
+      metadata: { filament_type: i % 4 ? 'PLA' : 'PETG' },
+    });
+  }
+  return out;
+})();
+
+const queue = { state: 'paused', jobs: [] };
+let queueId = 1;
+function queueChanged(action) {
+  broadcast('notify_job_queue_changed', [
+    { action, updated_queue: queue.jobs, queue_state: queue.state },
+  ]);
+}
+function jobQueue(method, path, q) {
+  if (path === '/server/job_queue/job' && method === 'POST') {
+    if (q.reset === 'true') queue.jobs = [];
+    for (const filename of (q.filenames ?? '').split(',').filter(Boolean))
+      queue.jobs.push({ filename, job_id: String(queueId++), time_added: now(), time_in_queue: 0 });
+    queueChanged('jobs_added');
+  } else if (path === '/server/job_queue/job' && method === 'DELETE') {
+    const ids = (q.job_ids ?? '').split(',');
+    queue.jobs = q.all === 'true' ? [] : queue.jobs.filter((j) => !ids.includes(j.job_id));
+    queueChanged('jobs_removed');
+  } else if (path === '/server/job_queue/pause') {
+    queue.state = 'paused';
+    queueChanged('state_changed');
+  } else if (path === '/server/job_queue/start') {
+    queue.state = 'ready';
+    queueChanged('state_changed');
+  } else if (path === '/server/job_queue/jump') {
+    const i = queue.jobs.findIndex((j) => j.job_id === q.job_id);
+    if (i > 0) queue.jobs.unshift(...queue.jobs.splice(i, 1));
+    queueChanged('job_jumped');
+  }
+  return { queued_jobs: queue.jobs, queue_state: queue.state };
+}
+
+const spools = [
+  { id: 1, color: 'ff7a1a', name: 'Hyper PLA Orange', material: 'PLA', remaining: 640 },
+  { id: 2, color: '222222', name: 'PETG Black', material: 'PETG', remaining: 12 },
+  { id: 3, color: 'f2f2f2', name: 'PLA Matte White', material: 'PLA', remaining: 910 },
+].map((x) => ({
+  id: x.id,
+  remaining_weight: x.remaining,
+  used_weight: 1000 - x.remaining,
+  filament: {
+    id: x.id,
+    name: x.name,
+    material: x.material,
+    color_hex: x.color,
+    density: 1.24,
+    diameter: 1.75,
+    weight: 1000,
+    vendor: { id: 1, name: 'Creality' },
+  },
+}));
+let activeSpool = 1;
+function spoolman(method, path, q) {
+  if (path === '/server/spoolman/status')
+    return { spoolman_connected: true, pending_reports: [], spool_id: activeSpool };
+  if (path === '/server/spoolman/spool_id') {
+    if (method === 'POST') {
+      activeSpool = q.spool_id ? Number(q.spool_id) : null;
+      broadcast('notify_active_spool_set', [{ spool_id: activeSpool }]);
+    }
+    return { spool_id: activeSpool };
+  }
+  if (path === '/server/spoolman/proxy') {
+    const one = q.path.match(/^\/v1\/spool\/(\d+)$/);
+    const response = one ? spools.find((x) => x.id === Number(one[1])) : spools;
+    return q.use_v2_response === 'true' ? { response, error: null } : response;
+  }
+  throw Object.assign(new Error('Not found'), { code: 404 });
+}
+
+const devices = [
+  { device: 'printer', status: 'on', locked_while_printing: true, type: 'tplink_smartplug', is_shutdown: false },
+  { device: 'lights', status: 'off', locked_while_printing: false, type: 'shelly', is_shutdown: false },
+];
+function power(path, q) {
+  if (path === '/machine/device_power/devices') return { devices };
+  const dev = devices.find((d) => d.device === q.device);
+  if (!dev) throw Object.assign(new Error(`Device ${q.device} not found`), { code: 404 });
+  if (path === '/machine/device_power/device' && q.action && q.action !== 'status') {
+    dev.status = q.action === 'toggle' ? (dev.status === 'on' ? 'off' : 'on') : q.action;
+    broadcast('notify_power_changed', [dev]);
+  }
+  return { [dev.device]: dev.status };
+}
+
+const configFiles = {
+  'printer.cfg': `# Creality Hi (mock)
+[include moonraker.cfg]
+
+[printer]
+kinematics: cartesian
+max_velocity: 500
+max_accel: 12000
+
+[extruder]
+nozzle_diameter: 0.400
+max_temp: 300
+
+[heater_bed]
+max_temp: 110
+
+[bed_mesh]
+mesh_min: 10, 10
+mesh_max: 250, 250
+probe_count: 7, 7
+`,
+  'moonraker.cfg': `[server]
+host: 0.0.0.0
+port: 7125
+`,
+  'macros.cfg': `[gcode_macro PRINT_START]
+gcode:
+  G28
+  BED_MESH_CALIBRATE
+`,
+};
+
+/** Minimal multipart/form-data reader for uploads (fields + one file, as text). */
+function readMultipart(req) {
+  return new Promise((resolve) => {
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => {
+      const body = Buffer.concat(chunks).toString('utf8');
+      const boundary = (req.headers['content-type'] ?? '').split('boundary=')[1];
+      const fields = {};
+      let file = null;
+      if (boundary) {
+        for (const part of body.split(`--${boundary}`)) {
+          const m = part.match(/name="([^"]+)"(?:; filename="([^"]*)")?[^]*?\r\n\r\n([^]*)\r\n$/);
+          if (!m) continue;
+          if (m[2] != null) file = { name: m[2], text: m[3] };
+          else fields[m[1]] = m[3];
+        }
+      }
+      resolve({ fields, file });
+    });
+  });
+}
+
 // ---------------------------------------------------------------- HTTP
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" fill="#223"/><path d="M80 210 L150 90 L220 210Z" fill="#ff7a1a"/></svg>`;
@@ -307,10 +494,9 @@ const server = http.createServer(async (req, res) => {
         },
       });
     }
-    if (u.pathname === '/server/history/list')
-      return send({
-        count: 3,
-        jobs: [
+    if (u.pathname === '/server/history/list') {
+      const since = Number(q.since ?? 0);
+      const jobs = [
           {
             job_id: '1',
             filename: 'Benchy_PLA_0.2mm.gcode',
@@ -349,8 +535,10 @@ const server = http.createServer(async (req, res) => {
             filament_used: 50,
             exists: false,
           },
-        ],
-      });
+          ...olderJobs,
+        ].filter((j) => j.start_time >= since);
+      return send({ count: jobs.length, jobs: jobs.slice(0, Number(q.limit ?? 50)) });
+    }
     if (u.pathname === '/server/history/totals')
       return send({
         job_totals: {
@@ -372,7 +560,7 @@ const server = http.createServer(async (req, res) => {
       return send([
         { path: 'timelapse_Benchy_20261025.mp4', modified: now() - 86400, size: 8_400_000 },
       ]);
-    if (u.pathname === '/server/files/list') return send(files);
+    if (u.pathname === '/server/files/list' && q.root !== 'config') return send(files);
     if (u.pathname === '/server/files/directory') return send(directory(req.method, q));
     if (u.pathname === '/server/files/move') return send(move(q));
     if (u.pathname === '/server/files/metadata')
@@ -394,6 +582,32 @@ const server = http.createServer(async (req, res) => {
       return res.end(svg);
     }
     if (u.pathname === '/server/webcams/list') return send({ webcams: [] });
+    if (u.pathname.startsWith('/server/job_queue/')) return send(jobQueue(req.method, u.pathname, q));
+    if (u.pathname.startsWith('/server/spoolman/')) return send(spoolman(req.method, u.pathname, q));
+    if (u.pathname.startsWith('/machine/device_power/')) return send(power(u.pathname, q));
+    if (u.pathname === '/server/files/list' && q.root === 'config')
+      return send(
+        Object.entries(configFiles).map(([path, text]) => ({
+          path,
+          modified: now() - 86400,
+          size: text.length,
+          permissions: 'rw',
+        })),
+      );
+    if (u.pathname.startsWith('/server/files/config/')) {
+      const name = decodeURIComponent(u.pathname.slice('/server/files/config/'.length));
+      if (!(name in configFiles)) return fail(404, 'File not found');
+      res.setHeader('Content-Type', 'text/plain');
+      return res.end(configFiles[name]);
+    }
+    if (u.pathname === '/server/files/upload') {
+      const { fields, file } = await readMultipart(req);
+      if (fields.root === 'config' && file) {
+        configFiles[file.name] = file.text;
+        return send({ item: { path: file.name, root: 'config' }, action: 'create_file' });
+      }
+      return send({ item: { path: file?.name, root: fields.root ?? 'gcodes' }, action: 'create_file' });
+    }
     if (req.method === 'POST') return send('ok');
     fail(404, 'Not found');
   } catch (e) {
