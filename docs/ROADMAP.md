@@ -93,6 +93,9 @@ Detalles **[medium]**:
 Base técnica para todo lo demás. Cambia cómo llegan los datos a todas las pantallas, por eso
 conviene planearla con **xhigh**.
 
+**Plan detallado:** [plans/fase-2-tiempo-real.md](plans/fase-2-tiempo-real.md) (11 pasos con su
+nivel, arquitectura, máquina de estados, pruebas y riesgos).
+
 - **[xhigh] WebSocket de Moonraker** (`/websocket`, `printer.objects.subscribe`) en lugar de consultar
   cada 2 segundos: datos al instante, menos batería y menos tráfico. Si el WebSocket falla,
   vuelve a la consulta periódica.
