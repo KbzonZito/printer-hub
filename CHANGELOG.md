@@ -5,6 +5,8 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-27
+
 ### Added
 - Android back gesture closes the open panel first, then goes up one folder in Files (or back
   from History / Timelapses), and only then returns to Home.
