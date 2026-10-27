@@ -6,9 +6,9 @@ versión menor (0.x.0) y las correcciones la de parche (0.x.y).
 
 | Versión | Contenido | Planear | Implementar | Estado |
 | --- | --- | --- | --- | --- |
-| 0.2.0 | Estado actual (carpetas, colores dinámicos, presets, versiones numeradas) | — | — | Pendiente de tu prueba |
-| 0.3.0 | Bienvenida y tutorial para añadir la impresora | high | medium | Hecha (pendiente de prueba) |
-| 0.4.0 | Conexión en tiempo real y conexión robusta | xhigh | high | |
+| 0.2.0 | Estado actual (carpetas, colores dinámicos, presets, versiones numeradas) | — | — | Incluida en 0.4.0 |
+| 0.3.0 | Bienvenida y tutorial para añadir la impresora | high | medium | Incluida en 0.4.0 |
+| 0.4.0 | Conexión en tiempo real y conexión robusta | xhigh | high | Publicada |
 | 0.5.0 | Excluir objetos y cola de impresión | high | high / medium | |
 | 0.6.0 | Notificaciones con foto, widget y ajuste rápido | high | high | |
 | 0.7.0 | Filamento (Spoolman) y estadísticas | medium | medium | |
