@@ -1,5 +1,6 @@
 import { request, requestJson } from './http';
 import type { Printer } from '../store';
+import { parseStatus, queryString, subscription, type RawStatus } from '../connection/statusModel';
 
 // Moonraker REST API: https://moonraker.readthedocs.io/en/latest/web_api/
 
@@ -113,58 +114,15 @@ async function discover(p: Printer): Promise<Discovered> {
 }
 
 export async function fetchStatus(p: Printer): Promise<PrinterStatus> {
-  const extra = await discover(p).catch(
+  const names = await discover(p).catch(
     () => ({ chamber: null, lightPin: null, macros: [] }) as Discovered,
   );
-  const objects = [
-    'webhooks',
-    'print_stats',
-    'virtual_sdcard',
-    'display_status',
-    'extruder',
-    'heater_bed',
-    'fan',
-    'toolhead',
-    'gcode_move',
-    extra.chamber,
-    extra.lightPin,
-  ].filter(Boolean) as string[];
-  const query = objects.map(encodeURIComponent).join('&');
-  const { status: s } = await get<{ status: Record<string, any> }>(
+  const { status } = await get<{ status: RawStatus }>(
     p,
-    `/printer/objects/query?${query}`,
+    `/printer/objects/query?${queryString(subscription(names))}`,
     5000,
   );
-  const ps = s.print_stats ?? {};
-  const chamber = extra.chamber ? s[extra.chamber] : null;
-  return {
-    klippyState: s.webhooks?.state ?? 'unknown',
-    state: (ps.state ?? 'standby') as PrintState,
-    message: ps.message || s.webhooks?.state_message || '',
-    filename: ps.filename ?? '',
-    progress: s.virtual_sdcard?.progress ?? s.display_status?.progress ?? 0,
-    displayProgress: s.display_status?.progress ?? s.virtual_sdcard?.progress ?? 0,
-    printDuration: ps.print_duration ?? 0,
-    totalDuration: ps.total_duration ?? 0,
-    filamentUsed: ps.filament_used ?? 0,
-    currentLayer: ps.info?.current_layer ?? null,
-    totalLayer: ps.info?.total_layer ?? null,
-    extruder: { temperature: s.extruder?.temperature ?? 0, target: s.extruder?.target ?? 0 },
-    bed: { temperature: s.heater_bed?.temperature ?? 0, target: s.heater_bed?.target ?? 0 },
-    chamber: chamber
-      ? { temperature: chamber.temperature ?? 0, target: chamber.target ?? 0 }
-      : null,
-    fanSpeed: s.fan?.speed ?? 0,
-    light: extra.lightPin
-      ? { pin: extra.lightPin.replace(/^output_pin /, ''), on: (s[extra.lightPin]?.value ?? 0) > 0 }
-      : null,
-    homedAxes: s.toolhead?.homed_axes ?? '',
-    position: (s.toolhead?.position?.slice(0, 3) ?? [0, 0, 0]) as [number, number, number],
-    speedFactor: s.gcode_move?.speed_factor ?? 1,
-    extrudeFactor: s.gcode_move?.extrude_factor ?? 1,
-    zOffset: s.gcode_move?.homing_origin?.[2] ?? 0,
-    canExtrude: s.extruder?.can_extrude ?? false,
-  };
+  return parseStatus(status, names);
 }
 
 export async function testConnection(p: Printer): Promise<string> {

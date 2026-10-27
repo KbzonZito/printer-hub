@@ -83,7 +83,13 @@ updated by an APK signed with the same key.
 npm install
 npm run dev          # UI in the browser
 npm run android:sync # build and copy into the Android project
+npm run mock         # simulated Moonraker on port 7125 (add the printer as 127.0.0.1)
+npm test             # unit tests (Vitest)
 ```
+
+The simulator has failure scenarios for testing the connection handling:
+`MOCK_SCENARIO=drop npm run mock` (also `klippy-startup`, `shutdown`, `silent`,
+`reject-origin` and `slow`; see `scripts/mock-moonraker.mjs`).
 
 In the browser, requests to the printer may fail because of CORS; the APK uses native HTTP
 (`CapacitorHttp`) so it isn't affected. To test from a browser, add `cors_domains: *` to the

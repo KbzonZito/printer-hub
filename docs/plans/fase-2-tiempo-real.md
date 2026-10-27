@@ -64,8 +64,10 @@ Por eso:
 
 Hoy `fetchStatus` consulta y convierte los datos en el mismo paso. Lo separamos:
 
-1. **Objetos crudos** de Klipper (`Record<string, object>`), que se actualizan fusionando los
-   cambios (`deepMerge`), porque cada aviso trae solo los campos que cambiaron.
+1. **Objetos crudos** de Klipper (`Record<string, object>`), que se actualizan con `mergeStatus`
+   porque cada aviso trae solo los campos que cambiaron. La fusión es a dos niveles (objeto →
+   campo): Klipper envía cada campo cambiado completo, así que fusionar más adentro (por
+   ejemplo en `print_stats.info`) podría dejar claves antiguas.
 2. **`parseStatus(raw, discovered)`**, una función pura que produce el `PrinterStatus` de siempre.
 
 Tanto la consulta periódica como el WebSocket alimentan los objetos crudos, así que las pantallas
@@ -110,7 +112,7 @@ src/connection/
   transport.ts          Interfaz Transport + WebTransport (WebSocket del navegador)
   nativeTransport.ts    Transporte de Android (eventos del plugin PrinterMonitor)
   jsonrpc.ts            Peticiones con id y timeout; reparte los avisos
-  statusModel.ts        deepMerge, parseStatus, lista de suscripción (D3, D5)
+  statusModel.ts        mergeStatus, parseStatus, lista de suscripción (D3, D5)
   capabilities.ts       Qué soporta la impresora (componentes de Moonraker y objetos de Klipper)
   PrinterConnection.ts  Máquina de estados, reconexión, vigilancia, consulta periódica de respaldo
   manager.ts            Una conexión por impresora (D7)
@@ -122,7 +124,7 @@ Flujo de datos:
 
 ```
 Klipper ─▶ Moonraker ─(WebSocket)─▶ Transport ─▶ JsonRpc ─▶ PrinterConnection
-                                                              │  objetos crudos + deepMerge
+                                                              │  objetos crudos + mergeStatus
                                                               │  parseStatus (≤ 4/s)
                                                               ▼
                                                  manager ─▶ hooks ─▶ pantallas
@@ -177,7 +179,7 @@ Con la IP de tu Creality Hi, desde el Mac (sin tocar la impresora):
 **Resultado:** una nota en `docs/plans/creality-hi.md` con lo que expone la impresora. Confirma D2
 y adelanta información para las fases 0.5–0.8.
 
-### 2.2 Moonraker simulado en el repositorio — **medium**
+### 2.2 Moonraker simulado en el repositorio — **medium** ✅
 Pasar el servidor de pruebas que uso ahora a `scripts/mock-moonraker.mjs` (con `ws` como
 dependencia de desarrollo) y añadir:
 - WebSocket con JSON-RPC: `identify`, `server.info`, `printer.info`, `objects.list`,
@@ -190,10 +192,10 @@ dependencia de desarrollo) y añadir:
 **Acepta:** la app actual sigue funcionando contra el simulador, y cada escenario se puede
 reproducir.
 
-### 2.3 Modelo de estado y primeras pruebas automáticas — **medium**
-- Crear `statusModel.ts`: `deepMerge`, `parseStatus` (movida desde `fetchStatus`) y la lista de
+### 2.3 Modelo de estado y primeras pruebas automáticas — **medium** ✅
+- Crear `statusModel.ts`: `mergeStatus`, `parseStatus` (movida desde `fetchStatus`) y la lista de
   suscripción. `fetchStatus` pasa a usar `parseStatus`.
-- Añadir **Vitest** con pruebas de `deepMerge` (cambios parciales, arrays, valores `null`) y de
+- Añadir **Vitest** con pruebas de `mergeStatus` (cambios parciales, arrays, valores `null`) y de
   `parseStatus` (impresora sin cámara ni luz, imprimiendo, en error).
 
 **Acepta:** `npm test` en verde, y la app se comporta igual que antes (sigue con la consulta
@@ -223,7 +225,7 @@ periódica).
 teléfono, por eso va en high.
 
 ### 2.6 `PrinterConnection`: la máquina de estados — **high** (xhigh si falla dos veces)
-Implementar todo lo de la sección anterior: arranque, suscripción, `deepMerge` de los avisos,
+Implementar todo lo de la sección anterior: arranque, suscripción, `mergeStatus` de los avisos,
 estados de Klipper, reconexión con esperas, vigilancia, ciclo de vida de la app (`appStateChange`
 de Capacitor), respaldo por consulta periódica (D4) y emisión agrupada (≤ 4/s, D6).
 
@@ -301,7 +303,7 @@ Sugerencia de sesiones, para practicar con los niveles:
 ## Pruebas
 
 ### Automáticas (Vitest)
-`deepMerge`, `parseStatus`, `JsonRpc` (respuestas, timeouts, cierres), el cálculo de esperas de
+`mergeStatus`, `parseStatus`, `JsonRpc` (respuestas, timeouts, cierres), el cálculo de esperas de
 reconexión y las transiciones de la máquina de estados con un transporte y un reloj falsos.
 
 ### En el navegador, contra el simulador
@@ -333,7 +335,7 @@ reconexión y las transiciones de la máquina de estados con un transporte y un 
 | Moonraker rechaza el `Origin` del WebView | D2: transporte nativo en Android. En el navegador, respaldo por consulta periódica |
 | El Moonraker de Creality es antiguo o está recortado | Paso 2.1 primero; `identify` opcional; capacidades detectadas; respaldo por consulta periódica |
 | Conexiones "zombi" tras cambiar de red | Vigilancia con `proc_stat` y `server.info` |
-| Errores al fusionar cambios parciales | `deepMerge` con pruebas; `refresh()` y cada reconexión piden el estado completo |
+| Errores al fusionar cambios parciales | `mergeStatus` con pruebas; `refresh()` y cada reconexión piden el estado completo |
 | Demasiados renderizados | Emisión agrupada ≤ 4/s; suscripción con campos concretos |
 | Moonraker pide autenticación (`force_logins`, cliente no confiable) | Fuera de alcance en esta fase. Hoy HTTP funciona sin clave, así que el teléfono ya es de confianza. Se detecta y se muestra un mensaje claro |
 | El transporte nativo solo se prueba en el teléfono | Interfaz común con el del navegador; la lógica se prueba con el simulador y queda solo el envoltorio nativo |

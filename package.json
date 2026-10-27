@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "android:sync": "npm run build && cap sync android",
     "apk": "scripts/build-apk.sh",
-    "release": "scripts/release.sh"
+    "release": "scripts/release.sh",
+    "mock": "node scripts/mock-moonraker.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
@@ -27,6 +29,8 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "typescript": "^7.0.2",
-    "vite": "^8.3.5"
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5",
+    "ws": "^8.22.0"
   }
 }
