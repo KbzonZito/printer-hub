@@ -10,11 +10,9 @@ versión menor (0.x.0) y las correcciones la de parche (0.x.y).
 | 0.3.0 | Bienvenida y tutorial para añadir la impresora | high | medium | Incluida en 0.4.0 |
 | 0.4.0 | Conexión en tiempo real y conexión robusta | xhigh | high | Publicada |
 | 0.5.0 | Mejoras propias (fase 4) | — | medium / low | Publicada |
-| 0.6.0 | Excluir objetos y cola de impresión | high | high / medium | |
-| 0.7.0 | Notificaciones con foto, widget y ajuste rápido | high | high | |
-| 0.8.0 | Filamento (Spoolman) y estadísticas | medium | medium | |
-| 0.9.0 | Malla de la cama, calibraciones, enchufes y editor de configuración | high | medium / high | |
-| 0.10.0 | Vista previa del G-code y vista de todas las impresoras | xhigh | high | |
+| 0.6.0 | Fase 3 low y medium (coste, cola, primera capa, widget, Spoolman, estadísticas, malla, enchufes, editor de config) y mejoras de interfaz | — | low / medium | Publicada |
+| 0.7.0 | Fase 3 high: excluir objetos, notificación con foto y progreso en vivo, ajuste rápido, asistentes de calibración, vista de todas las impresoras | high | high | |
+| 0.8.0 | Vista previa del G-code | xhigh | high | |
 | 1.0.0-rc | Optimización, limpieza, pruebas y documentación | high | low a high | |
 | 1.0.0 | Publicación tras la lista de comprobación final | — | low | |
 
@@ -109,6 +107,9 @@ nivel, arquitectura, máquina de estados, pruebas y riesgos).
 
 ## Fase 3 — Funciones nuevas
 
+Las tareas low y medium salieron en la 0.6.0; las high van en la 0.7.0 y la vista previa del
+G-code en la 0.8.0. Los títulos de abajo conservan la agrupación original por temas.
+
 ### 0.6.0 — Durante la impresión
 - **[high] Excluir objetos**: mapa de la cama con los contornos de cada pieza (objeto
   `exclude_object` de Klipper). Al tocar una pieza se pide confirmación y se excluye con
@@ -152,7 +153,7 @@ nivel, arquitectura, máquina de estados, pruebas y riesgos).
 
 ## Fase 4 — Mejoras propias
 
-**Publicada en 0.5.0.** Por eso las versiones de la fase 3 subieron un número.
+**Publicada en 0.5.0.**
 
 - **[medium] Gesto atrás de Android**: cierra primero el panel abierto, sube de carpeta en Archivos y
   solo después vuelve a Inicio.
