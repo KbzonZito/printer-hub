@@ -64,9 +64,12 @@ jobs:
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          # Builds from main that aren't releases are marked so they can't be mistaken.
-          VERSION_SUFFIX: ${{ startsWith(github.ref, 'refs/tags/v') && '' || format('-dev.{0}', github.run_number) }}
         run: |
+          # Builds from main that aren't releases are marked so they can't be mistaken.
+          # (Done in bash: in a GitHub expression `cond && '' || x` always gives x.)
+          if [[ "$GITHUB_REF" != refs/tags/v* ]]; then
+            export VERSION_SUFFIX="-dev.$GITHUB_RUN_NUMBER"
+          fi
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
           mv app/build/outputs/apk/release/app-release.apk \
