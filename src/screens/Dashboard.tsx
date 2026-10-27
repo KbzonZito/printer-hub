@@ -6,7 +6,6 @@ import {
   Layers,
   Lightbulb,
   Maximize2,
-  OctagonX,
   Pause,
   Play,
   SlidersHorizontal,
@@ -22,6 +21,7 @@ import {
   type Heater,
 } from '../api/moonraker';
 import { CameraView } from '../components/CameraView';
+import { CameraViewer } from '../components/CameraViewer';
 import { SpoolCard } from '../components/SpoolCard';
 import { TempChart } from '../components/TempChart';
 import { TuneSheet } from '../components/TuneSheet';
@@ -86,13 +86,7 @@ function TempTile({
   );
 }
 
-export function Dashboard({
-  printer,
-  onOpenCamera,
-}: {
-  printer: Printer;
-  onOpenCamera: () => void;
-}) {
+export function Dashboard({ printer }: { printer: Printer }) {
   const t = useT();
   const { settings } = useSettings();
   const { status, error, refresh, tempHistory } = usePrinterStatus();
@@ -103,7 +97,8 @@ export function Dashboard({
   const [tempSheet, setTempSheet] = useState<'extruder' | 'heater_bed' | null>(null);
   const [customTemp, setCustomTemp] = useState('');
   const [preheat, setPreheat] = useState(false);
-  const [confirm, setConfirm] = useState<'cancel' | 'estop' | null>(null);
+  const [confirm, setConfirm] = useState<'cancel' | null>(null);
+  const [viewer, setViewer] = useState(false);
   const [tune, setTune] = useState(false);
 
   const filename = status?.filename;
@@ -153,10 +148,19 @@ export function Dashboard({
       {/* Actions are disabled while reconnecting (Klipper problems get their own screen). */}
       <fieldset className="dash" disabled={!ready}>
         <div className="dash-main">
-          <div className="card camera-card" onClick={onOpenCamera}>
-            <CameraView printer={printer} />
+          {/* Not a <button>: it must open even while the fieldset is disabled (printer offline). */}
+          <div
+            role="button"
+            tabIndex={0}
+            className="card camera-card"
+            onClick={() => setViewer(true)}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setViewer(true)}
+            aria-label={t('camera.fullscreen')}
+          >
+            {/* One stream at a time: the Creality camera may not serve two. */}
+            {viewer ? <div className="camera" /> : <CameraView printer={printer} />}
             <span className="camera-expand">
-              <Maximize2 size={16} />
+              <Maximize2 size={18} />
             </span>
           </div>
           <TempChart history={tempHistory} />
@@ -307,9 +311,6 @@ export function Dashboard({
                 <Home size={18} /> {t('home.home')}
               </button>
             )}
-            <button className="btn danger grow" onClick={() => setConfirm('estop')}>
-              <OctagonX size={18} /> {t('home.estop')}
-            </button>
           </div>
         </div>
       </fieldset>
@@ -408,6 +409,7 @@ export function Dashboard({
       </Sheet>
 
       <TuneSheet open={tune} onClose={() => setTune(false)} printer={printer} status={status} />
+      {viewer && <CameraViewer printer={printer} onClose={() => setViewer(false)} />}
       <ConfirmSheet
         open={confirm === 'cancel'}
         title={t('home.cancelTitle')}
@@ -417,18 +419,6 @@ export function Dashboard({
         onConfirm={() => {
           haptic('warning');
           act(() => printerActions.cancel(printer), t('home.canceling'));
-        }}
-        onClose={() => setConfirm(null)}
-      />
-      <ConfirmSheet
-        open={confirm === 'estop'}
-        title={t('home.estopTitle')}
-        message={t('home.estopMsg')}
-        confirmLabel={t('home.estopConfirm')}
-        danger
-        onConfirm={() => {
-          haptic('error');
-          act(() => printerActions.emergencyStop(printer), t('home.estopSent'));
         }}
         onClose={() => setConfirm(null)}
       />

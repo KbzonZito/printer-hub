@@ -2,25 +2,17 @@ import { useEffect, useState } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import {
-  Camera,
-  FileUp,
-  FolderOpen,
-  Gauge,
-  Move,
-  Printer as PrinterIcon,
-  Settings,
-} from 'lucide-react';
+import { FileUp, FolderOpen, Gauge, Move, Printer as PrinterIcon, Settings } from 'lucide-react';
 import { uploadFile } from './api/moonraker';
 import { handleBack, useBackHandler } from './backStack';
 import { ConnectionBanner, KlippyStateScreen } from './components/ConnectionStatus';
+import { EmergencyStop } from './components/EmergencyStop';
 import { NavBar } from './components/NavBar';
 import { Sheet, ToastProvider, useAction } from './components/ui';
 import { formatBytes } from './format';
 import { useT, type MessageKey } from './i18n';
 import { readSharedFile, type SharedFile } from './native';
 import { applyPalette, useSeedColor } from './palette';
-import { CameraScreen } from './screens/CameraScreen';
 import { ControlScreen } from './screens/ControlScreen';
 import { Dashboard } from './screens/Dashboard';
 import { FilesScreen } from './screens/FilesScreen';
@@ -31,11 +23,10 @@ import { useNativeSync, useSharedFiles } from './useNativeBridge';
 import { ConnectionProvider } from './connection/ConnectionProvider';
 import { useConnectionSnapshot } from './usePrinterStatus';
 
-type Tab = 'home' | 'camera' | 'control' | 'files' | 'settings';
+type Tab = 'home' | 'control' | 'files' | 'settings';
 
 const TABS: { id: Tab; icon: typeof Gauge }[] = [
   { id: 'home', icon: Gauge },
-  { id: 'camera', icon: Camera },
   { id: 'control', icon: Move },
   { id: 'files', icon: FolderOpen },
   { id: 'settings', icon: Settings },
@@ -226,9 +217,12 @@ function Main({ active }: { active: Printer }) {
                 {kind === 'reconnecting' ? t('common.disconnected') : active.host}
               </span>
             </div>
-            {kind === 'ready' && st?.state === 'printing' && (
-              <span className="topbar-progress">{Math.round(st.progress * 100)}%</span>
-            )}
+            <div className="topbar-actions">
+              {kind === 'ready' && st?.state === 'printing' && (
+                <span className="topbar-progress">{Math.round(st.progress * 100)}%</span>
+              )}
+              <EmergencyStop printer={active} />
+            </div>
           </header>
 
           <ConnectionBanner />
@@ -237,15 +231,7 @@ function Main({ active }: { active: Printer }) {
             {klippyProblem && (tab === 'home' || tab === 'control') && (
               <KlippyStateScreen printer={active} />
             )}
-            {tab === 'home' && !klippyProblem && (
-              <Dashboard printer={active} onOpenCamera={() => setTab('camera')} />
-            )}
-            {tab === 'camera' && (
-              <CameraScreen
-                printer={active}
-                onModeChange={(cameraMode) => savePrinter({ ...active, cameraMode })}
-              />
-            )}
+            {tab === 'home' && !klippyProblem && <Dashboard printer={active} />}
             {tab === 'control' && !klippyProblem && <ControlScreen printer={active} />}
             {tab === 'files' && (
               <FilesScreen printer={active} onPrintStarted={() => setTab('home')} />

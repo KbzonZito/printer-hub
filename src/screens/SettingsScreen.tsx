@@ -5,6 +5,7 @@ import {
   Bug,
   Check,
   Clock,
+  Coffee,
   DatabaseBackup,
   Download,
   GraduationCap,
@@ -59,6 +60,8 @@ import {
 
 const REPO_URL = 'https://github.com/KbzonZito/printer-hub';
 const AUTHOR_URL = 'https://github.com/KbzonZito';
+/** Buy Me a Coffee page. Empty until the account is set up; the button says "coming soon". */
+const DONATE_URL = '';
 const REMOTE_ACCESS_URL = `${REPO_URL}/blob/main/docs/remote-access.md`;
 
 const CAMERA_MODES: CameraMode[] = ['auto', 'webrtc', 'mjpeg', 'snapshot'];
@@ -667,6 +670,7 @@ function useAppVersion() {
 
 function About({ printer }: { printer: Printer | null }) {
   const t = useT();
+  const toast = useToast();
   const { mode } = useConnectionSnapshot();
   const version = useAppVersion();
   const [versions, setVersions] = useState<SystemVersions | null>(null);
@@ -697,6 +701,16 @@ function About({ printer }: { printer: Printer | null }) {
       <button type="button" className="btn primary" onClick={() => openExternal(REPO_URL)}>
         <GithubIcon /> {t('about.star')}
       </button>
+      <div className="coffee-card">
+        <p className="small">{t('about.coffeeText')}</p>
+        <button
+          type="button"
+          className="btn coffee"
+          onClick={() => (DONATE_URL ? openExternal(DONATE_URL) : toast(t('about.coffeeSoon')))}
+        >
+          <Coffee size={18} /> {t('about.coffee')}
+        </button>
+      </div>
       <div className="row gap">
         <button
           type="button"

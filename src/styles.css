@@ -168,7 +168,8 @@ main {
 
 .topbar {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  gap: 12px;
   justify-content: space-between;
   padding: calc(env(safe-area-inset-top) + 28px) 20px 14px;
 }
@@ -176,6 +177,33 @@ main {
   font-size: 28px;
   font-weight: 500;
   letter-spacing: -0.02em;
+}
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* Emergency stop: always in the header, red, a big touch target. */
+.estop-button {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 50%;
+  background: #d32f2f;
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(211, 47, 47, 0.45);
+  transition:
+    transform 0.15s var(--ease),
+    opacity 0.2s var(--ease);
+}
+.estop-button:active:not(:disabled) {
+  transform: scale(0.92);
+}
+.estop-button:disabled {
+  opacity: 0.35;
+  box-shadow: none;
 }
 .topbar-progress {
   padding: 6px 12px;
@@ -306,11 +334,14 @@ main {
   right: 10px;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.5);
   color: #fff;
+}
+.camera-card {
+  cursor: pointer;
 }
 
 .camera {
@@ -338,12 +369,6 @@ main {
   font-size: 13px;
 }
 
-.camera-screen .camera-full {
-  position: relative;
-  border-radius: var(--radius);
-  overflow: hidden;
-  border: 0;
-}
 .camera-overlay {
   position: absolute;
   left: 10px;
@@ -390,24 +415,6 @@ main {
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-}
-@media (orientation: landscape) and (max-height: 500px) {
-  .camera-screen {
-    padding: 0;
-    max-width: none;
-  }
-  .camera-screen .camera-full {
-    border-radius: 0;
-    border: 0;
-    height: calc(100vh - 120px);
-  }
-  .camera-screen .camera {
-    aspect-ratio: auto;
-    height: 100%;
-  }
-  .camera-screen > :not(.camera-full) {
-    display: none;
-  }
 }
 
 .job-head {
@@ -1122,11 +1129,6 @@ main {
   }
 }
 
-@media (min-width: 768px) {
-  .camera-screen .camera {
-    max-height: calc(100dvh - 230px);
-  }
-}
 @media (min-width: 900px) and (max-width: 1199px) {
   .dash-side .stats.four {
     grid-template-columns: repeat(2, 1fr);
@@ -2658,4 +2660,90 @@ fieldset:disabled .tile {
 .card .toggle + .toggle,
 .card .toggle + .field {
   margin-top: 8px;
+}
+
+/* Full-screen camera viewer (below sheets, so its mode picker opens on top) */
+.camera-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  background: #000;
+  color: #fff;
+  animation: fade 0.25s var(--ease) both;
+}
+.camera-viewer .camera-fill {
+  aspect-ratio: auto;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+.viewer-top,
+.viewer-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+  pointer-events: none;
+}
+.viewer-top {
+  top: 0;
+  padding-top: max(12px, env(safe-area-inset-top));
+  background: linear-gradient(rgba(0, 0, 0, 0.55), transparent);
+}
+.viewer-bottom {
+  bottom: 0;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
+}
+.viewer-top > *,
+.viewer-bottom > * {
+  pointer-events: auto;
+}
+.viewer-bottom .camera-overlay {
+  position: static;
+  pointer-events: none;
+}
+.viewer-btn {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+.viewer-mode .select-field {
+  min-height: 44px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+/* The zoom chip sits below the top buttons. */
+.camera-viewer .zoom-chip {
+  top: calc(max(12px, env(safe-area-inset-top)) + 60px);
+}
+
+/* Buy Me a Coffee */
+.coffee-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  text-align: center;
+}
+.coffee-card p {
+  margin: 0;
+  color: var(--muted);
+}
+.btn.coffee {
+  background: #ffdd00;
+  color: #1a1a1a;
 }

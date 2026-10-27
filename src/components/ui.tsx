@@ -13,7 +13,91 @@ import { ChevronDown } from 'lucide-react';
 import { useContainerBackHandler } from '../backStack';
 import { useT } from '../i18n';
 
-/** Bottom sheet (dialog on tablets) that animates in and out. */
+/** Drag distance (px) or speed (px/ms) past which releasing a dragged sheet closes it. */
+const SWIPE_CLOSE_PX = 110;
+const SWIPE_CLOSE_SPEED = 0.6;
+
+/**
+ * Drag a sheet down to close it. Starts only when its content is scrolled to the top, and
+ * not from controls that use vertical drags themselves (text areas, sliders).
+ */
+function useSwipeToClose(
+  ref: React.RefObject<HTMLDivElement | null>,
+  enabled: boolean,
+  onClose: () => void,
+) {
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !enabled) return;
+    const backdrop = el.parentElement!;
+    let startY: number | null = null;
+    let dy = 0;
+    let dragging = false;
+    let samples: { y: number; t: number }[] = [];
+
+    const onStart = (e: TouchEvent) => {
+      const target = e.target as Element;
+      const free =
+        e.touches.length === 1 &&
+        el.scrollTop <= 0 &&
+        !target.closest('textarea, input[type="range"], .no-swipe');
+      startY = free ? e.touches[0].clientY : null;
+      dy = 0;
+      dragging = false;
+      samples = [];
+    };
+    const onMove = (e: TouchEvent) => {
+      if (startY == null) return;
+      dy = e.touches[0].clientY - startY;
+      if (!dragging) {
+        // A small threshold keeps taps and upward scrolls working normally.
+        if (dy < 8) {
+          if (dy < 0) startY = null;
+          return;
+        }
+        dragging = true;
+        el.style.animation = 'none';
+        el.style.transition = 'none';
+      }
+      e.preventDefault();
+      const offset = Math.max(0, dy - 8);
+      el.style.transform = `translateY(${offset}px)`;
+      backdrop.style.opacity = String(Math.max(0.3, 1 - offset / el.offsetHeight));
+      samples = [...samples.slice(-4), { y: e.touches[0].clientY, t: e.timeStamp }];
+    };
+    const onEnd = () => {
+      if (startY == null || !dragging) return;
+      startY = null;
+      const first = samples[0];
+      const last = samples[samples.length - 1];
+      const speed = first && last && last.t > first.t ? (last.y - first.y) / (last.t - first.t) : 0;
+      if (dy > SWIPE_CLOSE_PX || (speed > SWIPE_CLOSE_SPEED && dy > 30)) {
+        // Continue from where the finger left it (the exit animation starts at this transform).
+        el.style.animation = 'sheet-out 0.22s var(--ease) both';
+        close.current();
+      } else {
+        el.style.transition = 'transform 0.25s var(--ease)';
+        el.style.transform = '';
+        backdrop.style.opacity = '';
+      }
+    };
+
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd);
+    el.addEventListener('touchcancel', onEnd);
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+    };
+  }, [enabled]);
+}
+
+/** Bottom sheet (dialog on tablets) that animates in and out. Drag it down to close it. */
 export function Sheet({
   open,
   onClose,
@@ -28,6 +112,8 @@ export function Sheet({
   const [mounted, setMounted] = useState(open);
   const [closing, setClosing] = useState(false);
   useContainerBackHandler(open, onClose);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  useSwipeToClose(sheetRef, mounted && !closing, onClose);
   // Keep showing the last content while the exit animation runs.
   const last = useRef({ title, children });
   if (open) last.current = { title, children };
@@ -54,7 +140,13 @@ export function Sheet({
         }
       }}
     >
-      <div className="sheet" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={sheetRef}
+        className="sheet"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sheet-handle" />
         {last.current.title && <h2 className="sheet-title">{last.current.title}</h2>}
         {last.current.children}

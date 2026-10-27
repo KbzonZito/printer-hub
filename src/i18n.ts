@@ -15,6 +15,7 @@ const es = {
   'state.error': 'Error',
 
   'common.back': 'Volver',
+  'common.close': 'Cerrar',
   'common.retry': 'Reintentar',
   'common.cancel': 'Cancelar',
   'common.save': 'Guardar',
@@ -173,8 +174,8 @@ const es = {
   'camera.connecting': 'Conectando cámara…',
   'camera.unavailable': 'Cámara no disponible',
   'camera.reconnect': 'Reconectar',
-  'camera.hint':
-    'Gira el dispositivo para verla en horizontal. "Auto" prueba WebRTC de Creality (puerto 8000), las cámaras de Moonraker y MJPEG en el puerto 8080.',
+  'camera.mode': 'Modo de cámara',
+  'camera.fullscreen': 'Ver la cámara en pantalla completa',
 
   'files.search': 'Buscar archivos',
   'files.reload': 'Recargar',
@@ -355,6 +356,10 @@ const es = {
   'about.madeWith': 'Hecho con',
   'about.by': 'por',
   'about.star': 'Dar una estrella en GitHub',
+  'about.coffee': 'Invítame a un café',
+  'about.coffeeText':
+    'Printer Hub es gratis y sin anuncios. Si te resulta útil, puedes apoyar su desarrollo.',
+  'about.coffeeSoon': 'Muy pronto podrás invitarme a un café. ¡Gracias!',
   'about.issue': 'Reportar fallo',
   'about.share': 'Compartir',
   'about.shareText': 'Printer Hub: controla tu impresora Klipper desde Android. {url}',
@@ -460,6 +465,7 @@ const en: Record<MessageKey, string> = {
   'state.error': 'Error',
 
   'common.back': 'Back',
+  'common.close': 'Close',
   'common.retry': 'Retry',
   'common.cancel': 'Cancel',
   'common.save': 'Save',
@@ -615,8 +621,8 @@ const en: Record<MessageKey, string> = {
   'camera.connecting': 'Connecting camera…',
   'camera.unavailable': 'Camera unavailable',
   'camera.reconnect': 'Reconnect',
-  'camera.hint':
-    'Rotate the device for landscape. "Auto" tries Creality WebRTC (port 8000), Moonraker webcams and MJPEG on port 8080.',
+  'camera.mode': 'Camera mode',
+  'camera.fullscreen': 'View the camera full screen',
 
   'files.search': 'Search files',
   'files.reload': 'Reload',
@@ -797,6 +803,10 @@ const en: Record<MessageKey, string> = {
   'about.madeWith': 'Made with',
   'about.by': 'by',
   'about.star': 'Star on GitHub',
+  'about.coffee': 'Buy me a coffee',
+  'about.coffeeText':
+    'Printer Hub is free and ad-free. If you find it useful, you can support its development.',
+  'about.coffeeSoon': 'Buying me a coffee will be possible very soon. Thank you!',
   'about.issue': 'Report a bug',
   'about.share': 'Share',
   'about.shareText': 'Printer Hub: control your Klipper printer from Android. {url}',

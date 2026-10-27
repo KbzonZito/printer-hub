@@ -5,6 +5,13 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+### Changed
+- The emergency stop is a red button always visible in the top-right corner, on every tab.
+- The Camera tab is gone: tap the camera on Home to open it full screen, with zoom, capture,
+  camera mode, reconnect and the print status. The navigation bar has four tabs.
+- Panels (bottom sheets) can be closed by swiping them down.
+- About has a "Buy me a coffee" button (the link will be added once the account is ready).
+
 ### Fixed
 - Buttons in rows ("Motors off", "Emergency stop"…) cut their label on narrow phones; now
   they move to the next line.

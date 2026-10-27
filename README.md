@@ -7,7 +7,8 @@ other printer that exposes Moonraker (the same API Mobileraker uses).
 ## Features
 
 - **Home**: status, progress, layer, remaining time and estimated finish time, temperatures (tap
-  to set), fan, light, pause / resume / cancel, homing and emergency stop.
+  to set), fan, light, pause / resume / cancel and homing. The **emergency stop** is always in
+  the top-right corner.
 - **Live tuning** while printing: speed, flow, Z offset (babystepping) and part fan.
 - **Temperature chart** for the nozzle and bed over the last 5, 10 or 20 minutes.
 - **Camera**: Creality WebRTC (port 8000), webcams configured in Moonraker, or MJPEG (port 8080).
@@ -23,9 +24,11 @@ other printer that exposes Moonraker (the same API Mobileraker uses).
   **home screen widget** with progress and finish time.
 - **Share a .gcode** from another app (Drive, WhatsApp, your slicer…) to upload or print it.
 - **Network discovery** to find Moonraker printers on your Wi-Fi.
-- **Camera zoom**: pinch, drag or double tap, and share a capture of the current frame.
+- **Full-screen camera** from the Home card: pinch, drag or double tap to zoom, share a
+  capture of the current frame, and change the camera mode.
 - **Backup** of printers, presets and appearance to a file, to restore on another phone.
-- Android niceties: back gesture that closes panels and folders first, pull to refresh, subtle
+- Android niceties: swipe panels down to close them, back gesture that closes panels and
+  folders first, pull to refresh, subtle
   vibration on pause / cancel / emergency stop, themed icon and system font size.
 - **Away from home**: see [docs/remote-access.md](docs/remote-access.md) (Tailscale).
 - **Preheat presets**: add, edit or remove materials with their nozzle and bed temperatures.
