@@ -14,6 +14,8 @@ interface FakeServer {
   /** Whether new sockets open, fail, or stay pending. */
   accept: 'open' | 'fail' | 'hang';
   calls: string[];
+  objects: string[];
+  config: Record<string, any>;
 }
 
 function fakeMoonraker() {
@@ -28,6 +30,8 @@ function fakeMoonraker() {
     silent: new Set(),
     accept: 'open',
     calls: [],
+    objects: ['extruder', 'heater_bed', 'output_pin LED'],
+    config: {},
   };
   const sockets: { handlers: SocketHandlers; closed: boolean }[] = [];
 
@@ -40,9 +44,13 @@ function fakeMoonraker() {
       case 'printer.info':
         return { state: server.klippy, state_message: server.stateMessage };
       case 'printer.objects.list':
-        return { objects: ['extruder', 'heater_bed', 'output_pin LED'] };
-      case 'printer.objects.subscribe':
+        return { objects: server.objects };
       case 'printer.objects.query':
+        if (params?.objects?.configfile) {
+          return { status: { configfile: { settings: server.config } } };
+        }
+      // falls through
+      case 'printer.objects.subscribe':
         if (server.klippy !== 'ready') throw { code: 503, message: 'Klippy Host not connected' };
         return { eventtime: 1, status: structuredClone(server.status) };
       default:
@@ -158,6 +166,17 @@ describe('PrinterConnection', () => {
     await tick(TIMING.emitInterval);
     expect(snaps.length).toBe(before + 1);
     expect(conn.getSnapshot().status?.extruder).toEqual({ temperature: 31, target: 200 });
+  });
+
+  it('reads the fan scale of a Creality Hi before subscribing', async () => {
+    const { conn, moon } = connect();
+    moon.server.objects = ['extruder', 'output_pin fan0'];
+    moon.server.config = { 'output_pin fan0': { scale: 255 } };
+    moon.server.status['output_pin fan0'] = { value: 51 };
+    conn.start();
+    await tick();
+    expect(moon.server.calls).toContain('printer.objects.query');
+    expect(conn.getSnapshot().status?.fanSpeed).toBeCloseTo(0.2);
   });
 
   it('continues when identify is not supported', async () => {
@@ -278,6 +297,7 @@ describe('PrinterConnection', () => {
     await tick(1000); // failure 2
     await tick(2000); // failure 3 → HTTP works → polling
     expect(conn.getSnapshot().mode).toBe('polling');
+    expect(conn.getSnapshot().server?.klippy_state).toBe('ready');
     expect(state().kind).toBe('ready');
     expect(conn.getSnapshot().status?.extruder.temperature).toBe(99);
     await tick(TIMING.pollInterval * 2);

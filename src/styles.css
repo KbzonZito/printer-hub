@@ -2340,3 +2340,57 @@ a.btn {
 .summary .muted svg {
   vertical-align: -2px;
 }
+
+/* fieldset used to disable a whole block of actions at once */
+fieldset.dash,
+fieldset.control-grid {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+fieldset:disabled .btn,
+fieldset:disabled .tile {
+  opacity: 0.5;
+}
+
+/* Connection state */
+.connection-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 16px 8px;
+  padding: 10px 12px 10px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--text);
+  animation: screen-in 0.3s var(--ease-emph);
+}
+.connection-banner > svg {
+  color: var(--danger);
+  flex-shrink: 0;
+}
+.connection-banner .grow {
+  display: flex;
+  flex-direction: column;
+}
+.connection-banner small {
+  color: var(--muted);
+}
+.klippy-state svg {
+  color: var(--danger);
+}
+.klippy-message {
+  max-width: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: left;
+}
+.center-row {
+  justify-content: center;
+}

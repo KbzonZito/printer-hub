@@ -2,9 +2,7 @@ import { request, requestJson } from './http';
 import type { Printer } from '../store';
 import {
   namesFromObjects,
-  parseStatus,
   queryString,
-  subscription,
   type ObjectNames,
   type RawStatus,
 } from '../connection/statusModel';
@@ -136,20 +134,6 @@ export const queryObjects = async (p: Printer, objects: Record<string, string[]>
   (await get<{ status: RawStatus }>(p, `/printer/objects/query?${queryString(objects)}`, 5000))
     .status;
 
-export async function fetchStatus(p: Printer): Promise<PrinterStatus> {
-  const names = await discover(p).catch((): Discovered => ({
-    chamber: null,
-    lightPin: null,
-    macros: [],
-  }));
-  const { status } = await get<{ status: RawStatus }>(
-    p,
-    `/printer/objects/query?${queryString(subscription(names))}`,
-    5000,
-  );
-  return parseStatus(status, names);
-}
-
 export async function testConnection(p: Printer): Promise<string> {
   const info = await get<{ klippy_state: string; moonraker_version?: string }>(
     p,
@@ -165,6 +149,7 @@ export const printerActions = {
   cancel: (p: Printer) => post(p, '/printer/print/cancel'),
   emergencyStop: (p: Printer) => post(p, '/printer/emergency_stop'),
   firmwareRestart: (p: Printer) => post(p, '/printer/firmware_restart'),
+  restartKlipper: (p: Printer) => post(p, '/printer/restart'),
   start: (p: Printer, filename: string) =>
     post(p, `/printer/print/start?filename=${encodeURIComponent(filename)}`),
   gcode: (p: Printer, script: string) =>

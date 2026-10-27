@@ -12,6 +12,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { uploadFile } from './api/moonraker';
+import { ConnectionBanner, KlippyStateScreen } from './components/ConnectionStatus';
 import { NavBar } from './components/NavBar';
 import { Sheet, ToastProvider, useAction } from './components/ui';
 import { formatBytes } from './format';
@@ -26,7 +27,8 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { Wizard } from './onboarding/Wizard';
 import { useSettings, useStore, type Printer, type Settings as AppSettings } from './store';
 import { useNativeSync, useSharedFiles } from './useNativeBridge';
-import { StatusContext, usePrinterStatusPoll } from './usePrinterStatus';
+import { ConnectionProvider } from './connection/ConnectionProvider';
+import { useConnectionSnapshot } from './usePrinterStatus';
 
 type Tab = 'home' | 'camera' | 'control' | 'files' | 'settings';
 
@@ -144,18 +146,40 @@ function Onboarding({ firstRun }: { firstRun: boolean }) {
 }
 
 export default function App() {
-  const t = useT();
   const { settings } = useSettings();
-  const { active, savePrinter } = useStore();
-  const [tab, setTab] = useState<Tab>('home');
-  const status = usePrinterStatusPoll(active);
+  const { active } = useStore();
   useTheme(settings);
-  useNativeSync(active, status.status, settings);
-  const [sharedFile, clearSharedFile] = useSharedFiles();
 
   useEffect(() => {
     document.documentElement.lang = settings.lang;
   }, [settings.lang]);
+
+  if (!settings.onboarded || !active) {
+    return (
+      <ToastProvider>
+        <Onboarding firstRun={!settings.onboarded} />
+      </ToastProvider>
+    );
+  }
+
+  return (
+    <ToastProvider>
+      <ConnectionProvider printer={active}>
+        <Main active={active} />
+      </ConnectionProvider>
+    </ToastProvider>
+  );
+}
+
+function Main({ active }: { active: Printer }) {
+  const t = useT();
+  const { settings } = useSettings();
+  const { savePrinter } = useStore();
+  const [tab, setTab] = useState<Tab>('home');
+  const snapshot = useConnectionSnapshot();
+  const st = snapshot.status;
+  useNativeSync(active, st, settings);
+  const [sharedFile, clearSharedFile] = useSharedFiles();
 
   // Android back button: return to the home tab before leaving the app.
   useEffect(() => {
@@ -168,67 +192,63 @@ export default function App() {
     };
   }, [tab]);
 
-  if (!settings.onboarded || !active) {
-    return (
-      <ToastProvider>
-        <Onboarding firstRun={!settings.onboarded} />
-      </ToastProvider>
-    );
-  }
-
-  const st = status.status;
-  const dotClass = status.connected ? (st?.klippyState === 'ready' ? 'ok' : 'warn') : 'off';
+  const kind = snapshot.state.kind;
+  const klippyProblem = kind === 'klippy';
+  const dotClass = kind === 'ready' ? 'ok' : kind === 'reconnecting' ? 'off' : 'warn';
 
   return (
-    <ToastProvider>
-      <StatusContext.Provider value={status}>
-        <div className="app">
-          <NavBar
-            tabs={TABS}
-            active={tab}
-            onSelect={setTab}
-            label={(id) => t(`tab.${id}` as MessageKey)}
-          />
-
-          <div className="content">
-            <header className="topbar">
-              <div>
-                <h1>{active.name}</h1>
-                <span className="muted small">
-                  <span className={`dot ${dotClass}`} />
-                  {status.connected ? active.host : t('common.disconnected')}
-                </span>
-              </div>
-              {st?.state === 'printing' && (
-                <span className="topbar-progress">{Math.round(st.progress * 100)}%</span>
-              )}
-            </header>
-
-            <main key={active.id}>
-              {tab === 'home' && (
-                <Dashboard printer={active} onOpenCamera={() => setTab('camera')} />
-              )}
-              {tab === 'camera' && (
-                <CameraScreen
-                  printer={active}
-                  onModeChange={(cameraMode) => savePrinter({ ...active, cameraMode })}
-                />
-              )}
-              {tab === 'control' && <ControlScreen printer={active} />}
-              {tab === 'files' && (
-                <FilesScreen printer={active} onPrintStarted={() => setTab('home')} />
-              )}
-              {tab === 'settings' && <SettingsScreen />}
-            </main>
-          </div>
-        </div>
-        <SharedFileSheet
-          file={sharedFile}
-          printer={active}
-          onClose={clearSharedFile}
-          onPrinted={() => setTab('home')}
+    <>
+      <div className="app">
+        <NavBar
+          tabs={TABS}
+          active={tab}
+          onSelect={setTab}
+          label={(id) => t(`tab.${id}` as MessageKey)}
         />
-      </StatusContext.Provider>
-    </ToastProvider>
+
+        <div className="content">
+          <header className="topbar">
+            <div>
+              <h1>{active.name}</h1>
+              <span className="muted small">
+                <span className={`dot ${dotClass}`} />
+                {kind === 'reconnecting' ? t('common.disconnected') : active.host}
+              </span>
+            </div>
+            {kind === 'ready' && st?.state === 'printing' && (
+              <span className="topbar-progress">{Math.round(st.progress * 100)}%</span>
+            )}
+          </header>
+
+          <ConnectionBanner />
+
+          <main key={active.id}>
+            {klippyProblem && (tab === 'home' || tab === 'control') && (
+              <KlippyStateScreen printer={active} />
+            )}
+            {tab === 'home' && !klippyProblem && (
+              <Dashboard printer={active} onOpenCamera={() => setTab('camera')} />
+            )}
+            {tab === 'camera' && (
+              <CameraScreen
+                printer={active}
+                onModeChange={(cameraMode) => savePrinter({ ...active, cameraMode })}
+              />
+            )}
+            {tab === 'control' && !klippyProblem && <ControlScreen printer={active} />}
+            {tab === 'files' && (
+              <FilesScreen printer={active} onPrintStarted={() => setTab('home')} />
+            )}
+            {tab === 'settings' && <SettingsScreen />}
+          </main>
+        </div>
+      </div>
+      <SharedFileSheet
+        file={sharedFile}
+        printer={active}
+        onClose={clearSharedFile}
+        onPrinted={() => setTab('home')}
+      />
+    </>
   );
 }

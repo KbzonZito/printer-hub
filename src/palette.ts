@@ -50,18 +50,20 @@ export const PALETTE_STYLES: PaletteStyle[] = [
   'monochrome',
 ];
 
-const SCHEMES: Record<PaletteStyle, new (hct: Hct, dark: boolean, contrast: number) => DynamicScheme> =
-  {
-    tonalSpot: SchemeTonalSpot,
-    neutral: SchemeNeutral,
-    vibrant: SchemeVibrant,
-    expressive: SchemeExpressive,
-    fidelity: SchemeFidelity,
-    content: SchemeContent,
-    rainbow: SchemeRainbow,
-    fruitSalad: SchemeFruitSalad,
-    monochrome: SchemeMonochrome,
-  };
+const SCHEMES: Record<
+  PaletteStyle,
+  new (hct: Hct, dark: boolean, contrast: number) => DynamicScheme
+> = {
+  tonalSpot: SchemeTonalSpot,
+  neutral: SchemeNeutral,
+  vibrant: SchemeVibrant,
+  expressive: SchemeExpressive,
+  fidelity: SchemeFidelity,
+  content: SchemeContent,
+  rainbow: SchemeRainbow,
+  fruitSalad: SchemeFruitSalad,
+  monochrome: SchemeMonochrome,
+};
 
 export function buildScheme(seed: string, style: PaletteStyle, dark: boolean) {
   return new SCHEMES[style](Hct.fromInt(argbFromHex(seed)), dark, 0);

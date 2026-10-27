@@ -1,8 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { mergeStatus, parseStatus, queryString, subscription, type RawStatus } from './statusModel';
+import {
+  mergeStatus,
+  namesFromObjects,
+  needsFanScale,
+  parseStatus,
+  queryString,
+  subscription,
+  withFanScale,
+  type RawStatus,
+} from './statusModel';
 
-const NONE = { chamber: null, lightPin: null };
-const HI = { chamber: 'temperature_sensor chamber_temp', lightPin: 'output_pin LED' };
+const NONE = { chamber: null, lightPin: null, fan: null, fanScale: 1 };
+const HI = {
+  chamber: 'temperature_sensor chamber_temp',
+  lightPin: 'output_pin LED',
+  fan: 'output_pin fan0',
+  fanScale: 255,
+};
 
 describe('mergeStatus', () => {
   it('updates only the fields that changed', () => {
@@ -84,6 +98,7 @@ describe('parseStatus', () => {
         gcode_move: { homing_origin: [0, 0, -0.05, 0], speed_factor: 1.2 },
         'temperature_sensor chamber_temp': { temperature: 31 },
         'output_pin LED': { value: 1 },
+        'output_pin fan0': { value: 127.5 },
       },
       HI,
     );
@@ -100,6 +115,7 @@ describe('parseStatus', () => {
       canExtrude: true,
       chamber: { temperature: 31, target: 0 },
       light: { pin: 'LED', on: true },
+      fanSpeed: 0.5,
     });
   });
 
@@ -118,5 +134,48 @@ describe('parseStatus', () => {
   it('falls back between the two progress sources', () => {
     expect(parseStatus({ display_status: { progress: 0.4 } }, NONE).progress).toBe(0.4);
     expect(parseStatus({ virtual_sdcard: { progress: 0.2 } }, NONE).displayProgress).toBe(0.2);
+  });
+});
+
+describe('fan', () => {
+  // Real object list of a Creality Hi (docs/plans/creality-hi.md), trimmed.
+  const hiObjects = [
+    'webhooks',
+    'output_pin fanp0',
+    'output_pin fan0',
+    'output_pin board_fan',
+    'heater_fan hotend_fan',
+    'output_pin LED',
+    'fan_feedback',
+    'extruder',
+  ];
+
+  it('finds the part fan of a Creality Hi and reads its scale from the config', () => {
+    const names = namesFromObjects(hiObjects);
+    expect(names.fan).toBe('output_pin fan0');
+    expect(needsFanScale(names)).toBe(true);
+    const scaled = withFanScale(names, { 'output_pin fan0': { scale: 255, pwm: true } });
+    expect(scaled.fanScale).toBe(255);
+    expect(subscription(scaled)['output_pin fan0']).toEqual(['value']);
+    expect(parseStatus({ 'output_pin fan0': { value: 255 } }, scaled).fanSpeed).toBe(1);
+  });
+
+  it('prefers the standard fan object', () => {
+    const names = namesFromObjects(['fan', 'output_pin fan0']);
+    expect(names.fan).toBe('fan');
+    expect(needsFanScale(names)).toBe(false);
+    expect(subscription(names).fan).toEqual(['speed']);
+    expect(parseStatus({ fan: { speed: 0.3 } }, names).fanSpeed).toBe(0.3);
+  });
+
+  it('keeps scale 1 when the config has no scale', () => {
+    const names = namesFromObjects(hiObjects);
+    expect(withFanScale(names, {}).fanScale).toBe(1);
+    expect(withFanScale(names, undefined).fanScale).toBe(1);
+  });
+
+  it('reports 0 without a fan', () => {
+    expect(namesFromObjects(['extruder']).fan).toBeNull();
+    expect(parseStatus({}, NONE).fanSpeed).toBe(0);
   });
 });

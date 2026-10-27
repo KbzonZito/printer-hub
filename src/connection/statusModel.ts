@@ -10,6 +10,10 @@ export type RawStatus = Record<string, Record<string, any>>;
 export interface ObjectNames {
   chamber: string | null;
   lightPin: string | null;
+  /** Part cooling fan: "fan", or e.g. "output_pin fan0" on the Creality Hi. */
+  fan: string | null;
+  /** Full-speed value of an output_pin fan (the Hi's fan0 goes 0–255); 1 for "fan". */
+  fanScale: number;
   /** User-facing macros (names starting with "_" are internal). */
   macros: string[];
 }
@@ -18,6 +22,11 @@ export function namesFromObjects(objects: string[]): ObjectNames {
   return {
     chamber: objects.find((o) => /^(heater_generic|temperature_sensor) .*chamber/i.test(o)) ?? null,
     lightPin: objects.find((o) => /^output_pin .*(led|light|lamp)/i.test(o)) ?? null,
+    fan: objects.includes('fan')
+      ? 'fan'
+      : (objects.find((o) => /^(output_pin|fan_generic) (fan0|fan|part_fan|part)$/i.test(o)) ??
+        null),
+    fanScale: 1,
     macros: objects
       .filter((o) => o.startsWith('gcode_macro ') && !o.startsWith('gcode_macro _'))
       .map((o) => o.slice('gcode_macro '.length))
@@ -30,9 +39,19 @@ export function namesFromObjects(objects: string[]): ObjectNames {
  * Klipper from sending constant updates for values we never show, like
  * toolhead.estimated_print_time.
  */
-export function subscription(
-  names: Pick<ObjectNames, 'chamber' | 'lightPin'>,
-): Record<string, string[]> {
+type StatusNames = Pick<ObjectNames, 'chamber' | 'lightPin' | 'fan' | 'fanScale'>;
+
+/** The fan's scale comes from the printer config (configfile.settings), when it's a pin. */
+export function needsFanScale(names: ObjectNames) {
+  return names.fan?.startsWith('output_pin ') ?? false;
+}
+
+export function withFanScale(names: ObjectNames, settings: Record<string, any> | undefined) {
+  const scale = Number(settings?.[names.fan?.toLowerCase() ?? '']?.scale);
+  return scale > 0 ? { ...names, fanScale: scale } : names;
+}
+
+export function subscription(names: StatusNames): Record<string, string[]> {
   const objects: Record<string, string[]> = {
     webhooks: ['state', 'state_message'],
     print_stats: [
@@ -48,12 +67,12 @@ export function subscription(
     display_status: ['progress'],
     extruder: ['temperature', 'target', 'can_extrude'],
     heater_bed: ['temperature', 'target'],
-    fan: ['speed'],
     toolhead: ['homed_axes', 'position'],
     gcode_move: ['speed_factor', 'extrude_factor', 'homing_origin'],
   };
   if (names.chamber) objects[names.chamber] = ['temperature', 'target'];
   if (names.lightPin) objects[names.lightPin] = ['value'];
+  if (names.fan) objects[names.fan] = names.fan === 'fan' ? ['speed'] : ['value'];
   return objects;
 }
 
@@ -77,10 +96,7 @@ export function mergeStatus(raw: RawStatus, update: RawStatus): RawStatus {
   return next;
 }
 
-export function parseStatus(
-  s: RawStatus,
-  names: Pick<ObjectNames, 'chamber' | 'lightPin'>,
-): PrinterStatus {
+export function parseStatus(s: RawStatus, names: StatusNames): PrinterStatus {
   const ps = s.print_stats ?? {};
   const chamber = names.chamber ? s[names.chamber] : null;
   return {
@@ -100,7 +116,11 @@ export function parseStatus(
     chamber: chamber
       ? { temperature: chamber.temperature ?? 0, target: chamber.target ?? 0 }
       : null,
-    fanSpeed: s.fan?.speed ?? 0,
+    fanSpeed: !names.fan
+      ? 0
+      : names.fan === 'fan'
+        ? (s.fan?.speed ?? 0)
+        : Math.min(1, (s[names.fan]?.value ?? 0) / (names.fanScale || 1)),
     light: names.lightPin
       ? {
           pin: names.lightPin.replace(/^output_pin /, ''),

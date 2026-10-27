@@ -24,6 +24,20 @@ First numbered release.
 - Upload G-code, or share a .gcode from another app to upload or print it.
 - Print history with totals, and timelapses.
 
+### Connection
+- Real-time updates over Moonraker's WebSocket instead of polling every 2 seconds. On Android the
+  connection is opened natively, so it works even when the printer's `cors_domains` doesn't
+  allow the app (as on the Creality Hi). If the WebSocket can't be used, the app falls back to
+  polling by itself.
+- Reconnects automatically (also when coming back to the app) and shows "Reconnecting…" with a
+  retry button when the printer can't be reached.
+- A dedicated screen when Klipper is starting, shut down, in error or not running, with
+  "Restart firmware" and "Restart Klipper".
+- The console shows responses instantly, and files and history refresh when they change on the
+  printer.
+- Fixed the part fan always showing 0% on the Creality Hi; the Timelapse tab only appears when
+  the printer has the timelapse plugin.
+
 ### App
 - Welcome wizard on first launch: welcome screen, appearance, notifications and a guided
   "add your printer" step (network scan or IP with help, connection check, camera detection

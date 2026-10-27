@@ -3,9 +3,11 @@ import { JsonRpc, RpcError } from './jsonrpc';
 import {
   mergeStatus,
   namesFromObjects,
+  needsFanScale,
   parseStatus,
   subscription,
   type ObjectNames,
+  withFanScale,
   type RawStatus,
 } from './statusModel';
 import type { Socket, Transport } from './transport';
@@ -109,13 +111,17 @@ export class PrinterConnection {
 
   subscribe = (listener: (s: Snapshot) => void) => {
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
   };
 
   /** Moonraker notifications (notify_gcode_response, notify_filelist_changed…). */
   onEvent(listener: (method: string, params: any[]) => void) {
     this.eventListeners.add(listener);
-    return () => this.eventListeners.delete(listener);
+    return () => {
+      this.eventListeners.delete(listener);
+    };
   }
 
   start() {
@@ -285,7 +291,15 @@ export class PrinterConnection {
     if (!rpc) return;
     try {
       const { objects } = await rpc.call<{ objects: string[] }>('printer.objects.list');
-      const names = namesFromObjects(objects);
+      let names = namesFromObjects(objects);
+      if (needsFanScale(names)) {
+        const cfg = await rpc
+          .call<{ status: RawStatus }>('printer.objects.query', {
+            objects: { configfile: ['settings'] },
+          })
+          .catch(() => null);
+        names = withFanScale(names, cfg?.status.configfile?.settings);
+      }
       const { status } = await rpc.call<{ status: RawStatus }>('printer.objects.subscribe', {
         objects: subscription(names),
       });
@@ -378,13 +392,15 @@ export class PrinterConnection {
   /** The WebSocket keeps failing to open: use HTTP if the printer answers there. */
   private async tryPolling() {
     const gen = this.gen;
+    let info: ServerInfo;
     try {
-      await this.opts.http.serverInfo();
+      info = await this.opts.http.serverInfo();
     } catch {
       if (gen === this.gen && !this.paused && !this.stopped) this.scheduleReconnect();
       return;
     }
     if (gen !== this.gen || this.paused || this.stopped) return;
+    this.snapshot = { ...this.snapshot, server: info };
     this.startPolling();
   }
 
@@ -404,7 +420,14 @@ export class PrinterConnection {
     const pollGen = ++this.pollGen;
     const { http } = this.opts;
     try {
-      const names = this.snapshot.names ?? namesFromObjects(await http.objectList());
+      let names = this.snapshot.names;
+      if (!names) {
+        names = namesFromObjects(await http.objectList());
+        if (needsFanScale(names)) {
+          const cfg = await http.query({ configfile: ['settings'] }).catch(() => null);
+          names = withFanScale(names, cfg?.configfile?.settings);
+        }
+      }
       const status = await http.query(subscription(names));
       if (pollGen !== this.pollGen) return;
       this.raw = status;

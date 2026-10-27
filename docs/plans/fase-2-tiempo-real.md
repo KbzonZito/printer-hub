@@ -244,7 +244,7 @@ Hecho: 20 pruebas unitarias con tiempo simulado (`PrinterConnection.test.ts`) y 
 extremo a extremo contra el simulador real (`integration.test.ts`: tiempo real, consola, Klipper
 iniciando, apagado y `FIRMWARE_RESTART`, corte y conexión silenciosa).
 
-### 2.7 Integración con las pantallas — **medium**
+### 2.7 Integración con las pantallas — **medium** ✅
 - `manager.ts` y `hooks.ts`.
 - `App.tsx` usa el gestor en lugar de `usePrinterStatusPoll`.
 - `StatusContext` desaparece y `usePrinterStatus()` mantiene la misma forma.
@@ -254,7 +254,7 @@ iniciando, apagado y `FIRMWARE_RESTART`, corte y conexión silenciosa).
 **Acepta:** todas las pantallas funcionan igual o mejor. En el navegador, la gráfica avanza cada
 segundo y los cambios de temperatura del simulador se ven en menos de 1 s.
 
-### 2.8 Detección de capacidades — **medium**
+### 2.8 Detección de capacidades — **medium** ✅
 - `capabilities.ts`: componentes de `server.info` y objetos de `printer.objects.list`,
   guardados por impresora y refrescados con `notify_klippy_ready`.
 - `useCapabilities()`.
@@ -265,7 +265,10 @@ segundo y los cambios de temperatura del simulador se ven en menos de 1 s.
 
 **Acepta:** sin `timelapse` en el simulador, la pestaña no aparece.
 
-### 2.9 Interfaz de conexión — **medium**
+Hecho. El ventilador de la Creality Hi (`output_pin fan0`, escala 255 leída de
+`configfile.settings`) se comprobó con la impresora real.
+
+### 2.9 Interfaz de conexión — **medium** ✅
 - **Banner** bajo la cabecera: "Reconectando… (intento N)" con "Reintentar ahora". Aparece solo
   si el corte dura más de 2 s, para que no parpadee.
 - **Pantalla de estado de Klipper** en lugar del contenido de Inicio y Control:
@@ -282,7 +285,7 @@ segundo y los cambios de temperatura del simulador se ven en menos de 1 s.
 
 **Acepta:** cada escenario del simulador muestra la interfaz correcta.
 
-### 2.10 Avisos en lugar de consultas — **medium**
+### 2.10 Avisos en lugar de consultas — **medium** ✅
 - **Consola**: `notify_gcode_response` añade líneas al momento. Al abrirla se cargan las
   últimas 60 de `gcode_store`, y se deja de consultar cada 2,5 s.
 - **Archivos**: `notify_filelist_changed` recarga la carpeta abierta (por ejemplo, al subir un

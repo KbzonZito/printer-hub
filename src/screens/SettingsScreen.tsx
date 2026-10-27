@@ -22,8 +22,8 @@ import {
   Thermometer,
   Trash2,
 } from 'lucide-react';
-import { ConnectionTest } from '../connection/ConnectionTest';
 import { Wizard } from '../onboarding/Wizard';
+import { useConnectionSnapshot } from '../usePrinterStatus';
 import { fetchVersions, testConnection, type SystemVersions } from '../api/moonraker';
 import { ConfirmSheet, Section, Select, Sheet, useToast } from '../components/ui';
 import { localSubnet, scanNetwork, type Found } from '../discovery';
@@ -541,6 +541,7 @@ function useAppVersion() {
 
 function About({ printer }: { printer: Printer | null }) {
   const t = useT();
+  const { mode } = useConnectionSnapshot();
   const version = useAppVersion();
   const [versions, setVersions] = useState<SystemVersions | null>(null);
   useEffect(() => {
@@ -605,9 +606,12 @@ function About({ printer }: { printer: Printer | null }) {
               <span>{versions.moonraker.split('-')[0]}</span>
             </div>
           )}
+          <div className="estimate-row">
+            <span className="muted">{t('conn.mode')}</span>
+            <span>{mode === 'realtime' ? t('conn.realtime') : t('conn.polling')}</span>
+          </div>
         </div>
       )}
-      {printer && <ConnectionTest printer={printer} />}
       <p className="muted small">{t('settings.aboutText')}</p>
       <div className="about-links">
         <button type="button" onClick={() => openExternal(REPO_URL)}>

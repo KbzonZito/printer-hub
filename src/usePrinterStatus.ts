@@ -1,6 +1,10 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { fetchStatus, temperatureStore, type PrinterStatus } from './api/moonraker';
-import type { Printer } from './store';
+import { createContext, useContext, useEffect, useRef } from 'react';
+import type { PrinterStatus } from './api/moonraker';
+import type { PrinterConnection, Snapshot } from './connection/PrinterConnection';
+import { tr } from './i18n';
+
+// What the screens read about the active printer. The data comes from the live connection
+// managed by ConnectionProvider (src/connection/ConnectionProvider.tsx).
 
 export interface TempSample {
   time: number;
@@ -13,105 +17,66 @@ export interface TempSample {
 export interface StatusState {
   status: PrinterStatus | null;
   error: string | null;
+  /** Moonraker answers (Klipper itself may still be starting or in error). */
   connected: boolean;
-  /** Recent temperatures, oldest first (about the last 20 minutes). */
+  /** Recent temperatures, oldest first (about the last 20 minutes, one per second). */
   tempHistory: TempSample[];
   refresh: () => void;
 }
 
-const POLL_MS = 2000;
-const HISTORY_MS = 20 * 60 * 1000;
+export const OFFLINE_SNAPSHOT: Snapshot = {
+  state: { kind: 'connecting' },
+  mode: 'realtime',
+  status: null,
+  names: null,
+  server: null,
+};
 
-/** Seeds the chart from Moonraker's 1 s temperature store, thinned to the poll interval. */
-async function loadTempHistory(p: Printer): Promise<TempSample[]> {
-  const store = await temperatureStore(p);
-  const ext = store.extruder?.temperatures ?? [];
-  const bed = store.heater_bed?.temperatures ?? [];
-  const n = Math.min(ext.length, bed.length);
-  const now = Date.now();
-  const step = POLL_MS / 1000;
-  const samples: TempSample[] = [];
-  for (let i = n % step; i < n; i += step) {
-    samples.push({
-      time: now - (n - 1 - i) * 1000,
-      extruder: ext[ext.length - n + i],
-      extruderTarget: store.extruder?.targets?.[ext.length - n + i] ?? 0,
-      bed: bed[bed.length - n + i],
-      bedTarget: store.heater_bed?.targets?.[bed.length - n + i] ?? 0,
-    });
-  }
-  return samples;
-}
+export const ConnectionContext = createContext<PrinterConnection | null>(null);
+export const SnapshotContext = createContext<Snapshot>(OFFLINE_SNAPSHOT);
+export const TempHistoryContext = createContext<TempSample[]>([]);
 
-export function usePrinterStatusPoll(printer: Printer | null): StatusState {
-  const [status, setStatus] = useState<PrinterStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [tempHistory, setTempHistory] = useState<TempSample[]>([]);
-  const tick = useRef<() => void>(() => {});
+export const useConnection = () => useContext(ConnectionContext);
+export const useConnectionSnapshot = () => useContext(SnapshotContext);
 
-  useEffect(() => {
-    setStatus(null);
-    setError(null);
-    setTempHistory([]);
-    if (!printer?.host) return;
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
-    loadTempHistory(printer)
-      .then((h) => !cancelled && setTempHistory((cur) => [...h, ...cur]))
-      .catch(() => {});
-
-    const poll = async () => {
-      clearTimeout(timer);
-      try {
-        const s = await fetchStatus(printer);
-        if (cancelled) return;
-        setStatus(s);
-        setError(null);
-        const now = Date.now();
-        setTempHistory((h) => [
-          ...h.filter((x) => now - x.time < HISTORY_MS),
-          {
-            time: now,
-            extruder: s.extruder.temperature,
-            extruderTarget: s.extruder.target,
-            bed: s.bed.temperature,
-            bedTarget: s.bed.target,
-          },
-        ]);
-      } catch (err) {
-        if (cancelled) return;
-        setError((err as Error).message);
-      }
-      if (!cancelled && !document.hidden) timer = setTimeout(poll, POLL_MS);
-    };
-    tick.current = poll;
-
-    const onVisibility = () => !document.hidden && poll();
-    document.addEventListener('visibilitychange', onVisibility);
-    poll();
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
-  }, [printer?.id, printer?.host, printer?.port]);
-
+export function usePrinterStatus(): StatusState {
+  const conn = useContext(ConnectionContext);
+  const snap = useContext(SnapshotContext);
+  const tempHistory = useContext(TempHistoryContext);
+  const kind = snap.state.kind;
   return {
-    status,
-    error,
-    connected: !!status && !error,
+    status: snap.status,
+    error: kind === 'reconnecting' ? tr('err.unreachable') : null,
+    connected: kind === 'ready' || kind === 'klippy',
     tempHistory,
-    refresh: () => tick.current(),
+    refresh: () => conn?.refresh(),
   };
 }
 
-export const StatusContext = createContext<StatusState>({
-  status: null,
-  error: null,
-  connected: false,
-  tempHistory: [],
-  refresh: () => {},
-});
+/** Moonraker components (job_queue, timelapse…), known once connected. */
+export function useCapabilities() {
+  const { server } = useContext(SnapshotContext);
+  const components = server?.components;
+  return {
+    known: components != null,
+    has: (component: string) => components?.includes(component) ?? false,
+  };
+}
 
-export const usePrinterStatus = () => useContext(StatusContext);
+/** Whether actions that move or heat the printer make sense right now. */
+export function usePrinterReady() {
+  return useContext(SnapshotContext).state.kind === 'ready';
+}
+
+/** Runs `handler` for a Moonraker notification, e.g. notify_gcode_response. */
+export function useConnectionEvent(method: string, handler: (params: any[]) => void) {
+  const conn = useContext(ConnectionContext);
+  const latest = useRef(handler);
+  latest.current = handler;
+  useEffect(() => {
+    if (!conn) return;
+    return conn.onEvent((m, params) => {
+      if (m === method) latest.current(params);
+    });
+  }, [conn, method]);
+}

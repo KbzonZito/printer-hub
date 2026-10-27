@@ -16,7 +16,12 @@ import { TuneSheet } from '../components/TuneSheet';
 import { useAction } from '../components/ui';
 import { useT } from '../i18n';
 import type { Printer } from '../store';
-import { usePrinterStatus } from '../usePrinterStatus';
+import {
+  useConnectionEvent,
+  useConnectionSnapshot,
+  usePrinterReady,
+  usePrinterStatus,
+} from '../usePrinterStatus';
 
 const STEPS = [0.1, 1, 10, 50];
 const EXTRUDE_LENGTHS = [5, 10, 50];
@@ -29,15 +34,24 @@ function Console({ printer }: { printer: Printer }) {
   const [cmd, setCmd] = useState('');
   const logRef = useRef<HTMLDivElement>(null);
 
+  const { mode } = useConnectionSnapshot();
+  const polling = mode === 'polling';
+
   const load = () =>
     gcodeStore(printer, 60)
       .then(setLines)
       .catch(() => {});
+  // The last lines once; then responses arrive as notifications (or by polling as a fallback).
   useEffect(() => {
     load();
+    if (!polling) return;
     const id = setInterval(load, 2500);
     return () => clearInterval(id);
-  }, [printer.id]);
+  }, [printer.id, polling]);
+  const add = (line: GcodeLine) => setLines((ls) => [...ls.slice(-199), line]);
+  useConnectionEvent('notify_gcode_response', ([message]) =>
+    add({ message: String(message), time: Date.now() / 1000, type: 'response' }),
+  );
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
@@ -62,8 +76,9 @@ function Console({ printer }: { printer: Printer }) {
           const script = cmd.trim();
           if (!script) return;
           setCmd('');
+          add({ message: script, time: Date.now() / 1000, type: 'command' });
           await run(() => printerActions.gcode(printer, script));
-          load();
+          if (polling) load();
         }}
       >
         <input
@@ -86,6 +101,7 @@ export function ControlScreen({ printer }: { printer: Printer }) {
   const t = useT();
   const run = useAction();
   const { status, refresh } = usePrinterStatus();
+  const ready = usePrinterReady();
   const [step, setStep] = useState(10);
   const [extrudeLen, setExtrudeLen] = useState(10);
   const [macros, setMacros] = useState<string[]>([]);
@@ -118,7 +134,8 @@ export function ControlScreen({ printer }: { printer: Printer }) {
 
   return (
     <div className="screen wide">
-      <div className="control-grid">
+      {/* Nothing moves or heats while the printer can't be reached. */}
+      <fieldset className="control-grid" disabled={!ready}>
         <section className="card">
           <div className="card-title-row">
             <h2 className="card-title">{t('control.move')}</h2>
@@ -270,7 +287,7 @@ export function ControlScreen({ printer }: { printer: Printer }) {
             </div>
           </section>
         </div>
-      </div>
+      </fieldset>
 
       <Console printer={printer} />
 

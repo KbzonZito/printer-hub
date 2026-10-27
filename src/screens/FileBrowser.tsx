@@ -39,7 +39,7 @@ import { estimateFile, loadCalibration, type Calibration } from '../estimate';
 import { baseName, formatBytes, formatClock, formatDate, formatDuration } from '../format';
 import { useLang, useT, type MessageKey } from '../i18n';
 import { useSettings, type FileSort, type Printer } from '../store';
-import { usePrinterStatus } from '../usePrinterStatus';
+import { useConnectionEvent, usePrinterReady, usePrinterStatus } from '../usePrinterStatus';
 
 const metaCache = new Map<string, FileMetadata>();
 const metaKey = (p: Printer, f: GcodeFile) => `${p.id}:${f.path}:${f.modified}`;
@@ -454,6 +454,7 @@ export function FileBrowser({
 }) {
   const t = useT();
   const { status, refresh: refreshStatus } = usePrinterStatus();
+  const ready = usePrinterReady();
   const { settings, updateSettings } = useSettings();
   const run = useAction();
   const cal = useCalibration(printer);
@@ -480,6 +481,14 @@ export function FileBrowser({
       .then(setListing)
       .catch((e) => setError((e as Error).message));
   }, [printer, dir]);
+  // Files added, moved or deleted from elsewhere (the slicer, Fluidd…) show up by themselves.
+  const reloadTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useConnectionEvent('notify_filelist_changed', () => {
+    clearTimeout(reloadTimer.current);
+    reloadTimer.current = setTimeout(load, 500);
+  });
+  useEffect(() => () => clearTimeout(reloadTimer.current), []);
+
   useEffect(() => {
     setListing(null);
     load();
@@ -692,7 +701,7 @@ export function FileBrowser({
               </button>
               <button
                 className="btn primary grow"
-                disabled={busy}
+                disabled={busy || !ready}
                 onClick={async () => {
                   const ok = await run(
                     () => printerActions.start(printer, selected.path),

@@ -29,7 +29,7 @@ import { computeEta } from '../eta';
 import { baseName, formatClock, formatDuration } from '../format';
 import { useT, type MessageKey } from '../i18n';
 import { useSettings, type Printer } from '../store';
-import { usePrinterStatus } from '../usePrinterStatus';
+import { useConnection, usePrinterReady, usePrinterStatus } from '../usePrinterStatus';
 
 function ProgressRing({ value }: { value: number }) {
   const r = 34;
@@ -94,6 +94,8 @@ export function Dashboard({
   const t = useT();
   const { settings } = useSettings();
   const { status, error, refresh, tempHistory } = usePrinterStatus();
+  const conn = useConnection();
+  const ready = usePrinterReady();
   const run = useAction();
   const [meta, setMeta] = useState<{ file: string; data: FileMetadata } | null>(null);
   const [tempSheet, setTempSheet] = useState<'extruder' | 'heater_bed' | null>(null);
@@ -125,7 +127,7 @@ export function Dashboard({
             <p className="muted">
               {t('home.offlineHint', { error, host: printer.host, port: printer.port })}
             </p>
-            <button className="btn primary" onClick={refresh}>
+            <button className="btn primary" onClick={() => conn?.retryNow()}>
               {t('common.retry')}
             </button>
           </div>
@@ -143,25 +145,11 @@ export function Dashboard({
   const jobMeta = meta?.file === status.filename ? meta.data : undefined;
   const thumb = status.filename ? thumbnailUrl(printer, status.filename, jobMeta) : null;
   const eta = computeEta(status, jobMeta, settings.eta);
-  const klippyDown = status.klippyState !== 'ready';
 
   return (
     <div className="screen wide">
-      {error && <div className="banner warn">{t('home.unstable', { error })}</div>}
-      {klippyDown && (
-        <div className="banner error">
-          Klipper: {status.klippyState}
-          {status.message ? ` — ${status.message}` : ''}
-          <button
-            className="btn small"
-            onClick={() => act(() => printerActions.firmwareRestart(printer))}
-          >
-            {t('home.firmwareRestart')}
-          </button>
-        </div>
-      )}
-
-      <div className="dash">
+      {/* Actions are disabled while reconnecting (Klipper problems get their own screen). */}
+      <fieldset className="dash" disabled={!ready}>
         <div className="dash-main">
           <div className="card camera-card" onClick={onOpenCamera}>
             <CameraView printer={printer} />
@@ -314,7 +302,7 @@ export function Dashboard({
             </button>
           </div>
         </div>
-      </div>
+      </fieldset>
 
       <Sheet
         open={!!tempSheet}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useT } from '../i18n';
 import type { Printer } from '../store';
-import { usePrinterStatus } from '../usePrinterStatus';
+import { useCapabilities, usePrinterStatus } from '../usePrinterStatus';
 import { FileBrowser } from './FileBrowser';
 import { HistoryView } from './HistoryView';
 import { TimelapseView } from './TimelapseView';
@@ -17,21 +17,27 @@ export function FilesScreen({
   const { status } = usePrinterStatus();
   const [view, setView] = useState<'files' | 'history' | 'timelapse'>('files');
   const busy = status?.state === 'printing' || status?.state === 'paused';
+  // Timelapses need the moonraker-timelapse plugin (the Creality Hi doesn't have it).
+  const caps = useCapabilities();
+  const views = caps.has('timelapse')
+    ? (['files', 'history', 'timelapse'] as const)
+    : (['files', 'history'] as const);
+  const shown = views.includes(view as never) ? view : 'files';
 
   return (
     <div className="screen wide">
       <div className="segmented">
-        {(['files', 'history', 'timelapse'] as const).map((v) => (
-          <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>
+        {views.map((v) => (
+          <button key={v} className={shown === v ? 'active' : ''} onClick={() => setView(v)}>
             {t(`files.tab.${v}`)}
           </button>
         ))}
       </div>
-      {view === 'files' && <FileBrowser printer={printer} onPrintStarted={onPrintStarted} />}
-      {view === 'history' && (
+      {shown === 'files' && <FileBrowser printer={printer} onPrintStarted={onPrintStarted} />}
+      {shown === 'history' && (
         <HistoryView printer={printer} busy={busy} onPrintStarted={onPrintStarted} />
       )}
-      {view === 'timelapse' && <TimelapseView printer={printer} />}
+      {shown === 'timelapse' && <TimelapseView printer={printer} />}
     </div>
   );
 }

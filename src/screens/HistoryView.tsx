@@ -11,6 +11,7 @@ import {
 import { Sheet, useAction } from '../components/ui';
 import { baseName, formatDate, formatDuration } from '../format';
 import { useLang, useT, type MessageKey } from '../i18n';
+import { useConnectionEvent } from '../usePrinterStatus';
 import type { Printer } from '../store';
 
 function StatusIcon({ status }: { status: string }) {
@@ -36,14 +37,17 @@ export function HistoryView({
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<HistoryJob | null>(null);
 
-  useEffect(() => {
+  const load = () => {
     fetchHistory(printer)
       .then(setJobs)
       .catch((e) => setError((e as Error).message));
     fetchHistoryTotals(printer)
       .then(setTotals)
       .catch(() => {});
-  }, [printer.id]);
+  };
+  useEffect(load, [printer.id]);
+  // A print that starts or finishes updates the list by itself.
+  useConnectionEvent('notify_history_changed', load);
 
   const done = jobs?.filter((j) => j.status === 'completed').length ?? 0;
   const statusLabel = (s: string) =>
