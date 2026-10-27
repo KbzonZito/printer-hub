@@ -58,7 +58,7 @@ export interface Settings {
   notify: boolean;
 }
 
-interface State {
+export interface State {
   printers: Printer[];
   activeId: string | null;
   settings: Settings;
@@ -66,7 +66,7 @@ interface State {
 
 const KEY = 'printer-hub:v1';
 
-function defaultSettings(): Settings {
+export function defaultSettings(): Settings {
   const lang =
     typeof navigator !== 'undefined' && !navigator.language.startsWith('es') ? 'en' : 'es';
   return {
@@ -124,6 +124,10 @@ function subscribe(l: () => void) {
 
 /** Current settings for code that runs outside React (e.g. API error messages). */
 export const getSettings = () => state.settings;
+
+/** Everything saved, for backups (src/backup.ts). */
+export const getState = () => state;
+export const replaceState = (next: State) => setState(next);
 
 export const newId = () => Math.random().toString(36).slice(2, 10);
 

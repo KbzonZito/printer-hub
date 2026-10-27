@@ -160,6 +160,7 @@ export function ControlScreen({ printer }: { printer: Printer }) {
               <button
                 className="btn primary"
                 onClick={() => act(() => printerActions.home(printer), t('home.homing'))}
+                aria-label={t('control.homeAll')}
               >
                 <Home size={20} />
               </button>

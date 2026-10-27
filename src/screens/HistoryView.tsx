@@ -8,6 +8,7 @@ import {
   type HistoryJob,
   type HistoryTotals,
 } from '../api/moonraker';
+import { PullToRefresh } from '../components/PullToRefresh';
 import { Sheet, useAction } from '../components/ui';
 import { baseName, formatDate, formatDuration } from '../format';
 import { useLang, useT, type MessageKey } from '../i18n';
@@ -37,17 +38,23 @@ export function HistoryView({
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<HistoryJob | null>(null);
 
-  const load = () => {
-    fetchHistory(printer)
-      .then(setJobs)
-      .catch((e) => setError((e as Error).message));
-    fetchHistoryTotals(printer)
-      .then(setTotals)
-      .catch(() => {});
-  };
-  useEffect(load, [printer.id]);
+  const load = () =>
+    Promise.all([
+      fetchHistory(printer)
+        .then((j) => {
+          setJobs(j);
+          setError(null);
+        })
+        .catch((e) => setError((e as Error).message)),
+      fetchHistoryTotals(printer)
+        .then(setTotals)
+        .catch(() => {}),
+    ]);
+  useEffect(() => {
+    load();
+  }, [printer.id]);
   // A print that starts or finishes updates the list by itself.
-  useConnectionEvent('notify_history_changed', load);
+  useConnectionEvent('notify_history_changed', () => void load());
 
   const done = jobs?.filter((j) => j.status === 'completed').length ?? 0;
   const statusLabel = (s: string) =>
@@ -56,7 +63,7 @@ export function HistoryView({
       : s;
 
   return (
-    <>
+    <PullToRefresh onRefresh={load}>
       {totals && (
         <div className="stats four">
           <div>
@@ -168,6 +175,6 @@ export function HistoryView({
           </>
         )}
       </Sheet>
-    </>
+    </PullToRefresh>
   );
 }

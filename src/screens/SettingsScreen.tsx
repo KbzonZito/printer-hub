@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import {
   Bell,
   Bug,
   Check,
   Clock,
+  DatabaseBackup,
+  Download,
   GraduationCap,
   Heart,
   Info,
@@ -21,13 +23,15 @@ import {
   Sun,
   Thermometer,
   Trash2,
+  Upload,
 } from 'lucide-react';
+import { BackupError, backupFileName, backupJson, parseBackup } from '../backup';
 import { Wizard } from '../onboarding/Wizard';
 import { useConnectionSnapshot } from '../usePrinterStatus';
 import { fetchVersions, testConnection, type SystemVersions } from '../api/moonraker';
 import { ConfirmSheet, Section, Select, Sheet, useToast } from '../components/ui';
 import { localSubnet, scanNetwork, type Found } from '../discovery';
-import { isNative, openExternal, PrinterMonitor, shareText } from '../native';
+import { isNative, openExternal, PrinterMonitor, saveTextFile, shareText } from '../native';
 import {
   DEFAULT_SEED,
   PALETTE_STYLES,
@@ -39,18 +43,22 @@ import {
 import { useT, type MessageKey } from '../i18n';
 import {
   DEFAULT_PRESETS,
+  getState,
   newId,
+  replaceState,
   useSettings,
   useStore,
   type CameraMode,
   type EtaMethod,
   type Printer,
+  type State,
   type TempPreset,
   type Theme,
 } from '../store';
 
 const REPO_URL = 'https://github.com/KbzonZito/printer-hub';
 const AUTHOR_URL = 'https://github.com/KbzonZito';
+const REMOTE_ACCESS_URL = `${REPO_URL}/blob/main/docs/remote-access.md`;
 
 const CAMERA_MODES: CameraMode[] = ['auto', 'webrtc', 'mjpeg', 'snapshot'];
 const ETA_METHODS: EtaMethod[] = ['auto', 'slicer', 'printer', 'file', 'filament'];
@@ -519,6 +527,66 @@ function NotifyPref() {
   );
 }
 
+/** Export and import printers, presets and appearance as a JSON file. */
+function BackupPrefs() {
+  const t = useT();
+  const toast = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [pending, setPending] = useState<State | null>(null);
+
+  const exportBackup = async () => {
+    try {
+      if (await saveTextFile(backupFileName(), backupJson(getState()))) toast(t('backup.exported'));
+    } catch (e) {
+      toast((e as Error).message, true);
+    }
+  };
+
+  const onFile = async (file: File | undefined) => {
+    if (inputRef.current) inputRef.current.value = '';
+    if (!file) return;
+    try {
+      setPending(parseBackup(await file.text()));
+    } catch (e) {
+      const newer = e instanceof BackupError && e.message === 'newer';
+      toast(newer ? t('backup.newer') : t('backup.invalid'), true);
+    }
+  };
+
+  return (
+    <>
+      <p className="muted small">{t('backup.hint')}</p>
+      <div className="row gap">
+        <button className="btn grow" onClick={exportBackup}>
+          <Download size={18} /> {t('backup.export')}
+        </button>
+        <button className="btn grow" onClick={() => inputRef.current?.click()}>
+          <Upload size={18} /> {t('backup.import')}
+        </button>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        // No "accept": some Android file pickers grey out .json files. The content is checked.
+        hidden
+        onChange={(e) => onFile(e.target.files?.[0])}
+      />
+      <ConfirmSheet
+        open={!!pending}
+        title={t('backup.confirmTitle')}
+        message={t('backup.confirmText', { n: pending?.printers.length ?? 0 })}
+        confirmLabel={t('backup.restore')}
+        onConfirm={() => {
+          if (!pending) return;
+          replaceState(pending);
+          toast(t('backup.restored'));
+        }}
+        onClose={() => setPending(null)}
+      />
+    </>
+  );
+}
+
 // Lucide no longer ships brand logos.
 function GithubIcon() {
   return (
@@ -625,6 +693,10 @@ function About({ printer }: { printer: Printer | null }) {
         <button type="button" onClick={() => openExternal(`${REPO_URL}#readme`)}>
           {t('about.help')}
         </button>
+        <span>·</span>
+        <button type="button" onClick={() => openExternal(REMOTE_ACCESS_URL)}>
+          {t('about.remote')}
+        </button>
       </div>
     </div>
   );
@@ -723,6 +795,10 @@ export function SettingsScreen() {
           <NotifyPref />
         </Section>
       )}
+
+      <Section id="backup" icon={DatabaseBackup} title={t('backup.title')}>
+        <BackupPrefs />
+      </Section>
 
       <Section id="about" icon={Info} title={t('settings.about')} summary="KbzonZito">
         <About printer={active} />

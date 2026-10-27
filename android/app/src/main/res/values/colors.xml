@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Splash screen; Android 12+ takes them from the system theme (values-v31). -->
+    <color name="splash_background">#17120F</color>
+    <color name="splash_icon">#FF9A5C</color>
+</resources>

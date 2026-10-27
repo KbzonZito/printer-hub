@@ -23,6 +23,11 @@ other printer that exposes Moonraker (the same API Mobileraker uses).
   **home screen widget** with progress and finish time.
 - **Share a .gcode** from another app (Drive, WhatsApp, your slicer…) to upload or print it.
 - **Network discovery** to find Moonraker printers on your Wi-Fi.
+- **Camera zoom**: pinch, drag or double tap, and share a capture of the current frame.
+- **Backup** of printers, presets and appearance to a file, to restore on another phone.
+- Android niceties: back gesture that closes panels and folders first, pull to refresh, subtle
+  vibration on pause / cancel / emergency stop, themed icon and system font size.
+- **Away from home**: see [docs/remote-access.md](docs/remote-access.md) (Tailscale).
 - **Preheat presets**: add, edit or remove materials with their nozzle and bed temperatures.
 - **Settings** in collapsible sections: multiple printers, connection test, camera mode, language (English / Spanish),
   light / dark / system theme, and the remaining-time method (automatic, slicer, printer M73,

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useBackHandler } from '../backStack';
 import { useT } from '../i18n';
 import type { Printer } from '../store';
 import { useCapabilities, usePrinterStatus } from '../usePrinterStatus';
@@ -23,6 +24,7 @@ export function FilesScreen({
     ? (['files', 'history', 'timelapse'] as const)
     : (['files', 'history'] as const);
   const shown = views.includes(view as never) ? view : 'files';
+  useBackHandler(shown !== 'files', () => setView('files'));
 
   return (
     <div className="screen wide">

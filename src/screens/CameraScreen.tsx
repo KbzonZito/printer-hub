@@ -1,7 +1,10 @@
-import { useState } from 'react';
-import { RefreshCw, Thermometer } from 'lucide-react';
-import { CameraView } from '../components/CameraView';
+import { useRef, useState } from 'react';
+import { Camera, RefreshCw, Thermometer, ZoomOut } from 'lucide-react';
+import { CameraView, type CameraHandle } from '../components/CameraView';
+import { useAction } from '../components/ui';
+import { ZoomPan } from '../components/ZoomPan';
 import { useT, type MessageKey } from '../i18n';
+import { shareImage } from '../native';
 import type { CameraMode, Printer } from '../store';
 import { usePrinterStatus } from '../usePrinterStatus';
 
@@ -22,11 +25,35 @@ export function CameraScreen({
   const t = useT();
   const { status } = usePrinterStatus();
   const [retry, setRetry] = useState(0);
+  const camera = useRef<CameraHandle>(null);
+  const run = useAction();
+  const [capturing, setCapturing] = useState(false);
+
+  const capture = async () => {
+    setCapturing(true);
+    await run(async () => {
+      const image = await camera.current?.capture();
+      if (!image) throw new Error(t('camera.unavailable'));
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+      await shareImage(image, `${printer.name.replace(/[^\w-]+/g, '_')}-${stamp}.jpg`);
+    });
+    setCapturing(false);
+  };
 
   return (
     <div className="screen wide camera-screen">
       <div className="camera-full">
-        <CameraView printer={printer} retryKey={retry} />
+        <ZoomPan
+          overlay={(scale, reset) =>
+            scale > 1.01 && (
+              <button className="zoom-chip" onClick={reset} aria-label={t('camera.resetZoom')}>
+                <ZoomOut size={16} /> {scale.toFixed(1)}×
+              </button>
+            )
+          }
+        >
+          <CameraView printer={printer} retryKey={retry} ref={camera} />
+        </ZoomPan>
         {status && (
           <div className="camera-overlay">
             <span className={`pill ${status.state}`}>
@@ -54,6 +81,14 @@ export function CameraScreen({
             </button>
           ))}
         </div>
+        <button
+          className="btn icon"
+          onClick={capture}
+          disabled={capturing}
+          aria-label={t('camera.capture')}
+        >
+          {capturing ? <div className="loader small" /> : <Camera size={18} />}
+        </button>
         <button
           className="btn icon"
           onClick={() => setRetry((n) => n + 1)}

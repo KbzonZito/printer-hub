@@ -30,6 +30,7 @@ import { baseName, formatClock, formatDuration } from '../format';
 import { useT, type MessageKey } from '../i18n';
 import { useSettings, type Printer } from '../store';
 import { useConnection, usePrinterReady, usePrinterStatus } from '../usePrinterStatus';
+import { haptic } from '../haptics';
 
 function ProgressRing({ value }: { value: number }) {
   const r = 34;
@@ -214,14 +215,20 @@ export function Dashboard({
                   {status.state === 'printing' ? (
                     <button
                       className="btn grow"
-                      onClick={() => act(() => printerActions.pause(printer), t('home.pausing'))}
+                      onClick={() => {
+                        haptic('tap');
+                        act(() => printerActions.pause(printer), t('home.pausing'));
+                      }}
                     >
                       <Pause size={18} /> {t('home.pause')}
                     </button>
                   ) : (
                     <button
                       className="btn primary grow"
-                      onClick={() => act(() => printerActions.resume(printer), t('home.resuming'))}
+                      onClick={() => {
+                        haptic('tap');
+                        act(() => printerActions.resume(printer), t('home.resuming'));
+                      }}
                     >
                       <Play size={18} /> {t('home.resume')}
                     </button>
@@ -404,7 +411,10 @@ export function Dashboard({
         message={t('home.cancelMsg')}
         confirmLabel={t('home.cancelConfirm')}
         danger
-        onConfirm={() => act(() => printerActions.cancel(printer), t('home.canceling'))}
+        onConfirm={() => {
+          haptic('warning');
+          act(() => printerActions.cancel(printer), t('home.canceling'));
+        }}
         onClose={() => setConfirm(null)}
       />
       <ConfirmSheet
@@ -413,7 +423,10 @@ export function Dashboard({
         message={t('home.estopMsg')}
         confirmLabel={t('home.estopConfirm')}
         danger
-        onConfirm={() => act(() => printerActions.emergencyStop(printer), t('home.estopSent'))}
+        onConfirm={() => {
+          haptic('error');
+          act(() => printerActions.emergencyStop(printer), t('home.estopSent'));
+        }}
         onClose={() => setConfirm(null)}
       />
     </div>

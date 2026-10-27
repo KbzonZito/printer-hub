@@ -34,7 +34,9 @@ import {
   type GcodeDir,
   type GcodeFile,
 } from '../api/moonraker';
+import { PullToRefresh } from '../components/PullToRefresh';
 import { ConfirmSheet, Sheet, useAction } from '../components/ui';
+import { useBackHandler } from '../backStack';
 import { estimateFile, loadCalibration, type Calibration } from '../estimate';
 import { baseName, formatBytes, formatClock, formatDate, formatDuration } from '../format';
 import { useLang, useT, type MessageKey } from '../i18n';
@@ -477,7 +479,7 @@ export function FileBrowser({
   const load = useCallback(() => {
     setError(null);
     setAllFiles(null);
-    listDirectory(printer, dir)
+    return listDirectory(printer, dir)
       .then(setListing)
       .catch((e) => setError((e as Error).message));
   }, [printer, dir]);
@@ -501,6 +503,12 @@ export function FileBrowser({
       .then(setAllFiles)
       .catch(() => {});
   }, [query, allFiles, printer]);
+
+  // Back clears the search, then goes up one folder.
+  useBackHandler(!!query || dir !== '', () => {
+    if (query) setQuery('');
+    else setDir(dir.includes('/') ? dir.slice(0, dir.lastIndexOf('/')) : '');
+  });
 
   const busy = status?.state === 'printing' || status?.state === 'paused';
   const grid = settings.fileView === 'grid';
@@ -561,7 +569,7 @@ export function FileBrowser({
   const loading = !error && (query ? !allFiles : !listing);
 
   return (
-    <>
+    <PullToRefresh onRefresh={load}>
       <div className="row gap">
         <label className="search grow">
           <Search size={18} />
@@ -868,6 +876,6 @@ export function FileBrowser({
         }}
         onClose={() => setAction(null)}
       />
-    </>
+    </PullToRefresh>
   );
 }

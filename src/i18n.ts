@@ -22,6 +22,23 @@ const es = {
   'common.apply': 'Aplicar',
   'common.saved': 'Guardado',
   'common.disconnected': 'Desconectada',
+  'common.refreshing': 'Actualizando…',
+  'camera.capture': 'Capturar y compartir',
+  'camera.resetZoom': 'Quitar zoom',
+  'about.remote': 'Acceso remoto',
+  'backup.title': 'Copia de seguridad',
+  'backup.hint':
+    'Guarda tus impresoras, temperaturas y apariencia en un archivo para restaurarlas en otro teléfono o tras reinstalar.',
+  'backup.export': 'Exportar',
+  'backup.import': 'Importar',
+  'backup.exported': 'Copia guardada',
+  'backup.invalid': 'Ese archivo no es una copia de Printer Hub',
+  'backup.newer': 'La copia es de una versión más nueva de la app; actualízala primero',
+  'backup.confirmTitle': '¿Restaurar la copia?',
+  'backup.confirmText':
+    'Se reemplazarán tus impresoras y ajustes actuales por los de la copia. Impresoras en la copia: {n}.',
+  'backup.restore': 'Restaurar',
+  'backup.restored': 'Copia restaurada',
 
   'err.timeout': 'Tiempo de espera agotado',
   'err.unreachable': 'No se pudo conectar con la impresora',
@@ -293,6 +310,7 @@ const es = {
   'home.tune': 'Ajustar',
 
   'control.move': 'Movimiento',
+  'control.homeAll': 'Home de todos los ejes',
   'control.printingLocked': 'El movimiento está bloqueado mientras imprime.',
   'control.notHomed': 'Haz home antes de mover los ejes.',
   'control.motorsOff': 'Motores off',
@@ -366,6 +384,23 @@ const en: Record<MessageKey, string> = {
   'common.apply': 'Apply',
   'common.saved': 'Saved',
   'common.disconnected': 'Disconnected',
+  'common.refreshing': 'Refreshing…',
+  'camera.capture': 'Capture and share',
+  'camera.resetZoom': 'Reset zoom',
+  'about.remote': 'Remote access',
+  'backup.title': 'Backup',
+  'backup.hint':
+    'Save your printers, temperatures and appearance to a file to restore them on another phone or after reinstalling.',
+  'backup.export': 'Export',
+  'backup.import': 'Import',
+  'backup.exported': 'Backup saved',
+  'backup.invalid': "That file isn't a Printer Hub backup",
+  'backup.newer': 'The backup is from a newer version of the app; update it first',
+  'backup.confirmTitle': 'Restore the backup?',
+  'backup.confirmText':
+    'Your current printers and settings will be replaced by the ones in the backup. Printers in the backup: {n}.',
+  'backup.restore': 'Restore',
+  'backup.restored': 'Backup restored',
 
   'err.timeout': 'Request timed out',
   'err.unreachable': 'Could not reach the printer',
@@ -636,6 +671,7 @@ const en: Record<MessageKey, string> = {
   'home.tune': 'Tune',
 
   'control.move': 'Movement',
+  'control.homeAll': 'Home all axes',
   'control.printingLocked': 'Movement is locked while printing.',
   'control.notHomed': 'Home the printer before moving the axes.',
   'control.motorsOff': 'Motors off',

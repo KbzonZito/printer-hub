@@ -12,6 +12,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { uploadFile } from './api/moonraker';
+import { handleBack, useBackHandler } from './backStack';
 import { ConnectionBanner, KlippyStateScreen } from './components/ConnectionStatus';
 import { NavBar } from './components/NavBar';
 import { Sheet, ToastProvider, useAction } from './components/ui';
@@ -145,10 +146,28 @@ function Onboarding({ firstRun }: { firstRun: boolean }) {
   );
 }
 
+/** Android back button (and Escape in the browser): the newest open thing first, then leave. */
+function useBackButton() {
+  useEffect(() => {
+    const sub = CapApp.addListener('backButton', () => {
+      if (!handleBack()) CapApp.exitApp();
+    });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleBack();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      sub.then((s) => s.remove());
+      window.removeEventListener('keydown', onKey);
+    };
+  }, []);
+}
+
 export default function App() {
   const { settings } = useSettings();
   const { active } = useStore();
   useTheme(settings);
+  useBackButton();
 
   useEffect(() => {
     document.documentElement.lang = settings.lang;
@@ -181,16 +200,8 @@ function Main({ active }: { active: Printer }) {
   useNativeSync(active, st, settings);
   const [sharedFile, clearSharedFile] = useSharedFiles();
 
-  // Android back button: return to the home tab before leaving the app.
-  useEffect(() => {
-    const sub = CapApp.addListener('backButton', () => {
-      if (tab !== 'home') setTab('home');
-      else CapApp.exitApp();
-    });
-    return () => {
-      sub.then((s) => s.remove());
-    };
-  }, [tab]);
+  // Back from another tab returns to Home before leaving the app.
+  useBackHandler(tab !== 'home', () => setTab('home'));
 
   const kind = snapshot.state.kind;
   const klippyProblem = kind === 'klippy';

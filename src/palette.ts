@@ -75,7 +75,8 @@ export function previewColors(seed: string, style: PaletteStyle, dark: boolean) 
   return [C.primary, C.secondary, C.tertiary].map((c) => hexFromArgb(c.getArgb(s)));
 }
 
-function tokens(seed: string, style: PaletteStyle, dark: boolean) {
+/** The app's color tokens (CSS variables) for a seed, style and light / dark mode. */
+export function paletteTokens(seed: string, style: PaletteStyle, dark: boolean) {
   const s = buildScheme(seed, style, dark);
   const map = {
     '--bg': C.surface,
@@ -93,8 +94,14 @@ function tokens(seed: string, style: PaletteStyle, dark: boolean) {
     '--on-danger': C.onError,
     '--danger-soft': C.errorContainer,
   };
-  return Object.entries(map)
-    .map(([name, color]) => `${name}:${hexFromArgb(color.getArgb(s))};`)
+  return Object.fromEntries(
+    Object.entries(map).map(([name, color]) => [name, hexFromArgb(color.getArgb(s))]),
+  ) as Record<keyof typeof map, string>;
+}
+
+function tokens(seed: string, style: PaletteStyle, dark: boolean) {
+  return Object.entries(paletteTokens(seed, style, dark))
+    .map(([name, color]) => `${name}:${color};`)
     .join('');
 }
 

@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
+import { useContainerBackHandler } from '../backStack';
 import { useT } from '../i18n';
 
 /** Bottom sheet (dialog on tablets) that animates in and out. */
@@ -26,6 +27,7 @@ export function Sheet({
 }) {
   const [mounted, setMounted] = useState(open);
   const [closing, setClosing] = useState(false);
+  useContainerBackHandler(open, onClose);
   // Keep showing the last content while the exit animation runs.
   const last = useRef({ title, children });
   if (open) last.current = { title, children };

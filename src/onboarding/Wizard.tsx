@@ -1,5 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { useBackHandler } from '../backStack';
 import { useT } from '../i18n';
 import { isNative } from '../native';
 import { useStore } from '../store';
@@ -85,6 +86,8 @@ export function Wizard({
     if (index > 0) go(index - 1);
     else onCancel?.();
   };
+
+  useBackHandler(index > 0 || !!onCancel, back);
 
   const step = steps[index];
   const props: StepProps = { next, finish, onBack: (h) => (stepBack.current = h) };

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Download, Film } from 'lucide-react';
 import { listTimelapses, timelapseUrl, type TimelapseFile } from '../api/moonraker';
+import { PullToRefresh } from '../components/PullToRefresh';
 import { Sheet } from '../components/ui';
 import { formatBytes, formatDate } from '../format';
 import { useLang, useT } from '../i18n';
@@ -13,31 +14,33 @@ export function TimelapseView({ printer }: { printer: Printer }) {
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState<TimelapseFile | null>(null);
 
-  useEffect(() => {
+  const load = () =>
     listTimelapses(printer)
-      .then(setVideos)
+      .then((v) => {
+        setVideos(v);
+        setError(null);
+      })
       .catch((e) => setError((e as Error).message));
+  useEffect(() => {
+    load();
   }, [printer.id]);
 
-  if (error) return <p className="muted">{error}</p>;
-  if (!videos)
-    return (
-      <div className="empty">
-        <div className="loader" />
-      </div>
-    );
-  if (videos.length === 0)
-    return (
-      <div className="empty">
-        <Film size={36} />
-        <p className="muted">{t('timelapse.empty')}</p>
-      </div>
-    );
-
   return (
-    <>
+    <PullToRefresh onRefresh={load}>
+      {error && <p className="muted">{error}</p>}
+      {!videos && !error && (
+        <div className="empty">
+          <div className="loader" />
+        </div>
+      )}
+      {videos?.length === 0 && (
+        <div className="empty">
+          <Film size={36} />
+          <p className="muted">{t('timelapse.empty')}</p>
+        </div>
+      )}
       <div className="file-list">
-        {videos.map((v) => (
+        {videos?.map((v) => (
           <button key={v.path} className="file-row" onClick={() => setPlaying(v)}>
             <div className="file-thumb placeholder">
               <Film size={22} />
@@ -73,6 +76,6 @@ export function TimelapseView({ printer }: { printer: Printer }) {
           </>
         )}
       </Sheet>
-    </>
+    </PullToRefresh>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { CameraOff, Loader2 } from 'lucide-react';
 import { connectCrealityWebrtc, crealityWebrtcUrl } from '../api/crealityWebrtc';
 import { listWebcams, resolveWebcamUrl } from '../api/moonraker';
@@ -57,18 +57,59 @@ function probeImage(url: string, ms = 5000): Promise<boolean> {
   });
 }
 
+export interface CameraHandle {
+  /**
+   * The current frame: a JPEG for WebRTC, or the URL of a still frame for MJPEG cameras
+   * (their images are cross-origin, so the page can't read the pixels). Null if no picture.
+   */
+  capture(): Promise<Blob | string | null>;
+}
+
+function canvasBlob(source: HTMLVideoElement, w: number, h: number): Promise<Blob | null> {
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext('2d')!.drawImage(source, 0, 0, w, h);
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+}
+
+/** mjpg-streamer serves a still frame next to the stream. */
+const snapshotOf = (url: string) => url.replace('action=stream', 'action=snapshot');
+
 interface Props {
   printer: Printer;
   mode?: CameraMode;
   className?: string;
   retryKey?: number;
+  ref?: Ref<CameraHandle>;
 }
 
-export function CameraView({ printer, mode = printer.cameraMode, className, retryKey }: Props) {
+export function CameraView({
+  printer,
+  mode = printer.cameraMode,
+  className,
+  retryKey,
+  ref,
+}: Props) {
   const t = useT();
   const [view, setView] = useState<View>({ kind: 'loading' });
   const [tick, setTick] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      async capture() {
+        const video = videoRef.current;
+        if (view.kind === 'webrtc' && video?.videoWidth) {
+          return canvasBlob(video, video.videoWidth, video.videoHeight);
+        }
+        if (view.kind === 'mjpeg' || view.kind === 'snapshot') return snapshotOf(view.url);
+        return null;
+      },
+    }),
+    [view],
+  );
   const cacheKey = `${printer.id}:${mode}:${printer.cameraUrl}`;
 
   useEffect(() => {

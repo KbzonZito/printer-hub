@@ -10,12 +10,17 @@ import android.net.Network;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.OpenableColumns;
+import android.util.Base64;
+
+import androidx.activity.result.ActivityResult;
+import androidx.core.content.FileProvider;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
@@ -24,6 +29,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.net.Inet4Address;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -221,6 +229,87 @@ public class PrinterMonitorPlugin extends Plugin {
         chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         getContext().startActivity(chooser);
         call.resolve();
+    }
+
+    /**
+     * Shares a camera frame: either JPEG bytes (base64 "data") or a still-frame "url" that is
+     * downloaded here, since the page can't read cross-origin camera images.
+     */
+    @PluginMethod
+    public void shareImage(PluginCall call) {
+        String data = call.getString("data");
+        String url = call.getString("url");
+        String name = call.getString("name", "printer-hub.jpg").replaceAll("[/\\\\]", "_");
+        new Thread(() -> {
+            try {
+                File dir = new File(getContext().getCacheDir(), "captures");
+                if (!dir.exists()) dir.mkdirs();
+                File[] old = dir.listFiles();
+                if (old != null) for (File f : old) f.delete();
+                File out = new File(dir, name);
+                try (OutputStream os = new FileOutputStream(out)) {
+                    if (data != null) {
+                        os.write(Base64.decode(data, Base64.DEFAULT));
+                    } else if (url != null) {
+                        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                        conn.setConnectTimeout(5000);
+                        conn.setReadTimeout(10000);
+                        try (InputStream in = conn.getInputStream()) {
+                            byte[] buf = new byte[64 * 1024];
+                            int n;
+                            while ((n = in.read(buf)) > 0) os.write(buf, 0, n);
+                        } finally {
+                            conn.disconnect();
+                        }
+                    } else {
+                        call.reject("Nothing to share");
+                        return;
+                    }
+                }
+                Uri uri = FileProvider.getUriForFile(
+                        getContext(), getContext().getPackageName() + ".fileprovider", out);
+                Intent send = new Intent(Intent.ACTION_SEND);
+                send.setType("image/jpeg");
+                send.putExtra(Intent.EXTRA_STREAM, uri);
+                send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                Intent chooser = Intent.createChooser(send, null);
+                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                getContext().startActivity(chooser);
+                call.resolve();
+            } catch (Exception e) {
+                call.reject(e.getMessage() != null ? e.getMessage() : "Share failed");
+            }
+        }).start();
+    }
+
+    /** Lets the user pick where to save a text file (Android's "Save to…" picker). */
+    @PluginMethod
+    public void saveFile(PluginCall call) {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType(call.getString("mime", "application/json"));
+        intent.putExtra(Intent.EXTRA_TITLE, call.getString("name", "printer-hub.json"));
+        startActivityForResult(call, intent, "onSaveFilePicked");
+    }
+
+    @ActivityCallback
+    private void onSaveFilePicked(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+        Intent data = result.getData();
+        if (result.getResultCode() != android.app.Activity.RESULT_OK || data == null || data.getData() == null) {
+            JSObject ret = new JSObject();
+            ret.put("saved", false);
+            call.resolve(ret);
+            return;
+        }
+        try (OutputStream os = getContext().getContentResolver().openOutputStream(data.getData(), "wt")) {
+            os.write(call.getString("text", "").getBytes(StandardCharsets.UTF_8));
+            JSObject ret = new JSObject();
+            ret.put("saved", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject(e.getMessage() != null ? e.getMessage() : "Save failed");
+        }
     }
 
     /** Accent color of the system theme (Material You, Android 12+), used as the palette seed. */

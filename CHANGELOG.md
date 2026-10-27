@@ -5,6 +5,25 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+### Added
+- Android back gesture closes the open panel first, then goes up one folder in Files (or back
+  from History / Timelapses), and only then returns to Home.
+- Pull down to refresh in Files, History and Timelapses.
+- Subtle vibration when pausing, resuming, cancelling or using the emergency stop.
+- Camera tab: pinch to zoom, drag to move and double tap to zoom in or out; a button captures
+  the current frame and shares it.
+- Themed (monochrome) app icon on Android 13+, and a splash screen in the system colors on
+  Android 12+.
+- Settings backup: export printers, presets and appearance to a JSON file and import it on
+  another phone.
+- Guide for using the app away from home with Tailscale (docs/remote-access.md, linked in
+  About).
+
+### Changed
+- Accessibility: the app follows the system font size (up to 130 %), every icon button has a
+  label for screen readers, and small controls (segmented buttons, chips, breadcrumbs, links)
+  have larger touch areas. Every palette is tested for 4.5:1 text contrast.
+
 ## [0.4.0] - 2026-10-26
 
 First numbered release.

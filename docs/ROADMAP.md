@@ -151,7 +151,7 @@ nivel, arquitectura, máquina de estados, pruebas y riesgos).
 
 ## Fase 4 — Mejoras propias
 
-Se reparten entre las versiones anteriores según encajen:
+**Hecha** (pendiente de publicar en la próxima versión; está en `[Unreleased]` del CHANGELOG).
 
 - **[medium] Gesto atrás de Android**: cierra primero el panel abierto, sube de carpeta en Archivos y
   solo después vuelve a Inicio.
