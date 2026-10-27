@@ -229,6 +229,9 @@ periódica).
 eso va en high. Hasta el paso 2.7 hay un botón temporal en Ajustes → Acerca de → "Probar tiempo
 real" (`src/connection/ConnectionTest.tsx`), que se quitará al integrar la conexión.
 
+Verificado el 2026-10-27 en el teléfono con la Creality Hi: conexión nativa en tiempo real
+funcionando.
+
 ### 2.6 `PrinterConnection`: la máquina de estados — **high** (xhigh si falla dos veces) ✅
 Implementar todo lo de la sección anterior: arranque, suscripción, `mergeStatus` de los avisos,
 estados de Klipper, reconexión con esperas, vigilancia, ciclo de vida de la app (`appStateChange`
