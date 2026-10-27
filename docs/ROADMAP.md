@@ -9,11 +9,12 @@ versión menor (0.x.0) y las correcciones la de parche (0.x.y).
 | 0.2.0 | Estado actual (carpetas, colores dinámicos, presets, versiones numeradas) | — | — | Incluida en 0.4.0 |
 | 0.3.0 | Bienvenida y tutorial para añadir la impresora | high | medium | Incluida en 0.4.0 |
 | 0.4.0 | Conexión en tiempo real y conexión robusta | xhigh | high | Publicada |
-| 0.5.0 | Excluir objetos y cola de impresión | high | high / medium | |
-| 0.6.0 | Notificaciones con foto, widget y ajuste rápido | high | high | |
-| 0.7.0 | Filamento (Spoolman) y estadísticas | medium | medium | |
-| 0.8.0 | Malla de la cama, calibraciones, enchufes y editor de configuración | high | medium / high | |
-| 0.9.0 | Vista previa del G-code y vista de todas las impresoras | xhigh | high | |
+| 0.5.0 | Mejoras propias (fase 4) | — | medium / low | Publicada |
+| 0.6.0 | Excluir objetos y cola de impresión | high | high / medium | |
+| 0.7.0 | Notificaciones con foto, widget y ajuste rápido | high | high | |
+| 0.8.0 | Filamento (Spoolman) y estadísticas | medium | medium | |
+| 0.9.0 | Malla de la cama, calibraciones, enchufes y editor de configuración | high | medium / high | |
+| 0.10.0 | Vista previa del G-code y vista de todas las impresoras | xhigh | high | |
 | 1.0.0-rc | Optimización, limpieza, pruebas y documentación | high | low a high | |
 | 1.0.0 | Publicación tras la lista de comprobación final | — | low | |
 
@@ -108,7 +109,7 @@ nivel, arquitectura, máquina de estados, pruebas y riesgos).
 
 ## Fase 3 — Funciones nuevas
 
-### 0.5.0 — Durante la impresión
+### 0.6.0 — Durante la impresión
 - **[high] Excluir objetos**: mapa de la cama con los contornos de cada pieza (objeto
   `exclude_object` de Klipper). Al tocar una pieza se pide confirmación y se excluye con
   `EXCLUDE_OBJECT`. Las piezas excluidas aparecen tachadas. Requiere que el laminador marque los
@@ -117,7 +118,7 @@ nivel, arquitectura, máquina de estados, pruebas y riesgos).
 - **[medium] Cola de impresión** (`/server/job_queue/*`): "Añadir a la cola" desde un archivo, una
   pestaña "Cola" en Archivos para reordenar o quitar, e iniciar / pausar la cola.
 
-### 0.6.0 — Avisos
+### 0.7.0 — Avisos
 - **[high] Notificación con foto** al terminar, pausar o fallar, con una captura de la cámara
   (BigPicture).
 - **[medium]** Aviso opcional al terminar la **primera capa**.
@@ -125,14 +126,14 @@ nivel, arquitectura, máquina de estados, pruebas y riesgos).
 - **[medium] Widget** con los colores dinámicos y un tamaño grande con miniatura.
 - **[high] Ajuste rápido** (Quick Settings tile) con el progreso; al tocarlo abre la app.
 
-### 0.7.0 — Filamento y estadísticas
+### 0.8.0 — Filamento y estadísticas
 - **[medium] Spoolman** (si está instalado): bobina activa, peso restante y cambiar de bobina. Antes de
   imprimir, aviso si no queda filamento suficiente.
 - **[low] Coste** por impresión (precio por kg configurable por material, en los presets).
 - **[medium] Estadísticas**: horas, filamento y número de impresiones por semana / mes, tasa de éxito y
   gráficas sencillas (a partir del historial).
 
-### 0.8.0 — Mantenimiento
+### 0.9.0 — Mantenimiento
 - **[medium] Malla de la cama**: mapa de calor del `bed_mesh` con la diferencia máxima, y botón para
   calibrar.
 - **[high] Asistentes de calibración** guiados, cada uno con confirmación: PID de boquilla y cama,
@@ -142,7 +143,7 @@ nivel, arquitectura, máquina de estados, pruebas y riesgos).
 - **[medium] Editor de configuración**: abrir `printer.cfg` y otros archivos de config, editar, guardar y
   reiniciar el firmware. Se avisa antes de guardar.
 
-### 0.9.0 — Vista general
+### 0.10.0 — Vista general
 - **[high] Vista previa del G-code** capa a capa, de un archivo o de la impresión en curso (con la capa
   actual resaltada). El G-code se procesa en un web worker para no bloquear la app. Planear con
   **xhigh**: archivos de decenas de MB en un teléfono obligan a pensar bien el rendimiento.
@@ -151,7 +152,7 @@ nivel, arquitectura, máquina de estados, pruebas y riesgos).
 
 ## Fase 4 — Mejoras propias
 
-**Hecha** (pendiente de publicar en la próxima versión; está en `[Unreleased]` del CHANGELOG).
+**Publicada en 0.5.0.** Por eso las versiones de la fase 3 subieron un número.
 
 - **[medium] Gesto atrás de Android**: cierra primero el panel abierto, sube de carpeta en Archivos y
   solo después vuelve a Inicio.
