@@ -5,6 +5,8 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-27
+
 ### Changed
 - The emergency stop is a red button always visible in the top-right corner, on every tab.
 - The Camera tab is gone: tap the camera on Home to open it full screen, with zoom, capture,
