@@ -5,6 +5,8 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-26
+
 First numbered release.
 
 ### Printer
