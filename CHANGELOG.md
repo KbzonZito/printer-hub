@@ -5,6 +5,10 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+### Added
+- Print cost: set a price per kg in each preheat preset (and your currency symbol), and file
+  details and history show what each print costs, matched by the file's material.
+
 ## [0.5.0] - 2026-10-27
 
 ### Added

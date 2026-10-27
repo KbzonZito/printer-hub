@@ -323,6 +323,7 @@ const server = http.createServer(async (req, res) => {
             exists: true,
             metadata: {
               estimated_time: 5500,
+              filament_type: 'PLA',
               thumbnails: [{ width: 300, height: 300, relative_path: '.thumbs/t.svg' }],
             },
           },

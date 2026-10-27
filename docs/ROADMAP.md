@@ -129,7 +129,7 @@ nivel, arquitectura, máquina de estados, pruebas y riesgos).
 ### 0.8.0 — Filamento y estadísticas
 - **[medium] Spoolman** (si está instalado): bobina activa, peso restante y cambiar de bobina. Antes de
   imprimir, aviso si no queda filamento suficiente.
-- **[low] Coste** por impresión (precio por kg configurable por material, en los presets).
+- **[low] Coste** por impresión (**hecho**, pendiente de publicar) (precio por kg configurable por material, en los presets).
 - **[medium] Estadísticas**: horas, filamento y número de impresiones por semana / mes, tasa de éxito y
   gráficas sencillas (a partir del historial).
 

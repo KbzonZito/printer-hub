@@ -13,7 +13,8 @@ import { Sheet, useAction } from '../components/ui';
 import { baseName, formatDate, formatDuration } from '../format';
 import { useLang, useT, type MessageKey } from '../i18n';
 import { useConnectionEvent } from '../usePrinterStatus';
-import type { Printer } from '../store';
+import { useSettings, type Printer } from '../store';
+import { formatCost, printCost } from '../cost';
 
 function StatusIcon({ status }: { status: string }) {
   if (status === 'completed') return <CheckCircle2 size={16} className="ok-text" />;
@@ -37,6 +38,13 @@ export function HistoryView({
   const [totals, setTotals] = useState<HistoryTotals | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<HistoryJob | null>(null);
+  const { settings } = useSettings();
+  const cost =
+    selected &&
+    printCost(settings.presets, {
+      type: selected.metadata?.filament_type,
+      lengthMm: selected.filament_used,
+    });
 
   const load = () =>
     Promise.all([
@@ -129,7 +137,7 @@ export function HistoryView({
       >
         {selected && (
           <>
-            <div className="stats">
+            <div className={`stats ${cost != null ? 'four' : ''}`}>
               <div>
                 <span className="muted small">{t('history.result')}</span>
                 <strong className="row-inline">
@@ -144,6 +152,12 @@ export function HistoryView({
                 <span className="muted small">{t('home.filament')}</span>
                 <strong>{(selected.filament_used / 1000).toFixed(2)} m</strong>
               </div>
+              {cost != null && (
+                <div>
+                  <span className="muted small">{t('files.cost')}</span>
+                  <strong>{formatCost(cost, settings.currency, lang)}</strong>
+                </div>
+              )}
             </div>
             <p className="muted small">
               {formatDate(selected.start_time, lang)}

@@ -37,6 +37,7 @@ import {
 import { PullToRefresh } from '../components/PullToRefresh';
 import { ConfirmSheet, Sheet, useAction } from '../components/ui';
 import { useBackHandler } from '../backStack';
+import { formatCost, printCost } from '../cost';
 import { estimateFile, loadCalibration, type Calibration } from '../estimate';
 import { baseName, formatBytes, formatClock, formatDate, formatDuration } from '../format';
 import { useLang, useT, type MessageKey } from '../i18n';
@@ -410,6 +411,12 @@ function EstimateCard({
 function FileDetails({ file, meta }: { file: GcodeFile; meta: FileMetadata | undefined }) {
   const t = useT();
   const lang = useLang();
+  const { settings } = useSettings();
+  const cost = printCost(settings.presets, {
+    type: meta?.filament_type,
+    grams: meta?.filament_weight_total,
+    lengthMm: meta?.filament_total,
+  });
   const filament = meta?.filament_weight_total
     ? `${meta.filament_weight_total.toFixed(0)} g`
     : null;
@@ -424,6 +431,7 @@ function FileDetails({ file, meta }: { file: GcodeFile; meta: FileMetadata | und
       [meta?.filament_type, meta?.filament_name].filter(Boolean).join(' · ') || null,
     ],
     ['home.filament', [length, filament].filter(Boolean).join(' · ') || null],
+    ['files.cost', cost != null ? formatCost(cost, settings.currency, lang) : null],
     ['files.temps', temps],
     ['files.layer', meta?.layer_height ? `${meta.layer_height} mm` : null],
     ['files.height', meta?.object_height ? `${meta.object_height} mm` : null],

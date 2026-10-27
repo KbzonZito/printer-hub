@@ -32,6 +32,8 @@ export interface TempPreset {
   name: string;
   nozzle: number;
   bed: number;
+  /** Price per kg of filament, for the cost of each print (optional). */
+  price?: number;
 }
 
 export const DEFAULT_PRESETS: TempPreset[] = [
@@ -49,6 +51,8 @@ export interface Settings {
   paletteStyle: PaletteStyle;
   eta: EtaMethod;
   presets: TempPreset[];
+  /** Symbol shown with print costs. */
+  currency: string;
   fileSort: FileSort;
   fileSortDesc: boolean;
   fileView: 'list' | 'grid';
@@ -76,6 +80,7 @@ export function defaultSettings(): Settings {
     paletteStyle: 'tonalSpot',
     eta: 'auto',
     presets: DEFAULT_PRESETS,
+    currency: '$',
     fileSort: 'date',
     fileSortDesc: true,
     fileView: 'list',

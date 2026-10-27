@@ -333,11 +333,17 @@ function PresetSheet({
   onSave: (p: TempPreset) => void;
 }) {
   const t = useT();
-  const [form, setForm] = useState({ name: '', nozzle: '', bed: '' });
+  const [form, setForm] = useState({ name: '', nozzle: '', bed: '', price: '' });
   useEffect(() => {
     if (preset)
-      setForm({ name: preset.name, nozzle: String(preset.nozzle), bed: String(preset.bed) });
+      setForm({
+        name: preset.name,
+        nozzle: String(preset.nozzle),
+        bed: String(preset.bed),
+        price: preset.price ? String(preset.price) : '',
+      });
   }, [preset]);
+  const price = Number(form.price.replace(',', '.'));
   const nozzle = Number(form.nozzle);
   const bed = Number(form.bed);
   const valid =
@@ -347,14 +353,22 @@ function PresetSheet({
     nozzle >= 0 &&
     nozzle <= 350 &&
     bed >= 0 &&
-    bed <= 150;
+    bed <= 150 &&
+    (form.price === '' || price >= 0);
   return (
     <Sheet open={!!preset} onClose={onClose} title={t('settings.preset')}>
       <form
         className="form"
         onSubmit={(e) => {
           e.preventDefault();
-          if (preset && valid) onSave({ id: preset.id, name: form.name.trim(), nozzle, bed });
+          if (preset && valid)
+            onSave({
+              id: preset.id,
+              name: form.name.trim(),
+              nozzle,
+              bed,
+              ...(price > 0 ? { price } : {}),
+            });
         }}
       >
         <label className="field">
@@ -388,6 +402,17 @@ function PresetSheet({
             />
           </label>
         </div>
+        <label className="field">
+          <span>{t('settings.presetPrice')}</span>
+          <input
+            className="input"
+            type="text"
+            inputMode="decimal"
+            value={form.price}
+            placeholder={t('settings.presetPriceHint')}
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
+          />
+        </label>
         <div className="row gap">
           <button type="button" className="btn grow" onClick={onClose}>
             {t('common.cancel')}
@@ -416,6 +441,7 @@ function PresetsEditor() {
             <strong>{p.name}</strong>
             <small className="muted">
               {t('home.nozzle')} {p.nozzle}° · {t('home.bed')} {p.bed}°
+              {p.price ? ` · ${settings.currency}${p.price}/kg` : ''}
             </small>
           </span>
           <button
@@ -454,6 +480,15 @@ function PresetsEditor() {
           <RotateCcw size={18} />
         </button>
       </div>
+      <label className="field">
+        <span>{t('settings.currency')}</span>
+        <input
+          className="input"
+          value={settings.currency}
+          maxLength={4}
+          onChange={(e) => updateSettings({ currency: e.target.value })}
+        />
+      </label>
       <PresetSheet
         preset={editing}
         onClose={() => setEditing(null)}
