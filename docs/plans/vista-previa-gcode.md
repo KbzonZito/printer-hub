@@ -325,7 +325,7 @@ no llega por partes, se implementa el respaldo de D3 antes de seguir.
 - Comentarios al final de una línea (`G1 X10 ; comentario`) y líneas en minúsculas.
 
 Pruebas con fragmentos escritos a mano para cada caso, y con un archivo real de Creality Print
-en `src/gcode/fixtures/` (ver "Qué necesito de ti"). Los archivos grandes de la impresora no se
+en `src/gcode/fixtures/creality-print-block.gcode`. Los archivos grandes de la impresora no se
 suben al repositorio: la prueba de rendimiento los usa si están en una carpeta local y, si no,
 genera unos sintéticos.
 
@@ -474,8 +474,7 @@ subir a **xhigh** para investigar la causa antes de cambiar el diseño.
 3. **Varios colores**: no los usas, pero se mantiene "Por filamento" para otros usuarios, con
    prioridad secundaria (D6).
 
-## Qué necesito de ti para empezar
+4. **Archivo de prueba**: aceptaste incluir "block" en el repositorio. Está en
+   `src/gcode/fixtures/creality-print-block.gcode`.
 
-- **Permiso para incluir "block_PLA_17m.gcode" (0,6 MB) en el repositorio** como archivo de
-  prueba. El repositorio es público. Si prefieres que no, uso solo un extracto de unas pocas
-  capas sin el nombre del modelo, o solo archivos sintéticos.
+Ya no falta nada para empezar la sesión 1.
