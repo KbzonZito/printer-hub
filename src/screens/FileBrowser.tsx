@@ -37,6 +37,7 @@ import {
   type GcodeFile,
 } from '../api/moonraker';
 import { GcodeViewer } from '../components/GcodeViewer';
+import { completeMetadata, needsCompletion } from '../api/gcodeInfo';
 import { PullToRefresh } from '../components/PullToRefresh';
 import { useActiveSpool } from '../components/SpoolCard';
 import { ConfirmSheet, Sheet, useAction } from '../components/ui';
@@ -69,6 +70,7 @@ function useMetadata(printer: Printer, file: GcodeFile, visible: boolean) {
     if (!visible || meta) return;
     let cancelled = false;
     fetchMetadata(printer, file.path)
+      .then((m) => completeMetadata(printer, file.path, m, false, file.size))
       .then((m) => {
         metaCache.set(key, m);
         if (!cancelled) setMeta(m);
@@ -89,9 +91,11 @@ function useFileMeta(printer: Printer, file: GcodeFile | null) {
     const key = metaKey(printer, file);
     const cached = metaCache.get(key);
     setMeta(cached);
-    if (cached) return;
+    // The list may have cached it with only the small thumbnail; the details want more.
+    if (cached && !needsCompletion(cached, true)) return;
     let cancelled = false;
-    fetchMetadata(printer, file.path)
+    (cached ? Promise.resolve(cached) : fetchMetadata(printer, file.path))
+      .then((m) => completeMetadata(printer, file.path, m, true, file.size))
       .then((m) => {
         metaCache.set(key, m);
         if (!cancelled) setMeta(m);

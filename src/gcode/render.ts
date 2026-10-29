@@ -29,28 +29,60 @@ export function fitView(frame: Frame, w: number, h: number, margin = 16): View {
   };
 }
 
-/** One Path2D per line kind, built once per layer. */
-const paths = new WeakMap<GcodeLayer, Path2D[]>();
+/**
+ * The fitted view with the user's zoom on top (usePanZoom: scale and offset around the
+ * center of a w × h frame).
+ */
+export function zoomedView(
+  base: View,
+  pz: { scale: number; x: number; y: number },
+  w: number,
+  h: number,
+): View {
+  return {
+    scale: base.scale * pz.scale,
+    tx: w / 2 + (base.tx - w / 2) * pz.scale + pz.x,
+    ty: h / 2 + (base.ty - h / 2) * pz.scale + pz.y,
+  };
+}
 
-function layerPaths(layer: GcodeLayer, kinds: number): Path2D[] {
-  let cached = paths.get(layer);
+/** Screen position (CSS pixels) of a bed point. */
+export const toScreen = (v: View, x: number, y: number) => [
+  x * v.scale + v.tx,
+  -y * v.scale + v.ty,
+];
+
+/** Lines colored by kind (perimeter, infill…) or by tool / filament (multicolor prints). */
+export type ColorBy = 'kind' | 'tool';
+
+/** One Path2D per kind or tool, built once per layer and mode. */
+const paths = {
+  kind: new WeakMap<GcodeLayer, Path2D[]>(),
+  tool: new WeakMap<GcodeLayer, Path2D[]>(),
+};
+
+function layerPaths(layer: GcodeLayer, groups: number, by: ColorBy): Path2D[] {
+  let cached = paths[by].get(layer);
   if (cached) return cached;
-  cached = Array.from({ length: kinds }, () => new Path2D());
-  const { points, polyStart, polyKind } = layer;
+  cached = Array.from({ length: groups }, () => new Path2D());
+  const { points, polyStart } = layer;
+  const group = by === 'kind' ? layer.polyKind : layer.polyTool;
   const n = polyStart.length;
   for (let p = 0; p < n; p++) {
     const from = polyStart[p];
     const to = p + 1 < n ? polyStart[p + 1] : points.length / 2;
-    const path = cached[polyKind[p]] ?? cached[cached.length - 1];
+    const path = cached[group[p]] ?? cached[cached.length - 1];
     path.moveTo(points[from * 2], points[from * 2 + 1]);
     for (let i = from + 1; i < to; i++) path.lineTo(points[i * 2], points[i * 2 + 1]);
   }
-  paths.set(layer, cached);
+  paths[by].set(layer, cached);
   return cached;
 }
 
 export interface DrawOptions {
+  /** One color per kind or per tool (see `by`). */
   colors: string[];
+  by?: ColorBy;
   /** Extrusion width in mm (lines never get thinner than one device pixel). */
   lineWidth?: number;
   alpha?: number;
@@ -75,7 +107,7 @@ export function drawLayer(
   ctx.lineJoin = 'round';
   ctx.lineWidth = Math.max(opts.lineWidth ?? 0.42, 1 / (view.scale * dpr));
   ctx.globalAlpha = opts.alpha ?? 1;
-  const ps = layerPaths(layer, opts.colors.length);
+  const ps = layerPaths(layer, opts.colors.length, opts.by ?? 'kind');
   ps.forEach((path, k) => {
     ctx.strokeStyle = opts.color ?? opts.colors[k];
     ctx.stroke(path);
@@ -106,4 +138,28 @@ export function drawBed(
     ctx.lineTo(frame.maxX, y);
   }
   ctx.stroke();
+}
+
+/** Moves without extrusion, as thin dashed lines. */
+export function drawTravel(
+  ctx: CanvasRenderingContext2D,
+  layer: GcodeLayer,
+  view: View,
+  dpr: number,
+  color: string,
+) {
+  const t = layer.travel;
+  if (!t.length) return;
+  setView(ctx, view, dpr);
+  const px = 1 / (view.scale * dpr);
+  ctx.lineWidth = px;
+  ctx.setLineDash([4 * px, 4 * px]);
+  ctx.strokeStyle = color;
+  ctx.beginPath();
+  for (let i = 0; i < t.length; i += 4) {
+    ctx.moveTo(t[i], t[i + 1]);
+    ctx.lineTo(t[i + 2], t[i + 3]);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
 }

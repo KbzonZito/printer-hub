@@ -9,6 +9,7 @@
 //
 // HTTP and the JSON-RPC WebSocket (/websocket) read the same simulated printer, so both
 // transports return consistent data.
+import { readFileSync } from 'node:fs';
 import http from 'node:http';
 import { WebSocketServer } from 'ws';
 import { generateGcode } from './gen-gcode.mjs';
@@ -320,7 +321,14 @@ const files = [
   { path: 'models/Soporte_movil.gcode', modified: now() - 86400, size: 12_500_000 },
   { path: 'Calibration_cube.gcode', modified: now() - 5 * 86400, size: 900_000 },
   { path: 'pruebas/grande_50mb.gcode', modified: now() - 2 * 86400, size: 50_000_000 },
+  // A real Creality Print file (src/gcode/fixtures). Its metadata comes back like on the
+  // Creality Hi: slicer "Unknown", no thumbnails, no time; the app reads them from the file.
+  { path: 'creality/block_PLA_17m.gcode', modified: now() - 3 * 86400, size: 610_666 },
 ];
+const CREALITY_FIXTURE = new URL(
+  '../src/gcode/fixtures/creality-print-block.gcode',
+  import.meta.url,
+);
 
 // Real G-code for each file (scripts/gen-gcode.mjs), generated on first download and served at
 // the Creality Hi's measured speed (~0.9 MB/s), with HTTP ranges like Moonraker.
@@ -328,6 +336,10 @@ const FILE_RATE = Number(process.env.MOCK_FILE_RATE ?? 900_000);
 const gcodeData = new Map();
 function gcodeFor(path) {
   let data = gcodeData.get(path);
+  if (!data && path.startsWith('creality/')) {
+    data = readFileSync(CREALITY_FIXTURE);
+    gcodeData.set(path, data);
+  }
   if (!data) {
     const f = files.find((x) => x.path === path);
     data = generateGcode((f?.size ?? 4e6) / 1e6, { tools: path.includes('Soporte') ? 2 : 1 });
@@ -602,6 +614,7 @@ const HTTP_ROUTES = {
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
   if (req.method === 'OPTIONS') return res.end();
   await delay();
   const u = new URL(req.url, 'http://x');
@@ -718,6 +731,15 @@ const server = http.createServer(async (req, res) => {
     if (u.pathname === '/server/files/list' && q.root !== 'config') return send(files);
     if (u.pathname === '/server/files/directory') return send(directory(req.method, q));
     if (u.pathname === '/server/files/move') return send(move(q));
+    if (u.pathname === '/server/files/metadata' && q.filename?.startsWith('creality/'))
+      return send({
+        size: 610_666,
+        modified: now() - 3 * 86400,
+        slicer: 'Unknown',
+        object_height: 20.4,
+        first_layer_height: 0.2,
+        filename: q.filename,
+      });
     if (u.pathname === '/server/files/metadata')
       return send({
         estimated_time: 6540,

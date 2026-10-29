@@ -3033,3 +3033,23 @@ fieldset:disabled .tile {
 .viewer-btn:disabled {
   opacity: 0.35;
 }
+
+.gcode-canvas {
+  overflow: hidden;
+  touch-action: none;
+}
+.gcode-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.gcode-options .chip {
+  font-family: inherit;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+}
+.gcode-options .chip.on {
+  background: var(--accent);
+  color: var(--on-accent);
+}

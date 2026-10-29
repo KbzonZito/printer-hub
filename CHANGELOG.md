@@ -9,6 +9,10 @@ new features bump the minor number, fixes bump the patch number.
 - G-code preview (first version): "Preview" in a file's details shows it layer by layer, with
   colors by line type. Layers appear while the file downloads, and a file opens instantly the
   second time. An info panel shows the download and parse times.
+- G-code preview: pinch or double tap to zoom (lines stay sharp), layer below and travel moves
+  on or off, "By filament" colors for multicolor prints, and arrow keys to change the layer.
+- Files from slicers Moonraker doesn't recognise (Creality Print on the Creality Hi) now show
+  their thumbnail, estimated time, filament, temperatures and slicer, read from the file itself.
 - Settings → Storage: space used by saved G-code previews, a button to delete them, and
   automatic deletion of previews not opened for a week or a month (the default).
 - Exclude objects: while printing a plate with several parts, "Objects" on Home opens a bed

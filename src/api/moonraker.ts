@@ -64,6 +64,7 @@ export interface GcodeFile {
 }
 
 export interface FileMetadata {
+  size?: number;
   estimated_time?: number;
   filament_weight_total?: number;
   filament_total?: number;
@@ -76,6 +77,11 @@ export interface FileMetadata {
   first_layer_bed_temp?: number;
   nozzle_diameter?: number;
   thumbnails?: { width: number; height: number; relative_path: string }[];
+  /** Filled by the app from the file itself when Moonraker gave none (src/api/gcodeInfo.ts). */
+  thumbnail_data?: string;
+  printer_model?: string;
+  /** How much the app already completed it ("list" reads less than "detail"). */
+  completed?: 'list' | 'detail';
 }
 
 export interface Webcam {
@@ -261,7 +267,7 @@ export function fetchMetadata(p: Printer, filename: string): Promise<FileMetadat
 
 export function thumbnailUrl(p: Printer, filename: string, meta?: FileMetadata): string | null {
   const thumbs = meta?.thumbnails;
-  if (!thumbs?.length) return null;
+  if (!thumbs?.length) return meta?.thumbnail_data ?? null;
   const best = [...thumbs].sort((a, b) => b.width - a.width)[0];
   const dir = filename.includes('/') ? filename.slice(0, filename.lastIndexOf('/') + 1) : '';
   return `${baseUrl(p)}/server/files/gcodes/${encodePath(dir + best.relative_path)}`;

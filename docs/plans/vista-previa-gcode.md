@@ -339,14 +339,14 @@ genera unos sintéticos.
 - `cache.ts` con el límite y el borrado de D7.
 - Se configura Vite para el worker (`worker.format: 'iife'`).
 
-### G.5 Dibujo de la capa — **high** (versión mínima ✅; falta el zoom y la paleta revisada)
+### G.5 Dibujo de la capa — **high** ✅
 
 - `usePanZoom`, extraído de `ZoomPan`. Hay que comprobar que la cámara sigue igual: zoom, doble
   toque y el botón de quitar el zoom.
 - `render.ts` según D9, con `Path2D` guardados por capa y categoría.
 - Paleta de D6 con su prueba de contraste.
 
-### G.6 El visor — **medium**
+### G.6 El visor — **medium** ✅
 
 - Pantalla completa (como el visor de la cámara), con el gesto atrás y la barra de estado
   oculta en Android.
@@ -439,6 +439,23 @@ Medido en el Mac con `npm run bench:gcode`:
   las vistas previas guardadas, un botón para borrarlas y un borrado automático de las que no se
   abren en 1 semana o 1 mes (por defecto), o nunca. El "borrar caché" de Android no las elimina
   porque están en IndexedDB.
+
+## Resultados de la sesión 2 (2026-10-29)
+
+- **Zoom**: `usePanZoom` (extraído de `ZoomPan`, con pruebas de que el punto bajo los dedos no
+  se mueve) hasta 20×, doble toque 3× y rueda del ratón. El lienzo se redibuja a cada escala,
+  así que las líneas siguen nítidas. La cámara sigue igual.
+- **Paleta**: colores nuevos con prueba automática: todos contrastan ≥ 3:1 con la cama y se
+  distinguen entre sí (ΔE ≥ 20). Los colores de filamento demasiado oscuros se aclaran.
+- **Visor**: interruptores "Capa anterior" y "Desplazamientos" (líneas discontinuas), modo
+  "Por filamento" cuando hay varias herramientas (con `filament_colour`), leyenda según el modo y
+  flechas del teclado.
+- **Detalles del archivo** (no estaba en el plan): el Moonraker de la Hi no lee los archivos de
+  Creality Print (laminador "Unknown", sin miniatura ni tiempo). La app pide los primeros KB
+  (miniaturas y laminador) y los últimos 128 KB (tiempo, filamento, temperaturas) con rangos
+  HTTP y completa lo que falta. En la lista solo pide 8 KB, para la miniatura pequeña. El final
+  se pide como `bytes=inicio-`, que los navegadores permiten sin consulta CORS previa (a
+  diferencia de `bytes=-N`).
 
 ## Objetivos medibles
 

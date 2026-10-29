@@ -35,16 +35,16 @@ export function kindFromType(type: string): number {
 }
 
 /**
- * Color per kind (KINDS order), readable on the dark camera-like background of the viewer.
- * Provisional: the contrast check comes with the full viewer (plan, step G.5).
+ * Color per kind (KINDS order) on the viewer's dark plate. Checked by colors.test.ts: at least
+ * 3:1 against the plate (WCAG non-text contrast) and clearly different from each other.
  */
 export const KIND_COLORS = [
-  '#ff6b4a', // outer wall
-  '#ffc145', // inner wall
-  '#b98cff', // infill
-  '#4aa8ff', // solid
-  '#46d39a', // support
-  '#a0a6ad', // skirt / brim
-  '#ff5fa2', // prime tower
-  '#8a949e', // other
+  '#ff7043', // outer wall: orange
+  '#ffd54f', // inner wall: yellow
+  '#ba68c8', // infill: purple
+  '#4fc3f7', // solid: sky blue
+  '#66bb6a', // support: green
+  '#b0bec5', // skirt / brim: light grey
+  '#f06292', // prime tower: pink
+  '#a1887f', // other: brown-grey
 ];

@@ -1,17 +1,27 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { StatusBar } from '@capacitor/status-bar';
-import { ChevronLeft, ChevronRight, Info, RefreshCw, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, RefreshCw, X, ZoomOut } from 'lucide-react';
 import type { GcodeFile } from '../api/moonraker';
 import { useBackHandler } from '../backStack';
 import { baseName, formatBytes } from '../format';
+import { PLATE, TOOL_FALLBACK, visibleOnPlate } from '../gcode/colors';
 import { KIND_COLORS, KINDS } from '../gcode/kinds';
 import { layerBytes } from '../gcode/model';
-import { drawBed, drawLayer, fitView, type Frame } from '../gcode/render';
+import {
+  drawBed,
+  drawLayer,
+  drawTravel,
+  fitView,
+  zoomedView,
+  type ColorBy,
+  type Frame,
+} from '../gcode/render';
 import { useGcodeModel, WARN_BYTES } from '../gcode/useGcodeModel';
 import { useT, type MessageKey } from '../i18n';
 import { isNative } from '../native';
 import type { Printer } from '../store';
+import { usePanZoom } from '../usePanZoom';
 import { usePrinterStatus } from '../usePrinterStatus';
 import { Sheet } from './ui';
 
@@ -25,7 +35,8 @@ const speed = (bytes: number, ms: number | null) =>
 
 /**
  * Full-screen G-code preview: one layer seen from above, a layer slider and an info panel with
- * the download and parse figures. First version (plan step G.5): no zoom yet.
+ * the download and parse figures. Pinch or double tap to zoom: the canvas is redrawn at the new
+ * scale, so lines stay sharp.
  */
 export function GcodeViewer({
   printer,
@@ -42,8 +53,13 @@ export function GcodeViewer({
   const model = useGcodeModel(printer, confirmed ? file : null);
   const [layer, setLayer] = useState(0);
   const [info, setInfo] = useState(false);
+  const [showTravel, setShowTravel] = useState(false);
+  const [showPrev, setShowPrev] = useState(true);
+  const [colorBy, setColorBy] = useState<ColorBy>('kind');
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const boxRef = useRef<HTMLDivElement>(null);
+  // Up to 20× (a 0.4 mm line is several pixels wide), double tap 3×.
+  const pz = usePanZoom({ maxScale: 20, doubleTapScale: 3 });
+  const boxRef = pz.ref;
   const [size, setSize] = useState({ w: 0, h: 0 });
   useBackHandler(true, onClose);
 
@@ -83,26 +99,70 @@ export function GcodeViewer({
           }
         : { minX: 0, minY: 0, maxX: 260, maxY: 260 };
 
-  // Redraw on every change: a layer is a few thousand points, well under a frame's time.
+  // Multicolor prints (more than one tool) can be colored by filament.
+  const tools = model.summary?.tools ?? [];
+  const multiTool = tools.length > 1;
+  const by: ColorBy = multiTool ? colorBy : 'kind';
+  const toolColors = Array.from({ length: Math.max(...tools, 0) + 1 }, (_, i) =>
+    visibleOnPlate(model.summary?.toolColors[i] ?? TOOL_FALLBACK[i % TOOL_FALLBACK.length]),
+  );
+
+  // The canvas buffer only changes with the size; drawing happens on every change below.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !size.w || !size.h) return;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.round(size.w * dpr);
     canvas.height = Math.round(size.h * dpr);
+  }, [size]);
+
+  // A layer is a few thousand points drawn from cached paths: well under a frame's time, so it
+  // is redrawn on every change, including each step of a pinch.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !size.w || !size.h) return;
+    const dpr = window.devicePixelRatio || 1;
     const ctx = canvas.getContext('2d')!;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const view = fitView(frame, size.w, size.h);
-    drawBed(ctx, frame, view, dpr, { plate: '#1b1d21', grid: 'rgba(255,255,255,0.06)' });
-    if (current > 0 && layers[current - 1])
+    const view = zoomedView(fitView(frame, size.w, size.h), pz.view, size.w, size.h);
+    drawBed(ctx, frame, view, dpr, { plate: PLATE, grid: 'rgba(255,255,255,0.06)' });
+    if (showPrev && current > 0 && layers[current - 1])
       drawLayer(ctx, layers[current - 1], view, dpr, {
         colors: KIND_COLORS,
         color: '#ffffff',
         alpha: 0.12,
       });
-    if (layers[current]) drawLayer(ctx, layers[current], view, dpr, { colors: KIND_COLORS });
-  }, [layers, current, size, frame.minX, frame.minY, frame.maxX, frame.maxY]);
+    const l = layers[current];
+    if (!l) return;
+    const colors = by === 'tool' ? toolColors : KIND_COLORS;
+    drawLayer(ctx, l, view, dpr, { colors, by });
+    if (showTravel) drawTravel(ctx, l, view, dpr, 'rgba(255,255,255,0.45)');
+  }, [
+    layers,
+    current,
+    size,
+    pz.view,
+    showPrev,
+    showTravel,
+    by,
+    toolColors.join(),
+    frame.minX,
+    frame.minY,
+    frame.maxX,
+    frame.maxY,
+  ]);
+
+  // Arrow keys change the layer (keyboard, or a phone with one).
+  const last = layers.length - 1;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') setLayer((n) => Math.min(last, n + 1));
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') setLayer((n) => Math.max(0, n - 1));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [last]);
 
   const l = layers[current];
   const total = model.summary ? layers.length : (model.layersHint ?? layers.length);
@@ -124,8 +184,13 @@ export function GcodeViewer({
         </button>
       </div>
 
-      <div className="gcode-canvas" ref={boxRef}>
+      <div className="gcode-canvas" ref={boxRef} {...pz.handlers}>
         <canvas ref={canvasRef} style={{ width: size.w, height: size.h }} />
+        {pz.view.scale > 1.01 && (
+          <button className="zoom-chip" onClick={pz.reset} aria-label={t('camera.resetZoom')}>
+            <ZoomOut size={16} /> {pz.view.scale.toFixed(1)}×
+          </button>
+        )}
         {!confirmed && (
           <div className="gcode-overlay">
             <p>
@@ -206,15 +271,47 @@ export function GcodeViewer({
         <div className="gcode-layer-text" aria-live="polite">
           {l ? t('gcode.layerOf', { n: current + 1, total, z: l.z.toFixed(2) }) : '…'}
         </div>
-        <div className="gcode-legend">
-          {KINDS.map((k, i) =>
-            kindsPresent & (1 << i) ? (
-              <span key={k}>
-                <i style={{ background: KIND_COLORS[i] }} />
-                {t(`gcode.kind.${k}` as MessageKey)}
-              </span>
-            ) : null,
+        <div className="gcode-options" role="group" aria-label={t('gcode.options')}>
+          <button
+            className={`chip ${showPrev ? 'on' : ''}`}
+            aria-pressed={showPrev}
+            onClick={() => setShowPrev(!showPrev)}
+          >
+            {t('gcode.showPrev')}
+          </button>
+          <button
+            className={`chip ${showTravel ? 'on' : ''}`}
+            aria-pressed={showTravel}
+            onClick={() => setShowTravel(!showTravel)}
+          >
+            {t('gcode.showTravel')}
+          </button>
+          {multiTool && (
+            <button
+              className={`chip ${by === 'tool' ? 'on' : ''}`}
+              aria-pressed={by === 'tool'}
+              onClick={() => setColorBy(by === 'tool' ? 'kind' : 'tool')}
+            >
+              {t('gcode.byFilament')}
+            </button>
           )}
+        </div>
+        <div className="gcode-legend">
+          {by === 'tool'
+            ? tools.map((tool) => (
+                <span key={tool}>
+                  <i style={{ background: toolColors[tool] }} />
+                  {t('gcode.tool', { n: tool + 1 })}
+                </span>
+              ))
+            : KINDS.map((k, i) =>
+                kindsPresent & (1 << i) ? (
+                  <span key={k}>
+                    <i style={{ background: KIND_COLORS[i] }} />
+                    {t(`gcode.kind.${k}` as MessageKey)}
+                  </span>
+                ) : null,
+              )}
         </div>
       </div>
 
