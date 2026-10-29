@@ -4,11 +4,14 @@
 //   npm run mock                          normal printer, printing a Benchy
 //   MOCK_SCENARIO=drop npm run mock       pick a failure scenario (see SCENARIOS below)
 //   MOCK_PORT=7126 npm run mock           another port
+//   MOCK_FILE_RATE=0 npm run mock         G-code downloads at full speed (default ~0.9 MB/s,
+//                                         like the Creality Hi)
 //
 // HTTP and the JSON-RPC WebSocket (/websocket) read the same simulated printer, so both
 // transports return consistent data.
 import http from 'node:http';
 import { WebSocketServer } from 'ws';
+import { generateGcode } from './gen-gcode.mjs';
 
 const SCENARIOS = {
   normal: 'Ready and printing',
@@ -102,7 +105,12 @@ const printer = {
   idle_timeout: { state: 'Printing' },
   exclude_object: mockObjects(),
   bed_mesh: mockMesh(),
-  manual_probe: { is_active: false, z_position: null, z_position_lower: null, z_position_upper: null },
+  manual_probe: {
+    is_active: false,
+    z_position: null,
+    z_position_lower: null,
+    z_position_upper: null,
+  },
   [LIGHT]: { value: 1 },
   [CHAMBER]: { temperature: 31.2 },
 };
@@ -196,25 +204,39 @@ function runGcode(script) {
     else if (/^FIRMWARE_RESTART|^RESTART/i.test(cmd)) return restartKlippy();
     else if (/^BED_MESH_CALIBRATE/i.test(cmd)) printer.bed_mesh = mockMesh();
     else if (/^PID_CALIBRATE/i.test(cmd)) {
-      for (let i = 1; i <= 3; i++) respond(`// sample:${i} pwm:1.0000 asymmetry:0.2${i} tolerance:n/a`);
+      for (let i = 1; i <= 3; i++)
+        respond(`// sample:${i} pwm:1.0000 asymmetry:0.2${i} tolerance:n/a`);
       respond('// PID parameters: pid_Kp=22.865 pid_Ki=1.574 pid_Kd=83.052');
-      respond('// The SAVE_CONFIG command will update the printer config file with these parameters and restart the printer.');
+      respond(
+        '// The SAVE_CONFIG command will update the printer config file with these parameters and restart the printer.',
+      );
     } else if (/^SHAPER_CALIBRATE/i.test(cmd)) {
       respond('// Fitted shaper zv frequency = 56.4 Hz (vibrations = 9.1%, smoothing ~= 0.044)');
       respond('// Recommended shaper_type_x = mzv, shaper_freq_x = 53.8 Hz');
       respond('// Recommended shaper_type_y = ei, shaper_freq_y = 61.2 Hz');
     } else if (/^(PROBE_CALIBRATE|Z_ENDSTOP_CALIBRATE)/i.test(cmd)) {
-      Object.assign(printer.manual_probe, { is_active: true, z_position: 5, z_position_lower: null, z_position_upper: null });
+      Object.assign(printer.manual_probe, {
+        is_active: true,
+        z_position: 5,
+        z_position_lower: null,
+        z_position_upper: null,
+      });
       respond('// Starting manual Z probe. Use TESTZ to adjust position.');
     } else if (/^TESTZ Z=(-?[\d.]+)/i.test(cmd)) {
       const mp = printer.manual_probe;
-      if (!mp.is_active) { respond('!! Manual probe not active'); continue; }
-      mp.z_position = Math.round((mp.z_position + Number(cmd.match(/Z=(-?[\d.]+)/i)[1])) * 1000) / 1000;
+      if (!mp.is_active) {
+        respond('!! Manual probe not active');
+        continue;
+      }
+      mp.z_position =
+        Math.round((mp.z_position + Number(cmd.match(/Z=(-?[\d.]+)/i)[1])) * 1000) / 1000;
       respond(`// Z position: ${mp.z_position.toFixed(3)}`);
     } else if (/^ACCEPT/i.test(cmd)) {
       const mp = printer.manual_probe;
       respond(`// probe: z_offset: ${(mp.z_position ?? 0).toFixed(3)}`);
-      respond('// The SAVE_CONFIG command will update the printer config file and restart the printer.');
+      respond(
+        '// The SAVE_CONFIG command will update the printer config file and restart the printer.',
+      );
       Object.assign(mp, { is_active: false, z_position: null });
     } else if (/^ABORT/i.test(cmd)) {
       Object.assign(printer.manual_probe, { is_active: false, z_position: null });
@@ -229,8 +251,8 @@ function runGcode(script) {
       }
       ex.excluded_objects = [...new Set([...ex.excluded_objects, name])];
       respond(`// Excluding object ${name}`);
-    }
-    else if (/^M115/i.test(cmd)) respond('// FIRMWARE_NAME:Klipper FIRMWARE_VERSION:v0.12.0-mock');
+    } else if (/^M115/i.test(cmd))
+      respond('// FIRMWARE_NAME:Klipper FIRMWARE_VERSION:v0.12.0-mock');
     respond('ok');
   }
 }
@@ -297,7 +319,55 @@ const files = [
   { path: 'Benchy_PLA_0.2mm.gcode', modified: now() - 3600, size: 4_200_000 },
   { path: 'models/Soporte_movil.gcode', modified: now() - 86400, size: 12_500_000 },
   { path: 'Calibration_cube.gcode', modified: now() - 5 * 86400, size: 900_000 },
+  { path: 'pruebas/grande_50mb.gcode', modified: now() - 2 * 86400, size: 50_000_000 },
 ];
+
+// Real G-code for each file (scripts/gen-gcode.mjs), generated on first download and served at
+// the Creality Hi's measured speed (~0.9 MB/s), with HTTP ranges like Moonraker.
+const FILE_RATE = Number(process.env.MOCK_FILE_RATE ?? 900_000);
+const gcodeData = new Map();
+function gcodeFor(path) {
+  let data = gcodeData.get(path);
+  if (!data) {
+    const f = files.find((x) => x.path === path);
+    data = generateGcode((f?.size ?? 4e6) / 1e6, { tools: path.includes('Soporte') ? 2 : 1 });
+    gcodeData.set(path, data);
+    if (f) f.size = data.length;
+  }
+  return data;
+}
+
+function serveGcode(req, res, path) {
+  if (!files.some((f) => f.path === path)) {
+    res.statusCode = 404;
+    return res.end();
+  }
+  const data = gcodeFor(path);
+  let start = 0;
+  let end = data.length - 1;
+  const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+  if (range) {
+    start = range[1] ? Number(range[1]) : Math.max(0, data.length - Number(range[2]));
+    end = range[1] && range[2] ? Math.min(Number(range[2]), data.length - 1) : end;
+    res.statusCode = 206;
+    res.setHeader('Content-Range', `bytes ${start}-${end}/${data.length}`);
+  }
+  res.setHeader('Content-Type', 'text/plain');
+  res.setHeader('Accept-Ranges', 'bytes');
+  res.setHeader('Content-Length', end - start + 1);
+  const CHUNK = 64 * 1024;
+  let pos = start;
+  const next = () => {
+    if (res.destroyed) return;
+    if (pos > end) return res.end();
+    const stop = Math.min(pos + CHUNK, end + 1);
+    res.write(data.subarray(pos, stop));
+    const sent = stop - pos;
+    pos = stop;
+    setTimeout(next, FILE_RATE > 0 ? (sent / FILE_RATE) * 1000 : 0);
+  };
+  next();
+}
 const dirs = new Set(['models', 'empty']);
 
 /** API shared by HTTP and JSON-RPC, keyed by JSON-RPC method name. */
@@ -337,7 +407,7 @@ const api = {
 /** Three months of past prints for the statistics (deterministic pseudo-random). */
 const olderJobs = (() => {
   let seed = 7;
-  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const out = [];
   for (let i = 0; i < 70; i++) {
     const r = rand();
@@ -345,7 +415,9 @@ const olderJobs = (() => {
     const duration = Math.round(1800 + rand() * 6 * 3600);
     out.push({
       job_id: String(100 + i),
-      filename: ['Benchy_PLA_0.2mm.gcode', 'models/Soporte_movil.gcode', 'Calibration_cube.gcode'][i % 3],
+      filename: ['Benchy_PLA_0.2mm.gcode', 'models/Soporte_movil.gcode', 'Calibration_cube.gcode'][
+        i % 3
+      ],
       status,
       start_time: now() - (6 + i * 1.3) * 86400,
       end_time: 1,
@@ -429,8 +501,20 @@ function spoolman(method, path, q) {
 }
 
 const devices = [
-  { device: 'printer', status: 'on', locked_while_printing: true, type: 'tplink_smartplug', is_shutdown: false },
-  { device: 'lights', status: 'off', locked_while_printing: false, type: 'shelly', is_shutdown: false },
+  {
+    device: 'printer',
+    status: 'on',
+    locked_while_printing: true,
+    type: 'tplink_smartplug',
+    is_shutdown: false,
+  },
+  {
+    device: 'lights',
+    status: 'off',
+    locked_while_printing: false,
+    type: 'shelly',
+    is_shutdown: false,
+  },
 ];
 function power(path, q) {
   if (path === '/machine/device_power/devices') return { devices };
@@ -568,46 +652,46 @@ const server = http.createServer(async (req, res) => {
     if (u.pathname === '/server/history/list') {
       const since = Number(q.since ?? 0);
       const jobs = [
-          {
-            job_id: '1',
-            filename: 'Benchy_PLA_0.2mm.gcode',
-            status: 'completed',
-            start_time: now() - 86400,
-            end_time: 1,
-            print_duration: 5400,
-            total_duration: 5600,
-            filament_used: 4200,
-            exists: true,
-            metadata: {
-              estimated_time: 5500,
-              filament_type: 'PLA',
-              thumbnails: [{ width: 300, height: 300, relative_path: '.thumbs/t.svg' }],
-            },
+        {
+          job_id: '1',
+          filename: 'Benchy_PLA_0.2mm.gcode',
+          status: 'completed',
+          start_time: now() - 86400,
+          end_time: 1,
+          print_duration: 5400,
+          total_duration: 5600,
+          filament_used: 4200,
+          exists: true,
+          metadata: {
+            estimated_time: 5500,
+            filament_type: 'PLA',
+            thumbnails: [{ width: 300, height: 300, relative_path: '.thumbs/t.svg' }],
           },
-          {
-            job_id: '2',
-            filename: 'models/Soporte_movil.gcode',
-            status: 'cancelled',
-            start_time: now() - 2 * 86400,
-            end_time: 1,
-            print_duration: 1200,
-            total_duration: 1300,
-            filament_used: 800,
-            exists: true,
-          },
-          {
-            job_id: '3',
-            filename: 'old.gcode',
-            status: 'error',
-            start_time: now() - 5 * 86400,
-            end_time: 1,
-            print_duration: 300,
-            total_duration: 300,
-            filament_used: 50,
-            exists: false,
-          },
-          ...olderJobs,
-        ].filter((j) => j.start_time >= since);
+        },
+        {
+          job_id: '2',
+          filename: 'models/Soporte_movil.gcode',
+          status: 'cancelled',
+          start_time: now() - 2 * 86400,
+          end_time: 1,
+          print_duration: 1200,
+          total_duration: 1300,
+          filament_used: 800,
+          exists: true,
+        },
+        {
+          job_id: '3',
+          filename: 'old.gcode',
+          status: 'error',
+          start_time: now() - 5 * 86400,
+          end_time: 1,
+          print_duration: 300,
+          total_duration: 300,
+          filament_used: 50,
+          exists: false,
+        },
+        ...olderJobs,
+      ].filter((j) => j.start_time >= since);
       return send({ count: jobs.length, jobs: jobs.slice(0, Number(q.limit ?? 50)) });
     }
     if (u.pathname === '/server/history/totals')
@@ -649,12 +733,16 @@ const server = http.createServer(async (req, res) => {
         thumbnails: [{ width: 300, height: 300, relative_path: '.thumbs/t.svg' }],
       });
     if (u.pathname.startsWith('/server/files/gcodes/')) {
+      const path = decodeURIComponent(u.pathname.slice('/server/files/gcodes/'.length));
+      if (/\.(gcode|g|gco)$/i.test(path)) return serveGcode(req, res, path);
       res.setHeader('Content-Type', 'image/svg+xml');
       return res.end(svg);
     }
     if (u.pathname === '/server/webcams/list') return send({ webcams: [] });
-    if (u.pathname.startsWith('/server/job_queue/')) return send(jobQueue(req.method, u.pathname, q));
-    if (u.pathname.startsWith('/server/spoolman/')) return send(spoolman(req.method, u.pathname, q));
+    if (u.pathname.startsWith('/server/job_queue/'))
+      return send(jobQueue(req.method, u.pathname, q));
+    if (u.pathname.startsWith('/server/spoolman/'))
+      return send(spoolman(req.method, u.pathname, q));
     if (u.pathname.startsWith('/machine/device_power/')) return send(power(u.pathname, q));
     if (u.pathname === '/server/files/list' && q.root === 'config')
       return send(
@@ -677,7 +765,10 @@ const server = http.createServer(async (req, res) => {
         configFiles[file.name] = file.text;
         return send({ item: { path: file.name, root: 'config' }, action: 'create_file' });
       }
-      return send({ item: { path: file?.name, root: fields.root ?? 'gcodes' }, action: 'create_file' });
+      return send({
+        item: { path: file?.name, root: fields.root ?? 'gcodes' },
+        action: 'create_file',
+      });
     }
     if (req.method === 'POST') return send('ok');
     fail(404, 'Not found');

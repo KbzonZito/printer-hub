@@ -294,7 +294,7 @@ El visor tiene un panel de información ("Descarga: 48 MB a 3,1 MB/s · Lectura:
 puntos"), útil también después. Con una captura de ese panel tengo los números. Si la respuesta
 no llega por partes, se implementa el respaldo de D3 antes de seguir.
 
-### G.2 El simulador sirve G-code real — **medium**
+### G.2 El simulador sirve G-code real — **medium** ✅
 
 - `scripts/gen-gcode.mjs` genera G-code al estilo de OrcaSlicer: `;LAYER_CHANGE`, `;TYPE:`,
   `EXCLUDE_OBJECT_DEFINE`/`START`/`END`, arcos `G2`/`G3`, Z hop, retracciones, cambios de
@@ -306,7 +306,7 @@ no llega por partes, se implementa el respaldo de D3 antes de seguir.
   abundantes, `;WIPE_START`, `G92 E0` por capa y `filament_colour` al final.
 - Se añade `pruebas/grande_50mb.gcode` a la lista de archivos del simulador.
 
-### G.3 El parser — **high**
+### G.3 El parser — **high** ✅
 
 `GcodeParser` según D2, D4 y D5. Debe manejar:
 
@@ -329,7 +329,7 @@ en `src/gcode/fixtures/creality-print-block.gcode`. Los archivos grandes de la i
 suben al repositorio: la prueba de rendimiento los usa si están en una carpeta local y, si no,
 genera unos sintéticos.
 
-### G.4 Worker, descarga y caché — **high**
+### G.4 Worker, descarga y caché — **high** ✅
 
 - `worker.ts` y su protocolo: `chunk` y `end` hacia el worker; `layers`, `progress`, `done` y
   `error` de vuelta.
@@ -339,7 +339,7 @@ genera unos sintéticos.
 - `cache.ts` con el límite y el borrado de D7.
 - Se configura Vite para el worker (`worker.format: 'iife'`).
 
-### G.5 Dibujo de la capa — **high**
+### G.5 Dibujo de la capa — **high** (versión mínima ✅; falta el zoom y la paleta revisada)
 
 - `usePanZoom`, extraído de `ZoomPan`. Hay que comprobar que la cámara sigue igual: zoom, doble
   toque y el botón de quitar el zoom.
@@ -404,6 +404,27 @@ G.3 ─┼─▶ G.4 ─▶ G.5 ─▶ G.1 (teléfono) ─▶ G.6 ─▶ G.7 ─
 
 Si algo de la sesión 1 falla dos veces (sobre todo la descarga por partes en Android), conviene
 subir a **xhigh** para investigar la causa antes de cambiar el diseño.
+
+## Resultados de la sesión 1 (2026-10-29)
+
+Medido en el Mac con `npm run bench:gcode`:
+
+| Archivo | Tamaño | Lectura | Puntos | Memoria del modelo |
+| --- | --- | --- | --- | --- |
+| Nozzle cover (real) | 23,2 MB | **82 ms (281 MB/s)** | 0,66 M | **6,8 MB** |
+| 8x8 MU Center Grid (real) | 19,8 MB | 63 ms (315 MB/s) | 0,49 M | 5,6 MB |
+| block (real) | 0,6 MB | 2 ms | 0,01 M | 0,1 MB |
+| Sintético de 50 MB | 53,3 MB | 301 ms (177 MB/s) | 5,0 M | 60 MB (el generador es más denso que un archivo real) |
+
+- **Lección:** la primera versión leía a 64 MB/s. Un perfil de CPU mostró que el 77 % del tiempo
+  se iba en buscar `;` (comentario al final de la línea) con `indexOf`, que recorría el resto del
+  trozo en cada línea. Limitado a la línea, la lectura es 4–5 veces más rápida. Medir antes de
+  optimizar: la primera sospecha (crear un array por número) no cambiaba nada.
+- En el navegador contra el simulador (a 0,9 MB/s): las capas aparecen mientras se descarga;
+  volver a abrir desde la caché tarda **22 ms**; cancelar a mitad no deja errores.
+- Falta **G.1 en el teléfono**: el panel de información del visor muestra "Primer dato",
+  "Descarga", "Lectura" y "Partes recibidas". Si el primer dato llega en < 1 s y hay muchas
+  partes, la descarga llega por partes también en Android.
 
 ## Objetivos medibles
 

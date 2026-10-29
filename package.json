@@ -11,7 +11,8 @@
     "apk": "scripts/build-apk.sh",
     "release": "scripts/release.sh",
     "mock": "node scripts/mock-moonraker.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "bench:gcode": "GCODE_BENCH=1 vitest run src/gcode/parser.perf.test.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",

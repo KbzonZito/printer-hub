@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpDown,
+  Layers,
   ListPlus,
   ChevronRight,
   Clock,
@@ -35,6 +36,7 @@ import {
   type GcodeDir,
   type GcodeFile,
 } from '../api/moonraker';
+import { GcodeViewer } from '../components/GcodeViewer';
 import { PullToRefresh } from '../components/PullToRefresh';
 import { useActiveSpool } from '../components/SpoolCard';
 import { ConfirmSheet, Sheet, useAction } from '../components/ui';
@@ -492,6 +494,7 @@ export function FileBrowser({
     null,
   );
   const [creating, setCreating] = useState(false);
+  const [preview, setPreview] = useState<GcodeFile | null>(null);
   const [sortOpen, setSortOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -714,6 +717,15 @@ export function FileBrowser({
             <h2 className="sheet-title">{baseName(selected.path)}</h2>
             <EstimateCard file={selected} meta={selMeta} cal={cal} />
             <FileDetails file={selected} meta={selMeta} />
+            <button
+              className="btn"
+              onClick={() => {
+                setPreview(selected);
+                setSelected(null);
+              }}
+            >
+              <Layers size={18} /> {t('gcode.preview')}
+            </button>
             <div className="row gap wrap">
               {caps.has('job_queue') && (
                 <button
@@ -767,6 +779,7 @@ export function FileBrowser({
         )}
       </Sheet>
 
+      {preview && <GcodeViewer printer={printer} file={preview} onClose={() => setPreview(null)} />}
       <ConfirmSheet
         open={!!lowFilament}
         title={t('spool.lowTitle')}
