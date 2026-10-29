@@ -63,3 +63,17 @@ Esto **confirma la decisión D2**: en Android la conexión debe abrirse desde c�
    tendría más sentido mostrar el **CFS** (objeto `box`): materiales, colores y filamento restante.
 6. El Moonraker es antiguo (API 1.0.5): conviene no depender de métodos JSON-RPC recientes y
    tratar cualquier error de `identify` como no grave, como ya prevé el plan.
+
+## Descarga de archivos (2026-10-29)
+
+Medido desde el Mac por Wi-Fi, en modo solo lectura, para la
+[vista previa del G-code](vista-previa-gcode.md):
+
+| Dato | Valor |
+| --- | --- |
+| Velocidad | 0,3–0,9 MB/s (23 MB en 26 s) |
+| Descargas en paralelo | No mejoran (1,0 MB/s en total) |
+| gzip | No |
+| Rangos (`Range`) | Sí (206) |
+| Recursos de la impresora | 2 núcleos, ~500 MB de RAM, CPU al ~35 % en reposo |
+| Laminador de los archivos | Creality Print V5.1 / V6.0 (formato de OrcaSlicer, con muchos arcos `G2`/`G3`) |

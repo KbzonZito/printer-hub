@@ -37,8 +37,45 @@ archivo a texto) y un G-code sintético de 50 MB al estilo de OrcaSlicer:
 | Memoria del modelo (`Float32Array`) | **~16 MB** |
 
 En un teléfono de gama media, JavaScript es entre 5 y 10 veces más lento: **0,5–1 s para 50 MB**.
-Leer el archivo no es el problema. **Lo lento será la descarga** por la Wi-Fi de la impresora
-(probablemente 2–5 MB/s, es decir, 10–25 s para 50 MB). Se mide de verdad en el paso G.1.
+Leer el archivo no es el problema. **Lo lento es la descarga.**
+
+### La Creality Hi real (2026-10-29, desde el Mac por Wi-Fi, solo lectura)
+
+| Medida | Resultado |
+| --- | --- |
+| Archivos en la impresora | 45 G-code; el mayor de **23 MB**, la mayoría entre 1 y 10 MB |
+| Velocidad de descarga | **0,3–0,9 MB/s** (23 MB en 26 s; 20 MB en 70 s). La primera respuesta llega en < 0,1 s |
+| Descargas en paralelo por rangos | 1,0 MB/s frente a 0,9 MB/s con una sola: **no compensa**. El límite es la impresora (2 núcleos, 500 MB de RAM, Wi-Fi) |
+| Compresión (gzip) | **No**: Moonraker envía el G-code sin comprimir |
+| Rangos (`Range: bytes=…`) | **Sí** (responde 206) |
+| Laminador | Creality Print V5.1 y V6.0, con el formato de OrcaSlicer |
+
+Formato de los archivos (los tres analizados son iguales):
+
+| Elemento | Qué hay | Consecuencia |
+| --- | --- | --- |
+| Capas | `;LAYER_CHANGE`, `;Z:`, `;HEIGHT:`; el encabezado trae `; total layer number: 650` | Se sabe el total de capas desde el primer KB, así que el progreso se puede mostrar en capas |
+| Primera capa | Empieza en los primeros **30–70 KB** | La primera capa se ve en menos de 1 s |
+| Tipos (`;TYPE:`) | Outer wall, Inner wall, Overhang wall, Sparse infill, Internal solid infill, Gap infill, Bottom surface, Top surface, Bridge, Internal Bridge, Support, Support interface, Custom | Encajan en las categorías de D6 |
+| Arcos | **Muchísimos**: hasta 104 000 `G2`/`G3` con I/J en un archivo | Los arcos son imprescindibles, no un detalle |
+| Números | Sin cero inicial: `E.3771`, `I-.658` | El parser debe aceptarlos |
+| Extrusión | `M83` (relativa), `G92 E0` en cada capa, `;WIPE_START`/`;WIPE_END` | — |
+| Objetos | `EXCLUDE_OBJECT_DEFINE` con polígono; nombres con caracteres chinos (`…喷头前壳…`) | Las posiciones deben contarse en bytes, no en caracteres (D2) |
+| Herramienta y colores | `T0`; `; filament_colour = #ffffff` **al final del archivo** | Los colores por filamento se conocen al terminar la descarga |
+| Comentarios | ~3 MB de los 23 MB; las miniaturas ocupan los primeros 4–5 KB | Saltar comentarios rápido importa |
+
+Puntos estimados, con los arcos convertidos a segmentos:
+
+| Archivo | Tamaño | Capas | Puntos | Modelo |
+| --- | --- | --- | --- | --- |
+| block | 0,6 MB | 102 | 0,02 M | 0,1 MB |
+| 8x8 MU Center Grid | 19,8 MB | 31 | ~0,9 M | ~7 MB |
+| Nozzle cover | 23,2 MB | 650 | ~1,25 M con tolerancia de 0,05 mm (1,8 M con 0,02 mm) | ~10 MB |
+
+**Conclusión:** en esta impresora, abrir un archivo grande por primera vez tarda **unos 25 s** en
+completarse, y no se puede acelerar desde la app. Por eso son clave: dibujar mientras se
+descarga (D2), la caché (D7) y, en el modo en vivo, empezar por la zona que se está imprimiendo
+(D11).
 
 También verifiqué en el código de Capacitor 8 (`WebViewLocalServer.handleCapacitorHttpRequest`)
 que el proxy de `fetch` devuelve el `InputStream` de la conexión: la respuesta llega **por
@@ -46,9 +83,9 @@ partes**, desde el mismo origen que la app y sin CORS.
 
 ## Decisiones
 
-### D1. Vista 2D capa a capa, no 3D
+### D1. Vista 2D capa a capa, no 3D (confirmado)
 
-Se dibuja una capa vista desde arriba, como el visor 2D de Fluidd:
+Confirmado por ti el 2026-10-29. Se dibuja una capa vista desde arriba, como el visor 2D de Fluidd:
 - En una pantalla pequeña se entiende mejor una capa que un modelo 3D, sobre todo para revisar
   la primera capa o ver dónde va la impresión.
 - Canvas 2D funciona en cualquier teléfono y usa poca memoria. Un visor 3D con WebGL necesita
@@ -99,7 +136,9 @@ Cada capa guarda:
 | `travel` | `Float32Array` (x1, y1, x2, y2) | Desplazamientos sin extruir (se pueden mostrar u ocultar) |
 
 Una polilínea termina cuando hay un desplazamiento o cambia el tipo, la herramienta o el objeto.
-Para ahorrar memoria, se descartan los puntos a menos de 0,02 mm del anterior. Si en el teléfono
+Para ahorrar memoria, se descartan los puntos a menos de 0,02 mm del anterior, y los arcos se
+convierten en segmentos con un error máximo de **0,05 mm**: menos de un píxel incluso con el zoom
+al máximo, y un 30 % menos de puntos que con 0,02 mm en los archivos reales. Si en el teléfono
 la memoria supera el presupuesto (ver "Objetivos medibles"), se pasa a `Uint16` con precisión de
 0,01 mm. Eso reduce la memoria a la mitad y está previsto, pero no se hace de entrada.
 
@@ -134,9 +173,14 @@ Los nombres de `;TYPE:` cambian entre laminadores, así que se agrupan en 8 cate
 | Otros | Cualquier otro, o sin `;TYPE:` | | |
 
 Los colores son una paleta fija de 8 tonos, distinguibles entre sí y con buen contraste en
-claro y en oscuro. Se comprueban con una prueba automática, como las paletas de la app. Hay un
-segundo modo, **"Por filamento"**, que usa los colores de `filament_colour`. Solo aparece si el
-archivo usa más de una herramienta (impresión multicolor con el CFS).
+claro y en oscuro. Se comprueban con una prueba automática, como las paletas de la app.
+`Custom` (el G-code de inicio) va a "Otros" e `Internal Bridge` a "Sólido".
+
+Hay un segundo modo, **"Por filamento"**, que usa los colores de `filament_colour`. Solo
+aparece si el archivo usa más de una herramienta (impresión multicolor con el CFS). Tú no
+imprimes en varios colores, pero otros usuarios sí, así que se incluye con **prioridad
+secundaria**: si la sesión 2 se alarga, pasa a una versión posterior. Como `filament_colour`
+está al final del archivo, hasta que termina la descarga se usan colores provisionales.
 
 ### D7. Caché del modelo ya leído (IndexedDB)
 
@@ -180,8 +224,26 @@ archivo usa más de una herramienta (impresión multicolor con el CFS).
 
 ### D10. Límites de tamaño
 
-- Más de 100 MB: aviso con el tiempo estimado de descarga antes de empezar.
+- Más de 50 MB: aviso con el tiempo estimado de descarga antes de empezar (a ~0,9 MB/s, casi un
+  minuto en la Creality Hi).
 - Más de 300 MB: no se abre, con un mensaje claro.
+
+### D11. En el modo en vivo, primero la zona que se está imprimiendo
+
+Durante una impresión de un archivo que no está en la caché, esperar 25 s para ver la capa actual
+es demasiado. Como Moonraker admite rangos:
+
+1. Se descargan los primeros 64 KB (encabezado, `M83`/`G90` y objetos) y unos **3 MB alrededor
+   de `file_position`** (~3 s). El parser empieza a dibujar desde el primer `;LAYER_CHANGE` de
+   ese tramo, con el estado del encabezado. En Creality Print X e Y son absolutas y E relativa,
+   así que se puede empezar a mitad del archivo.
+2. Se muestra la capa actual en cuanto está.
+3. Después se descarga el archivo completo desde el principio (unos 3 MB de más, a cambio de
+   mucha menos complejidad) y el modelo completo sustituye al parcial. Ese es el que se guarda
+   en la caché.
+
+Si el archivo usa posiciones relativas (`G91`) en el tramo, se descarta el atajo y se espera al
+archivo completo.
 
 ## Arquitectura
 
@@ -219,13 +281,14 @@ Archivos nuevos (en `src/gcode/`):
 
 ### G.1 Medir en el teléfono lo que no se puede medir aquí — **high**
 
-Es el riesgo más grande del plan, así que se comprueba lo primero, con la versión mínima del
-visor de la sesión 1:
+Ya medido desde el Mac (ver "La Creality Hi real"): la velocidad de descarga, los rangos, la
+falta de gzip y el formato de Creality Print. Falta comprobar **en el teléfono**, con la versión
+mínima del visor de la sesión 1, que es el riesgo más grande del plan:
 
 - Que en el APK la respuesta del proxy llega por partes: el primer trozo debe llegar mucho
   antes que el último.
-- La velocidad real de descarga desde la Creality Hi.
-- La velocidad de lectura en tu teléfono con un archivo real.
+- Que la velocidad desde el teléfono es parecida a la del Mac (~0,9 MB/s).
+- La velocidad de lectura en tu teléfono con "Nozzle cover" (23 MB).
 
 El visor tiene un panel de información ("Descarga: 48 MB a 3,1 MB/s · Lectura: 0,9 s · 2,0 M
 puntos"), útil también después. Con una captura de ese panel tengo los números. Si la respuesta
@@ -236,8 +299,11 @@ no llega por partes, se implementa el respaldo de D3 antes de seguir.
 - `scripts/gen-gcode.mjs` genera G-code al estilo de OrcaSlicer: `;LAYER_CHANGE`, `;TYPE:`,
   `EXCLUDE_OBJECT_DEFINE`/`START`/`END`, arcos `G2`/`G3`, Z hop, retracciones, cambios de
   herramienta y bloques de miniatura. Parte del generador de la prueba de rendimiento.
-- El simulador sirve G-code para las rutas `.gcode`, con `Content-Length` y un poco de espera
-  entre trozos para imitar la Wi-Fi. Las miniaturas siguen siendo SVG.
+- El simulador sirve G-code para las rutas `.gcode`, con `Content-Length`, rangos
+  (`Range`/206) y un límite de ~0,9 MB/s para imitar a la Creality Hi. Las miniaturas siguen
+  siendo SVG.
+- El generador imita el formato real de Creality Print: números sin cero inicial, arcos I/J
+  abundantes, `;WIPE_START`, `G92 E0` por capa y `filament_colour` al final.
 - Se añade `pruebas/grande_50mb.gcode` a la lista de archivos del simulador.
 
 ### G.3 El parser — **high**
@@ -245,7 +311,11 @@ no llega por partes, se implementa el respaldo de D3 antes de seguir.
 `GcodeParser` según D2, D4 y D5. Debe manejar:
 
 - `G0`/`G1` con X, Y, Z, E y F; `G2`/`G3` con I/J o R, convertidos a segmentos con un error
-  máximo de 0,02 mm.
+  máximo de 0,05 mm.
+- Números sin cero inicial (`.377`, `-.658`) y nombres de objeto con caracteres no ASCII.
+- El encabezado de Creality Print (`; total layer number`, `; max_z_height`) para mostrar el
+  progreso en capas desde el principio.
+- Empezar a mitad de un archivo con un estado inicial dado (para D11).
 - `G90`/`G91` (posición absoluta o relativa) y `M82`/`M83` (extrusión absoluta o relativa).
 - `G92` (sobre todo `G92 E0`) y `G28`.
 - Retracciones: E negativo y `G10`/`G11`, que no dibujan nada.
@@ -254,8 +324,10 @@ no llega por partes, se implementa el respaldo de D3 antes de seguir.
 - Saltar rápido los comentarios largos (miniaturas en base64) y las líneas que no mueven nada.
 - Comentarios al final de una línea (`G1 X10 ; comentario`) y líneas en minúsculas.
 
-Pruebas con fragmentos escritos a mano para cada caso, y con archivos reales de la carpeta
-`src/gcode/fixtures/` (ver "Qué necesito de ti").
+Pruebas con fragmentos escritos a mano para cada caso, y con un archivo real de Creality Print
+en `src/gcode/fixtures/` (ver "Qué necesito de ti"). Los archivos grandes de la impresora no se
+suben al repositorio: la prueba de rendimiento los usa si están en una carpeta local y, si no,
+genera unos sintéticos.
 
 ### G.4 Worker, descarga y caché — **high**
 
@@ -290,8 +362,9 @@ Pruebas con fragmentos escritos a mano para cada caso, y con archivos reales de 
 
 ### G.7 Modo en vivo — **high**
 
-D8 completo:
+D8 y D11 completos:
 - `file_position` y `file_size` en la suscripción;
+- primero el tramo alrededor de `file_position` y después el archivo completo;
 - búsqueda de la capa por byte, con pruebas;
 - parte hecha y parte pendiente dentro de la capa;
 - boquilla;
@@ -337,8 +410,10 @@ subir a **xhigh** para investigar la causa antes de cambiar el diseño.
 | Medida | Objetivo en el teléfono |
 | --- | --- |
 | Velocidad de lectura | ≥ 40 MB/s (en el Mac, ~490 MB/s) |
-| Primera capa visible | ≤ 1,5 s después de que empiece a llegar el archivo |
-| Memoria del modelo de 50 MB | ≤ 25 MB |
+| Primera capa visible | ≤ 1,5 s después de abrir (empieza en los primeros 70 KB) |
+| Capa actual en el modo en vivo, sin caché | ≤ 5 s (D11) |
+| Archivo completo de 23 MB desde la Creality Hi | ~25 s; no depende de la app (~0,9 MB/s) |
+| Memoria del modelo de "Nozzle cover" (23 MB) | ≤ 15 MB; para 50 MB, ≤ 25 MB |
 | Cambiar de capa | < 16 ms con capas de 20 000 puntos |
 | Mover y hacer zoom | Fluido, sin saltos (60 fps) |
 | Abrir desde la caché | < 0,5 s |
@@ -376,7 +451,7 @@ subir a **xhigh** para investigar la causa antes de cambiar el diseño.
 | Riesgo | Mitigación |
 | --- | --- |
 | En Android la respuesta del proxy no llega por partes, sino entera al final | Se comprueba primero (G.1); respaldo de D3 (descarga nativa a la caché) |
-| La Wi-Fi de la impresora es lenta | Dibujar mientras se descarga, caché del modelo y velocidad visible en el panel |
+| La Wi-Fi de la impresora es lenta (medido: 0,3–0,9 MB/s) | Dibujar mientras se descarga, caché del modelo, tramo prioritario en el modo en vivo (D11) y velocidad visible en el panel. Ni el paralelo ni el gzip ayudan (medido) |
 | Poca memoria en teléfonos modestos | Modelo compacto, puntos casi repetidos descartados, `Uint16` previsto y límite de 300 MB |
 | Cada laminador escribe distinto | Detección de capas en tres niveles; fragmentos de Orca, Prusa y Cura en las pruebas; archivo real de Creality Print |
 | `file_position` va un poco por delante de la boquilla | Se acepta; la boquilla se dibuja desde `toolhead.position` |
@@ -391,12 +466,16 @@ subir a **xhigh** para investigar la causa antes de cambiar el diseño.
 - Tiempo estimado por capa (se podría calcular a partir de las velocidades F en el futuro).
 - Simular la impresión movimiento a movimiento dentro de una capa.
 
+## Respuestas (2026-10-29)
+
+1. **Archivos reales**: revisados en la impresora (solo lectura). Analicé tres ("block", 0,6 MB;
+   "8x8 MU - Center Grid", 19,8 MB; "Nozzle cover", 23,2 MB), y el plan ya refleja su formato.
+2. **Vista 2D**: confirmada (D1).
+3. **Varios colores**: no los usas, pero se mantiene "Por filamento" para otros usuarios, con
+   prioridad secundaria (D6).
+
 ## Qué necesito de ti para empezar
 
-1. **Un G-code real de tu Creality Hi** laminado con Creality Print. Si puede ser, uno pequeño y
-   otro grande (más de 30 MB). Si prefieres, cuando la impresora esté encendida puedo descargar
-   uno de sus archivos en modo solo lectura: dime cuál.
-2. **¿Te basta la vista 2D capa a capa?** Es mi recomendación (D1). Si para ti es importante el
-   3D, lo planteo como una versión aparte.
-3. **¿Usas el CFS para imprimir en varios colores?** Si es así, el modo "Por filamento" pasa a
-   ser prioritario.
+- **Permiso para incluir "block_PLA_17m.gcode" (0,6 MB) en el repositorio** como archivo de
+  prueba. El repositorio es público. Si prefieres que no, uso solo un extracto de unas pocas
+  capas sin el nombre del modelo, o solo archivos sintéticos.
