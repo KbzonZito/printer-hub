@@ -11,8 +11,8 @@ versión menor (0.x.0) y las correcciones la de parche (0.x.y).
 | 0.4.0 | Conexión en tiempo real y conexión robusta | xhigh | high | Publicada |
 | 0.5.0 | Mejoras propias (fase 4) | — | medium / low | Publicada |
 | 0.6.0 | Fase 3 low y medium (coste, cola, primera capa, widget, Spoolman, estadísticas, malla, enchufes, editor de config) y mejoras de interfaz | — | low / medium | Publicada |
-| 0.7.0 | Fase 3 high: excluir objetos, notificación con foto y progreso en vivo, ajuste rápido, asistentes de calibración, vista de todas las impresoras | high | high | |
-| 0.8.0 | Vista previa del G-code ([plan](plans/vista-previa-gcode.md)) | xhigh | high | Hecha, pendiente de publicar |
+| 0.7.0 | Fase 3 high: excluir objetos, notificación con foto y progreso en vivo, ajuste rápido, asistentes de calibración, vista de todas las impresoras | high | high | Incluida en 0.8.0 |
+| 0.8.0 | Vista previa del G-code ([plan](plans/vista-previa-gcode.md)) | xhigh | high | Publicada |
 | 1.0.0-rc | Optimización, limpieza, pruebas y documentación | high | low a high | |
 | 1.0.0 | Publicación tras la lista de comprobación final | — | low | |
 
