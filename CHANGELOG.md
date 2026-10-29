@@ -5,6 +5,8 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-29
+
 ### Added
 - G-code preview: "Preview" in a file's details shows it layer by layer, with
   colors by line type. Layers appear while the file downloads, and a file opens instantly the
