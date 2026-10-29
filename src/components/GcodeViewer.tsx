@@ -7,10 +7,12 @@ import { useBackHandler } from '../backStack';
 import { baseName, formatBytes } from '../format';
 import { PLATE, TOOL_FALLBACK, visibleOnPlate } from '../gcode/colors';
 import { KIND_COLORS, KINDS } from '../gcode/kinds';
-import { layerBytes } from '../gcode/model';
+import { layerAtOffset, layerBytes } from '../gcode/model';
 import {
   drawBed,
   drawLayer,
+  drawLayerLive,
+  drawNozzle,
   drawTravel,
   fitView,
   zoomedView,
@@ -37,21 +39,34 @@ const speed = (bytes: number, ms: number | null) =>
  * Full-screen G-code preview: one layer seen from above, a layer slider and an info panel with
  * the download and parse figures. Pinch or double tap to zoom: the canvas is redrawn at the new
  * scale, so lines stay sharp.
+ *
+ * `live` follows the print in progress (D8): the layer being printed, what's done in full color
+ * and what's left faint, the nozzle, and excluded parts crossed out.
  */
 export function GcodeViewer({
   printer,
   file,
+  live = false,
   onClose,
 }: {
   printer: Printer;
   file: GcodeFile;
+  live?: boolean;
   onClose: () => void;
 }) {
   const t = useT();
   const { status } = usePrinterStatus();
-  const [confirmed, setConfirmed] = useState(file.size <= WARN_BYTES);
-  const model = useGcodeModel(printer, confirmed ? file : null);
+  // While printing, Klipper may read the file well ahead; no confirmation for the live view.
+  const [confirmed, setConfirmed] = useState(live || file.size <= WARN_BYTES);
+  const filePosition = live ? (status?.filePosition ?? null) : null;
+  const model = useGcodeModel(printer, confirmed ? file : null, { liveOffset: filePosition });
   const [layer, setLayer] = useState(0);
+  /** Live view: the layer follows the print until the user picks another. */
+  const [following, setFollowing] = useState(live);
+  const pick = (n: number) => {
+    setFollowing(false);
+    setLayer(n);
+  };
   const [info, setInfo] = useState(false);
   const [showTravel, setShowTravel] = useState(false);
   const [showPrev, setShowPrev] = useState(true);
@@ -80,7 +95,17 @@ export function GcodeViewer({
   }, []);
 
   const layers = model.layers;
-  const current = Math.min(layer, Math.max(0, layers.length - 1));
+  const printingLayer = filePosition != null ? layerAtOffset(layers, filePosition) : -1;
+  const current =
+    following && printingLayer >= 0
+      ? printingLayer
+      : Math.min(layer, Math.max(0, layers.length - 1));
+  // Excluded parts, as polyObject values (object index + 1).
+  const objectNames = model.summary?.objects ?? [];
+  const excludedNames = live ? (status?.excludedObjects ?? []).map((n) => n.toUpperCase()) : [];
+  const excluded = new Set(
+    excludedNames.map((n) => objectNames.indexOf(n) + 1).filter((i) => i > 0),
+  );
   const bounds = model.summary?.bounds;
   const frame: Frame =
     status?.bedMin && status.bedMax
@@ -136,8 +161,11 @@ export function GcodeViewer({
     const l = layers[current];
     if (!l) return;
     const colors = by === 'tool' ? toolColors : KIND_COLORS;
-    drawLayer(ctx, l, view, dpr, { colors, by });
+    if (live) drawLayerLive(ctx, l, view, dpr, { colors, by, doneOffset: filePosition, excluded });
+    else drawLayer(ctx, l, view, dpr, { colors, by });
     if (showTravel) drawTravel(ctx, l, view, dpr, 'rgba(255,255,255,0.45)');
+    if (live && current === printingLayer && status)
+      drawNozzle(ctx, view, dpr, status.position[0], status.position[1], '#ff7043');
   }, [
     layers,
     current,
@@ -147,6 +175,12 @@ export function GcodeViewer({
     showTravel,
     by,
     toolColors.join(),
+    live,
+    filePosition,
+    printingLayer,
+    status?.position[0],
+    status?.position[1],
+    [...excluded].join(),
     frame.minX,
     frame.minY,
     frame.maxX,
@@ -157,15 +191,19 @@ export function GcodeViewer({
   const last = layers.length - 1;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') setLayer((n) => Math.min(last, n + 1));
-      else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') setLayer((n) => Math.max(0, n - 1));
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') pick(Math.min(last, current + 1));
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') pick(Math.max(0, current - 1));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [last]);
+  }, [last, current]);
 
   const l = layers[current];
-  const total = model.summary ? layers.length : (model.layersHint ?? layers.length);
+  // Until the whole file is read, the header's count ("; total layer number").
+  const total =
+    model.status === 'ready'
+      ? layers.length
+      : (model.layersHint ?? model.summary?.layersHint ?? layers.length);
   const loading = model.status === 'loading';
   const pct = model.total ? Math.min(1, model.received / model.total) : 0;
   const modelBytes = layers.reduce((s, x) => s + layerBytes(x), 0);
@@ -242,7 +280,7 @@ export function GcodeViewer({
           <button
             className="viewer-btn"
             disabled={current <= 0}
-            onClick={() => setLayer(current - 1)}
+            onClick={() => pick(current - 1)}
             aria-label={t('gcode.prev')}
           >
             <ChevronLeft size={22} />
@@ -253,7 +291,7 @@ export function GcodeViewer({
             min={0}
             max={Math.max(0, layers.length - 1)}
             value={current}
-            onChange={(e) => setLayer(Number(e.target.value))}
+            onChange={(e) => pick(Number(e.target.value))}
             aria-label={t('gcode.layer')}
             aria-valuetext={
               l ? t('gcode.layerOf', { n: current + 1, total, z: l.z.toFixed(2) }) : undefined
@@ -262,15 +300,25 @@ export function GcodeViewer({
           <button
             className="viewer-btn"
             disabled={current >= layers.length - 1}
-            onClick={() => setLayer(current + 1)}
+            onClick={() => pick(current + 1)}
             aria-label={t('gcode.next')}
           >
             <ChevronRight size={22} />
           </button>
         </div>
         <div className="gcode-layer-text" aria-live="polite">
-          {l ? t('gcode.layerOf', { n: current + 1, total, z: l.z.toFixed(2) }) : '…'}
+          {!l
+            ? '…'
+            : model.partial
+              ? t('gcode.layerZ', { z: l.z.toFixed(2) })
+              : t('gcode.layerOf', { n: current + 1, total, z: l.z.toFixed(2) })}
+          {live && current === printingLayer && ` · ${t('gcode.printingNow')}`}
         </div>
+        {live && !following && printingLayer >= 0 && (
+          <button className="btn small gcode-follow" onClick={() => setFollowing(true)}>
+            {t('gcode.backToCurrent')}
+          </button>
+        )}
         <div className="gcode-options" role="group" aria-label={t('gcode.options')}>
           <button
             className={`chip ${showPrev ? 'on' : ''}`}

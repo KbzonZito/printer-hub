@@ -360,7 +360,7 @@ genera unos sintéticos.
 - Panel de información (G.1).
 - Accesibilidad: el deslizador con su etiqueta y el texto de la capa anunciado al cambiar.
 
-### G.7 Modo en vivo — **high**
+### G.7 Modo en vivo — **high** ✅
 
 D8 y D11 completos:
 - `file_position` y `file_size` en la suscripción;
@@ -371,14 +371,14 @@ D8 y D11 completos:
 - seguir la capa actual y el botón para volver a ella;
 - piezas excluidas tachadas.
 
-### G.8 Puntos de entrada — **medium**
+### G.8 Puntos de entrada — **medium** ✅ (sin el opcional de excluir tocando en el visor)
 
 - Detalles del archivo: botón "Vista previa".
 - Inicio, durante una impresión: "Ver capa actual", junto a "Objetos".
 - Opcional, si sobra tiempo: tocar una pieza en el visor durante la impresión para excluirla, con
   la misma confirmación del mapa de objetos.
 
-### G.9 Pruebas y rendimiento — **medium**
+### G.9 Pruebas y rendimiento — **medium** ✅
 
 - `npm run bench:gcode`: genera 10, 50 y 150 MB y mide la velocidad de lectura y la memoria del
   modelo, para detectar si un cambio la empeora.
@@ -456,6 +456,26 @@ Medido en el Mac con `npm run bench:gcode`:
   HTTP y completa lo que falta. En la lista solo pide 8 KB, para la miniatura pequeña. El final
   se pide como `bytes=inicio-`, que los navegadores permiten sin consulta CORS previa (a
   diferencia de `bytes=-N`).
+
+## Resultados de la sesión 3 (2026-10-29)
+
+- **Modo en vivo** ("Ver capa actual" en Inicio, durante una impresión): sigue la capa por
+  `file_position`, dibuja lo hecho a todo color y lo pendiente atenuado, la boquilla en
+  `toolhead.position` y las piezas excluidas en gris discontinuo. Al mover el deslizador deja de
+  seguir y aparece "Volver a la capa actual".
+- **D11 medido** con el simulador a 0,9 MB/s, imprimiendo un archivo de 50 MB al 60 %: la capa
+  actual aparece a los **3,0 s** (descargando desde el principio tardaría más de 30 s).
+- **Ajuste respecto al plan:** el atajo solo se usa si la impresión va más allá de los primeros
+  4 MB del archivo. Antes de eso, descargar desde el principio llega antes (medido: 1,8 s frente
+  a 3,5 s para un archivo de 4 MB al 36 %). El tramo es de 1,5 MB antes y 0,75 MB después de la
+  posición (la capa actual y lo que queda de ella).
+- `GcodeParser.seek()` con prueba: a mitad de tu archivo real dibuja lo mismo que leyéndolo
+  entero.
+- Simulador: `MOCK_PRINT` y `MOCK_PROGRESS` para imprimir otro archivo desde otro punto; los
+  objetos de `exclude_object` coinciden con los del G-code generado y la boquilla sigue sus
+  movimientos.
+- Queda fuera (opcional en G.8): excluir una pieza tocándola en el visor. El mapa de objetos ya
+  lo hace.
 
 ## Objetivos medibles
 

@@ -45,6 +45,9 @@ export interface PrinterStatus {
   objects: PrintObject[];
   excludedObjects: string[];
   currentObject: string | null;
+  /** Byte of the file Klipper is reading (virtual_sdcard), for the live G-code view. */
+  filePosition: number | null;
+  fileSize: number | null;
   /** Bed limits (toolhead axis_minimum / axis_maximum), for drawing the bed. */
   bedMin: [number, number] | null;
   bedMax: [number, number] | null;
@@ -64,6 +67,7 @@ export interface GcodeFile {
 }
 
 export interface FileMetadata {
+  modified?: number;
   size?: number;
   estimated_time?: number;
   filament_weight_total?: number;

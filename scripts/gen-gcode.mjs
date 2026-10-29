@@ -15,7 +15,7 @@ const n = (v, digits = 3) =>
     .toString()
     .replace(/^(-?)0\./, '$1.');
 
-const OBJECTS = [
+export const OBJECTS = [
   { name: 'cylinder.stl_id_0_copy_0', cx: 95, cy: 140, r: 22 },
   { name: 'cylinder.stl_id_0_copy_1', cx: 165, cy: 140, r: 22 },
   { name: 'box.stl_id_1_copy_0', cx: 130, cy: 80, w: 50, h: 26 },
@@ -112,6 +112,23 @@ function layerGcode(layer, z, tools) {
     out.push('G1 E-.8 F2400', `EXCLUDE_OBJECT_END NAME=${o.name}`);
   });
   return out.join('\n') + '\n';
+}
+
+/** The objects as Klipper reports them (exclude_object), for the simulator. */
+export function objectDefinitions() {
+  return OBJECTS.map((o) => {
+    const [hw, hh] = o.r ? [o.r, o.r] : [o.w / 2, o.h / 2];
+    return {
+      name: o.name.toUpperCase(),
+      center: [o.cx, o.cy],
+      polygon: [
+        [o.cx - hw, o.cy - hh],
+        [o.cx + hw, o.cy - hh],
+        [o.cx + hw, o.cy + hh],
+        [o.cx - hw, o.cy + hh],
+      ],
+    };
+  });
 }
 
 /** About `megabytes` of G-code (it repeats layers until the size is reached). */

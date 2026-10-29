@@ -74,7 +74,7 @@ export function subscription(names: StatusNames): Record<string, string[]> {
       'filament_used',
       'info',
     ],
-    virtual_sdcard: ['progress'],
+    virtual_sdcard: ['progress', 'file_position', 'file_size'],
     display_status: ['progress'],
     extruder: ['temperature', 'target', 'can_extrude'],
     heater_bed: ['temperature', 'target'],
@@ -170,6 +170,8 @@ export function parseStatus(s: RawStatus, names: StatusNames): PrinterStatus {
     objects: parseObjects(ex.objects),
     excludedObjects: Array.isArray(ex.excluded_objects) ? ex.excluded_objects : [],
     currentObject: typeof ex.current_object === 'string' ? ex.current_object : null,
+    filePosition: s.virtual_sdcard?.file_position ?? null,
+    fileSize: s.virtual_sdcard?.file_size ?? null,
     bedMin: xy(s.toolhead?.axis_minimum),
     bedMax: xy(s.toolhead?.axis_maximum),
   };

@@ -23,6 +23,8 @@ other printer that exposes Moonraker (the same API Mobileraker uses).
 - **Notifications** when a print finishes, pauses or fails, even with the app closed, with a
   photo (camera snapshot or the file's thumbnail); live progress on Android 16; a **home
   screen widget** and a **Quick Settings tile** with progress and finish time.
+- **G-code preview** layer by layer with zoom and colors by line type or filament, and a
+  **live view** of the layer being printed. Previews are saved on the phone to open instantly.
 - **Exclude objects** from a running print on a bed map, **guided calibrations** (PID, Z
   offset, input shaper) and an **all printers** view.
 - **Share a .gcode** from another app (Drive, WhatsApp, your slicer…) to upload or print it.

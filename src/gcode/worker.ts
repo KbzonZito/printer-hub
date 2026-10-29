@@ -8,6 +8,7 @@ import { GcodeParser } from './parser';
 export type ToWorker =
   | { type: 'start'; options?: ConstructorParameters<typeof GcodeParser>[0] }
   | { type: 'chunk'; data: ArrayBuffer }
+  | { type: 'seek'; offset: number }
   | { type: 'end' };
 
 export type FromWorker =
@@ -45,6 +46,8 @@ self.onmessage = (e: MessageEvent<ToWorker>) => {
           { type: 'layers', layers, hint: parser!.peekSummary().layersHint, busyMs: busy },
           layers,
         );
+    } else if (m.type === 'seek') {
+      parser!.seek(m.offset);
     } else if (m.type === 'end') {
       const t0 = performance.now();
       const { layers, summary } = parser!.finish();

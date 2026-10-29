@@ -206,3 +206,23 @@ describe('GcodeParser with the simulator G-code (scripts/gen-gcode.mjs)', () => 
     expect(layers[5].z - layers[4].z).toBeCloseTo(0.2);
   });
 });
+
+describe('GcodeParser.seek (live mode, D11)', () => {
+  it('draws the layers of a range in the middle of the file with the header modes', () => {
+    const data = new Uint8Array(fixture);
+    const full = parse(data);
+    const p = new GcodeParser();
+    // Header (M83, objects), then a range around layer 60.
+    p.push(data.subarray(0, 64 * 1024));
+    const from = full.layers[58].start + 500; // in the middle of layer 58
+    const to = full.layers[63].start + 100; // a bit into layer 63
+    p.seek(from);
+    const got = [...p.push(data.subarray(from, to))];
+    // Layer 58 is skipped (started before the range); 59–62 are complete; 63 is cut, so the
+    // caller drops the last layer unless the range reached the end of the file.
+    expect(got.map((l) => l.z)).toEqual(full.layers.slice(59, 63).map((l) => l.z));
+    expect(pts(got[0])).toEqual(pts(full.layers[59]));
+    expect(Array.from(got[1].polyOffset)).toEqual(Array.from(full.layers[60].polyOffset));
+    expect(p.peekSummary().objects).toEqual(['BLOCK.STL_1_ID_0_COPY_0']);
+  });
+});

@@ -163,3 +163,92 @@ export function drawTravel(
   ctx.stroke();
   ctx.setLineDash([]);
 }
+
+export interface LiveOptions {
+  colors: string[];
+  by: ColorBy;
+  /** File byte being printed: polylines starting after it are still to come (drawn faint). */
+  doneOffset: number | null;
+  /** Objects (polyObject values) excluded from the print, drawn dashed and grey. */
+  excluded: Set<number>;
+}
+
+/**
+ * The layer being printed: what's done in full color, what's left faint and excluded parts
+ * dashed. Not cached (it changes as the print advances); one layer is cheap to draw.
+ */
+export function drawLayerLive(
+  ctx: CanvasRenderingContext2D,
+  layer: GcodeLayer,
+  view: View,
+  dpr: number,
+  opts: LiveOptions,
+) {
+  setView(ctx, view, dpr);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const px = 1 / (view.scale * dpr);
+  const width = Math.max(0.42, px);
+  const { points, polyStart, polyOffset, polyObject } = layer;
+  const group = opts.by === 'kind' ? layer.polyKind : layer.polyTool;
+  // One path per style and color, filled in a single pass over the polylines.
+  const done = new Map<number, Path2D>();
+  const todo = new Map<number, Path2D>();
+  const excluded = new Path2D();
+  const n = polyStart.length;
+  for (let p = 0; p < n; p++) {
+    const from = polyStart[p];
+    const to = p + 1 < n ? polyStart[p + 1] : points.length / 2;
+    let path: Path2D;
+    if (opts.excluded.has(polyObject[p])) path = excluded;
+    else {
+      const map = opts.doneOffset != null && polyOffset[p] >= opts.doneOffset ? todo : done;
+      path = map.get(group[p]) ?? new Path2D();
+      map.set(group[p], path);
+    }
+    path.moveTo(points[from * 2], points[from * 2 + 1]);
+    for (let i = from + 1; i < to; i++) path.lineTo(points[i * 2], points[i * 2 + 1]);
+  }
+  ctx.lineWidth = width;
+  ctx.globalAlpha = 0.25;
+  for (const [g, path] of todo) {
+    ctx.strokeStyle = opts.colors[g] ?? opts.colors[opts.colors.length - 1];
+    ctx.stroke(path);
+  }
+  ctx.globalAlpha = 1;
+  for (const [g, path] of done) {
+    ctx.strokeStyle = opts.colors[g] ?? opts.colors[opts.colors.length - 1];
+    ctx.stroke(path);
+  }
+  ctx.globalAlpha = 0.6;
+  ctx.setLineDash([3 * px, 3 * px]);
+  ctx.lineWidth = Math.max(px, width * 0.5);
+  ctx.strokeStyle = '#9aa0a6';
+  ctx.stroke(excluded);
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+}
+
+/** The nozzle: a ring at its X/Y position, the same size at any zoom. */
+export function drawNozzle(
+  ctx: CanvasRenderingContext2D,
+  view: View,
+  dpr: number,
+  x: number,
+  y: number,
+  color: string,
+) {
+  const [sx, sy] = toScreen(view, x, y);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.beginPath();
+  ctx.arc(sx, sy, 7, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fill();
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = color;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(sx, sy, 2.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+}

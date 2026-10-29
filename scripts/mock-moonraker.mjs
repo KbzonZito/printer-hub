@@ -4,6 +4,8 @@
 //   npm run mock                          normal printer, printing a Benchy
 //   MOCK_SCENARIO=drop npm run mock       pick a failure scenario (see SCENARIOS below)
 //   MOCK_PORT=7126 npm run mock           another port
+//   MOCK_PRINT=pruebas/grande_50mb.gcode MOCK_PROGRESS=0.6 npm run mock
+//                                         print another file, from another point
 //   MOCK_FILE_RATE=0 npm run mock         G-code downloads at full speed (default ~0.9 MB/s,
 //                                         like the Creality Hi)
 //
@@ -12,7 +14,7 @@
 import { readFileSync } from 'node:fs';
 import http from 'node:http';
 import { WebSocketServer } from 'ws';
-import { generateGcode } from './gen-gcode.mjs';
+import { generateGcode, objectDefinitions } from './gen-gcode.mjs';
 
 const SCENARIOS = {
   normal: 'Ready and printing',
@@ -83,14 +85,19 @@ const printer = {
   webhooks: { state: klippy.state, state_message: klippy.message },
   print_stats: {
     state: 'printing',
-    filename: 'Benchy_PLA_0.2mm.gcode',
+    filename: process.env.MOCK_PRINT ?? 'Benchy_PLA_0.2mm.gcode',
     print_duration: 2400,
     total_duration: 2460,
     filament_used: 2345,
     message: '',
     info: { current_layer: 87, total_layer: 240 },
   },
-  virtual_sdcard: { progress: 0.36, is_active: true, file_position: 1512000 },
+  virtual_sdcard: {
+    progress: Number(process.env.MOCK_PROGRESS ?? 0.36),
+    is_active: true,
+    file_position: 1512000,
+    file_size: 4_200_000,
+  },
   display_status: { progress: 0.36, message: null },
   extruder: { temperature: 209.6, target: 210, power: 0.4, can_extrude: true },
   heater_bed: { temperature: 59.8, target: 60, power: 0.2 },
@@ -116,25 +123,9 @@ const printer = {
   [CHAMBER]: { temperature: 31.2 },
 };
 
-/** Four parts on the bed, like a plate sliced with labelled objects. */
+/** The parts of the simulated print: the same objects the generated G-code labels. */
 function mockObjects() {
-  const square = (name, x, y, w, h) => ({
-    name,
-    center: [x + w / 2, y + h / 2],
-    polygon: [
-      [x, y],
-      [x + w, y],
-      [x + w, y + h],
-      [x, y + h],
-    ],
-  });
-  const objects = [
-    square('3DBENCHY.STL_ID_0_COPY_0', 60, 150, 60, 32),
-    square('3DBENCHY.STL_ID_0_COPY_1', 140, 150, 60, 32),
-    square('CALIBRATION_CUBE.STL_ID_1_COPY_0', 70, 70, 20, 20),
-    // A tiny part with only a center, like some slicers produce.
-    { name: 'PIN.STL_ID_2_COPY_0', center: [180, 80], polygon: [] },
-  ];
+  const objects = objectDefinitions();
   return { objects, excluded_objects: [], current_object: objects[0].name };
 }
 
@@ -272,6 +263,15 @@ setInterval(() => {
     ps.filament_used += 0.4;
     const p = Math.min(1, printer.virtual_sdcard.progress + 0.00005);
     printer.virtual_sdcard.progress = printer.display_status.progress = p;
+    // The byte Klipper is reading, and the toolhead following the real G-code there.
+    const sd = printer.virtual_sdcard;
+    const data = gcodeData.get(ps.filename);
+    if (data) {
+      sd.file_size = data.length;
+      sd.file_position = Math.floor(p * data.length);
+      const xy = positionAt(data, sd.file_position);
+      if (xy) printer.toolhead.position = [xy[0], xy[1], printer.toolhead.position[2], 0];
+    }
     ps.info.current_layer = Math.max(1, Math.round(p * ps.info.total_layer));
     const ex = printer.exclude_object;
     const left = ex.objects.filter((o) => !ex.excluded_objects.includes(o.name));
@@ -279,6 +279,23 @@ setInterval(() => {
   }
   printer.toolhead.estimated_print_time += 0.25;
 }, 250);
+
+/** X/Y of the last move with both, just before byte `pos` (for the simulated toolhead). */
+function positionAt(data, pos) {
+  const lines = data
+    .subarray(Math.max(0, pos - 4000), pos)
+    .toString()
+    .split('\n');
+  // The first piece may be a cut line; skip it.
+  for (let i = lines.length - 1; i > 0; i--) {
+    const l = lines[i];
+    if (!/^G[0-3] /.test(l)) continue;
+    const x = l.match(/ X(-?[\d.]+)/)?.[1];
+    const y = l.match(/ Y(-?[\d.]+)/)?.[1];
+    if (x != null && y != null) return [Number(x), Number(y)];
+  }
+  return null;
+}
 
 /** Fields requested by a query/subscribe ({ name: null | [fields] }). */
 function pick(request) {
@@ -325,6 +342,7 @@ const files = [
   // Creality Hi: slicer "Unknown", no thumbnails, no time; the app reads them from the file.
   { path: 'creality/block_PLA_17m.gcode', modified: now() - 3 * 86400, size: 610_666 },
 ];
+setTimeout(() => gcodeFor(printer.print_stats.filename), 0);
 const CREALITY_FIXTURE = new URL(
   '../src/gcode/fixtures/creality-print-block.gcode',
   import.meta.url,

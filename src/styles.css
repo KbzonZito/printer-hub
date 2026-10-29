@@ -3053,3 +3053,9 @@ fieldset:disabled .tile {
   background: var(--accent);
   color: var(--on-accent);
 }
+
+.gcode-follow {
+  align-self: center;
+  background: var(--accent);
+  color: var(--on-accent);
+}

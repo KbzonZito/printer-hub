@@ -211,6 +211,21 @@ export class GcodeParser {
     return { layers: this.flush(), summary: { ...s, tools: [...s.tools].sort((a, b) => a - b) } };
   }
 
+  /**
+   * Continues at another byte of the file, keeping the modes and objects read so far (from
+   * the header). Nothing is drawn until the next layer comment, since the position before it
+   * is unknown. Layers not yet completed are dropped. Used to show the layer being printed
+   * before the whole file has arrived (D11).
+   */
+  seek(offset: number) {
+    this.carry = null;
+    this.layer = null;
+    this.done = [];
+    this.pen = false;
+    this.offset = offset;
+    this.waiting = true;
+  }
+
   /** Header data parsed so far (layer count, slicer…), for progress while loading. */
   peekSummary(): GcodeSummary {
     return { ...this.summary, points: this.totalPoints };

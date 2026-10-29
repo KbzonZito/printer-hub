@@ -20,10 +20,12 @@ import {
   thumbnailUrl,
   type FileMetadata,
   type Heater,
+  type GcodeFile,
 } from '../api/moonraker';
 import { CameraView } from '../components/CameraView';
 import { CameraViewer } from '../components/CameraViewer';
 import { ExcludeObjectsSheet } from '../components/ExcludeObjectsSheet';
+import { GcodeViewer } from '../components/GcodeViewer';
 import { SpoolCard } from '../components/SpoolCard';
 import { TempChart } from '../components/TempChart';
 import { TuneSheet } from '../components/TuneSheet';
@@ -102,6 +104,18 @@ export function Dashboard({ printer }: { printer: Printer }) {
   const [confirm, setConfirm] = useState<'cancel' | null>(null);
   const [viewer, setViewer] = useState(false);
   const [objectsOpen, setObjectsOpen] = useState(false);
+  /** The file being printed, for the live G-code view. */
+  const [liveFile, setLiveFile] = useState<GcodeFile | null>(null);
+  const openLive = async () => {
+    if (!status?.filename) return;
+    // Modified time and size identify the saved preview (cache) of this exact file.
+    const meta = await fetchMetadata(printer, status.filename).catch(() => null);
+    setLiveFile({
+      path: status.filename,
+      size: meta?.size ?? status.fileSize ?? 0,
+      modified: meta?.modified ?? 0,
+    });
+  };
   const [tune, setTune] = useState(false);
 
   const filename = status?.filename;
@@ -252,6 +266,9 @@ export function Dashboard({ printer }: { printer: Printer }) {
                     <Square size={16} /> {t('home.cancel')}
                   </button>
                 </div>
+                <button className="btn" onClick={openLive} disabled={!status.filename}>
+                  <Layers size={18} /> {t('gcode.live')}
+                </button>
                 {status.objects.length > 1 && (
                   <button className="btn" onClick={() => setObjectsOpen(true)}>
                     <Shapes size={18} />
@@ -428,6 +445,9 @@ export function Dashboard({ printer }: { printer: Printer }) {
           open={objectsOpen}
           onClose={() => setObjectsOpen(false)}
         />
+      )}
+      {liveFile && (
+        <GcodeViewer printer={printer} file={liveFile} live onClose={() => setLiveFile(null)} />
       )}
       {viewer && <CameraViewer printer={printer} onClose={() => setViewer(false)} />}
       <ConfirmSheet

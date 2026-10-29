@@ -9,6 +9,9 @@ new features bump the minor number, fixes bump the patch number.
 - G-code preview (first version): "Preview" in a file's details shows it layer by layer, with
   colors by line type. Layers appear while the file downloads, and a file opens instantly the
   second time. An info panel shows the download and parse times.
+- Live G-code view: "Current layer" on Home while printing follows the layer being printed,
+  with what's done in full color, what's left faint, the nozzle and excluded parts crossed
+  out. On big files it loads the part being printed first, so it shows in a few seconds.
 - G-code preview: pinch or double tap to zoom (lines stay sharp), layer below and travel moves
   on or off, "By filament" colors for multicolor prints, and arrow keys to change the layer.
 - Files from slicers Moonraker doesn't recognise (Creality Print on the Creality Hi) now show
