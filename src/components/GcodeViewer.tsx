@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { StatusBar } from '@capacitor/status-bar';
-import { ChevronLeft, ChevronRight, Info, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, RefreshCw, X } from 'lucide-react';
 import type { GcodeFile } from '../api/moonraker';
 import { useBackHandler } from '../backStack';
 import { baseName, formatBytes } from '../format';
@@ -246,6 +246,19 @@ export function GcodeViewer({
             </div>
           ))}
         </div>
+        {st.fromCache && st.downloadMs != null && (
+          <p className="muted small">{t('gcode.firstLoadNote')}</p>
+        )}
+        <button
+          className="btn"
+          disabled={model.status === 'loading'}
+          onClick={() => {
+            setInfo(false);
+            model.reload();
+          }}
+        >
+          <RefreshCw size={18} /> {t('gcode.reload')}
+        </button>
       </Sheet>
     </div>,
     document.body,

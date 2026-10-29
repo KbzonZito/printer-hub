@@ -11,6 +11,8 @@ const LIMIT = 150e6;
 export interface CachedModel {
   summary: GcodeSummary;
   layers: GcodeLayer[];
+  /** Figures of the download that produced it (useGcodeModel's LoadStats). */
+  stats?: Record<string, unknown>;
 }
 
 interface Meta {
@@ -76,5 +78,21 @@ export async function putModel(key: string, model: CachedModel): Promise<void> {
     }
   } catch {
     /* storage full or unavailable: the model just isn't kept */
+  }
+}
+
+/** Forgets one model ("Download again"). */
+export async function deleteModel(key: string): Promise<void> {
+  try {
+    const db = await open();
+    const tx = db.transaction([MODELS, META], 'readwrite');
+    tx.objectStore(MODELS).delete(key);
+    tx.objectStore(META).delete(key);
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    /* nothing to delete */
   }
 }

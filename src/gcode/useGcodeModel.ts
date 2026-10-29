@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { gcodeFileUrl, type GcodeFile } from '../api/moonraker';
 import type { Printer } from '../store';
-import { getModel, putModel } from './cache';
+import { deleteModel, getModel, putModel } from './cache';
 import type { GcodeLayer, GcodeSummary } from './model';
 import { PARSER_VERSION } from './parser';
 import type { FromWorker, ToWorker } from './worker';
@@ -36,6 +36,8 @@ export interface GcodeModelState {
   total: number | null;
   error: string | null;
   stats: LoadStats;
+  /** Drops the cached model and downloads the file again. */
+  reload: () => void;
 }
 
 const emptyStats = (): LoadStats => ({
@@ -53,7 +55,9 @@ export function cacheKey(printer: Printer, file: GcodeFile) {
 
 /** Loads and parses a G-code file; `file` null means nothing to load. */
 export function useGcodeModel(printer: Printer, file: GcodeFile | null): GcodeModelState {
-  const [state, setState] = useState<GcodeModelState>(() => initial());
+  const [state, setState] = useState<Omit<GcodeModelState, 'reload'>>(() => initial());
+  // Bumped by reload(): skips the cache once.
+  const [nonce, setNonce] = useState(0);
   const key = file ? cacheKey(printer, file) : null;
   const latest = useRef(state);
   latest.current = state;
@@ -70,7 +74,7 @@ export function useGcodeModel(printer: Printer, file: GcodeFile | null): GcodeMo
     let total: number | null = file.size || null;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
-    const publish = (patch: Partial<GcodeModelState> = {}) => {
+    const publish = (patch: Partial<Omit<GcodeModelState, 'reload'>> = {}) => {
       if (cancelled) return;
       clearTimeout(timer);
       timer = undefined;
@@ -94,10 +98,13 @@ export function useGcodeModel(printer: Printer, file: GcodeFile | null): GcodeMo
 
     (async () => {
       if (file.size > MAX_BYTES) return fail('too-big');
-      const cached = await getModel(key);
+      if (nonce) await deleteModel(key);
+      const cached = nonce ? null : await getModel(key);
       if (cancelled) return;
       if (cached) {
         layers.push(...cached.layers);
+        // Keep the figures of the original download for the info panel.
+        Object.assign(stats, cached.stats ?? {});
         stats.fromCache = true;
         stats.bytes = cached.summary.bytes;
         hint = cached.summary.layersHint;
@@ -119,7 +126,7 @@ export function useGcodeModel(printer: Printer, file: GcodeFile | null): GcodeMo
         publish({ status: 'ready', summary: m.summary });
         worker?.terminate();
         worker = null;
-        putModel(key, { summary: m.summary, layers });
+        putModel(key, { summary: m.summary, layers, stats: { ...stats, fromCache: false } });
       };
       worker.onerror = (e) => fail(e.message || 'worker');
       post({ type: 'start' });
@@ -164,12 +171,12 @@ export function useGcodeModel(printer: Printer, file: GcodeFile | null): GcodeMo
       controller.abort();
       worker?.terminate();
     };
-  }, [key]);
+  }, [key, nonce]);
 
-  return state;
+  return { ...state, reload: () => setNonce((n) => n + 1) };
 }
 
-function initial(): GcodeModelState {
+function initial(): Omit<GcodeModelState, 'reload'> {
   return {
     status: 'loading',
     layers: [],
