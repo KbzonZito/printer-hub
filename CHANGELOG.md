@@ -5,6 +5,22 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+### Added
+- Exclude objects: while printing a plate with several parts, "Objects" on Home opens a bed
+  map; tap a part (or pick it from the list) and confirm to stop printing it. Excluded parts
+  stay drawn, crossed out. Needs [exclude_object] and a slicer that labels objects.
+- Notifications for finished, paused, cancelled or failed prints include a photo: a camera
+  still frame when the camera has one, otherwise the file's thumbnail.
+- Android 16: the print progress notification uses the new progress style, with the
+  percentage in the status bar and a countdown to the finish time (a "Live Update" on
+  Android 16 QPR2 and later).
+- Quick Settings tile with the printer's state and progress; tap it to open the app.
+- Guided calibrations in Control: nozzle and bed PID, Z offset with the paper test, and input
+  shaper (when the printer has an accelerometer). Each one explains what will happen, shows
+  the result and lets you save it (SAVE_CONFIG) or discard it.
+- All printers: with more than one printer, tap the name at the top to see them all with
+  their camera, state, progress and temperatures, and tap one to switch to it.
+
 ## [0.6.0] - 2026-10-27
 
 ### Changed

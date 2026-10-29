@@ -48,6 +48,17 @@
                 android:value="Monitors a 3D printer on the local network while it prints" />
         </service>
 
+        <service
+            android:name=".PrinterTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_stat_printer"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
         <receiver
             android:name=".PrinterWidget"
             android:exported="false">
@@ -76,4 +87,6 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Android 16+: show print progress as a Live Update in the status bar. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
 </manifest>

@@ -71,6 +71,7 @@ public class PrinterMonitorPlugin extends Plugin {
                     .putString("lang", call.getString("lang", "es"))
                     .putBoolean("first_layer", call.getBoolean("firstLayer", false))
                     .putString("power_off", call.getString("powerOff", ""))
+                    .putString("snapshots", call.getString("snapshots", ""))
                     .apply();
         }
         PrinterWidget.updateAll(getContext());

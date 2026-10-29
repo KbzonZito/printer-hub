@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { PrinterStatus } from './api/moonraker';
+import { snapshotUrls, type PrinterStatus } from './api/moonraker';
 import { isNative, PrinterMonitor, type SharedFile } from './native';
 import type { Printer, Settings } from './store';
 
@@ -18,18 +18,27 @@ export function useNativeSync(
 
   useEffect(() => {
     if (!isNative) return;
-    PrinterMonitor.configure(
-      printer
-        ? {
-            host: printer.host,
-            port: printer.port,
-            name: printer.name,
-            lang: settings.lang,
-            firstLayer: settings.notifyFirstLayer,
-            powerOff: settings.powerOffDevice,
-          }
-        : {},
-    ).catch(() => {});
+    let cancelled = false;
+    (async () => {
+      const snapshots = printer ? (await snapshotUrls(printer)).join(',') : '';
+      if (cancelled) return;
+      await PrinterMonitor.configure(
+        printer
+          ? {
+              host: printer.host,
+              port: printer.port,
+              name: printer.name,
+              lang: settings.lang,
+              firstLayer: settings.notifyFirstLayer,
+              powerOff: settings.powerOffDevice,
+              snapshots,
+            }
+          : {},
+      );
+    })().catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [
     printer?.host,
     printer?.port,
@@ -37,6 +46,7 @@ export function useNativeSync(
     settings.lang,
     settings.notifyFirstLayer,
     settings.powerOffDevice,
+    printer?.cameraUrl,
   ]);
 
   const printing = status?.state === 'printing' || status?.state === 'paused';

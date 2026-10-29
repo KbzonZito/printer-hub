@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { gcodeStore, listMacros, printerActions, type GcodeLine } from '../api/moonraker';
 import { BedMeshCard } from '../components/BedMeshCard';
+import { CalibrationCard } from '../components/CalibrationCard';
 import { ConfigCard } from '../components/ConfigEditor';
 import { PowerCard } from '../components/PowerCard';
 import { TuneSheet } from '../components/TuneSheet';
@@ -277,6 +278,7 @@ export function ControlScreen({ printer }: { printer: Printer }) {
             </div>
           </section>
           <BedMeshCard printer={printer} printing={printing} />
+          <CalibrationCard printer={printer} printing={printing} />
         </div>
       </fieldset>
 

@@ -2,7 +2,15 @@ import { useEffect, useState } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { FileUp, FolderOpen, Gauge, Move, Printer as PrinterIcon, Settings } from 'lucide-react';
+import {
+  FileUp,
+  FolderOpen,
+  Gauge,
+  LayoutGrid,
+  Move,
+  Printer as PrinterIcon,
+  Settings,
+} from 'lucide-react';
 import { uploadFile } from './api/moonraker';
 import { handleBack, useBackHandler } from './backStack';
 import { ConnectionBanner, KlippyStateScreen } from './components/ConnectionStatus';
@@ -17,6 +25,7 @@ import { ControlScreen } from './screens/ControlScreen';
 import { Dashboard } from './screens/Dashboard';
 import { FilesScreen } from './screens/FilesScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { AllPrinters } from './screens/AllPrinters';
 import { Wizard } from './onboarding/Wizard';
 import { useSettings, useStore, type Printer, type Settings as AppSettings } from './store';
 import { useNativeSync, useSharedFiles } from './useNativeBridge';
@@ -184,8 +193,11 @@ export default function App() {
 function Main({ active }: { active: Printer }) {
   const t = useT();
   const { settings } = useSettings();
-  const { savePrinter } = useStore();
+  const { printers } = useStore();
   const [tab, setTab] = useState<Tab>('home');
+  // Every printer at a glance (only with more than one); it replaces the current tab.
+  const [overview, setOverview] = useState(false);
+  const many = printers.length > 1;
   const snapshot = useConnectionSnapshot();
   const st = snapshot.status;
   useNativeSync(active, st, settings);
@@ -193,6 +205,7 @@ function Main({ active }: { active: Printer }) {
 
   // Back from another tab returns to Home before leaving the app.
   useBackHandler(tab !== 'home', () => setTab('home'));
+  useBackHandler(overview, () => setOverview(false));
 
   const kind = snapshot.state.kind;
   const klippyProblem = kind === 'klippy';
@@ -204,19 +217,37 @@ function Main({ active }: { active: Printer }) {
         <NavBar
           tabs={TABS}
           active={tab}
-          onSelect={setTab}
+          onSelect={(id) => {
+            setOverview(false);
+            setTab(id);
+          }}
           label={(id) => t(`tab.${id}` as MessageKey)}
         />
 
         <div className="content">
           <header className="topbar">
-            <div>
-              <h1>{active.name}</h1>
+            <button
+              type="button"
+              className="topbar-title"
+              disabled={!many}
+              onClick={() => setOverview(!overview)}
+              aria-label={many ? t('printers.open') : undefined}
+            >
+              <h1>
+                {overview ? t('printers.title') : active.name}
+                {many && <LayoutGrid size={20} className="topbar-title-icon" />}
+              </h1>
               <span className="muted small">
-                <span className={`dot ${dotClass}`} />
-                {kind === 'reconnecting' ? t('common.disconnected') : active.host}
+                {overview ? (
+                  t('printers.count', { n: printers.length })
+                ) : (
+                  <>
+                    <span className={`dot ${dotClass}`} />
+                    {kind === 'reconnecting' ? t('common.disconnected') : active.host}
+                  </>
+                )}
               </span>
-            </div>
+            </button>
             <div className="topbar-actions">
               {kind === 'ready' && st?.state === 'printing' && (
                 <span className="topbar-progress">{Math.round(st.progress * 100)}%</span>
@@ -227,16 +258,24 @@ function Main({ active }: { active: Printer }) {
 
           <ConnectionBanner />
 
-          <main key={active.id}>
-            {klippyProblem && (tab === 'home' || tab === 'control') && (
+          <main key={overview ? 'all' : active.id}>
+            {overview && (
+              <AllPrinters
+                onOpen={() => {
+                  setOverview(false);
+                  setTab('home');
+                }}
+              />
+            )}
+            {!overview && klippyProblem && (tab === 'home' || tab === 'control') && (
               <KlippyStateScreen printer={active} />
             )}
-            {tab === 'home' && !klippyProblem && <Dashboard printer={active} />}
-            {tab === 'control' && !klippyProblem && <ControlScreen printer={active} />}
-            {tab === 'files' && (
+            {!overview && tab === 'home' && !klippyProblem && <Dashboard printer={active} />}
+            {!overview && tab === 'control' && !klippyProblem && <ControlScreen printer={active} />}
+            {!overview && tab === 'files' && (
               <FilesScreen printer={active} onPrintStarted={() => setTab('home')} />
             )}
-            {tab === 'settings' && <SettingsScreen />}
+            {!overview && tab === 'settings' && <SettingsScreen />}
           </main>
         </div>
       </div>

@@ -79,16 +79,26 @@ final class Moonraker {
         }
         String dir = filename.contains("/") ? filename.substring(0, filename.lastIndexOf('/') + 1) : "";
         byte[] png = read(base + "/server/files/gcodes/" + encodePath(dir + best.getString("relative_path")));
-        Bitmap bmp = BitmapFactory.decodeByteArray(png, 0, png.length);
-        if (bmp == null) return null;
         // Widgets have a small memory budget for bitmaps.
-        int max = 300;
-        if (bmp.getWidth() > max || bmp.getHeight() > max) {
-            float k = (float) max / Math.max(bmp.getWidth(), bmp.getHeight());
-            bmp = Bitmap.createScaledBitmap(bmp, Math.round(bmp.getWidth() * k),
-                    Math.round(bmp.getHeight() * k), true);
+        return scaled(BitmapFactory.decodeByteArray(png, 0, png.length), 300);
+    }
+
+    /** A still image from a URL (camera snapshot), or null if it isn't an image. */
+    static Bitmap fetchImage(String url, int max) {
+        try {
+            byte[] data = read(url);
+            return scaled(BitmapFactory.decodeByteArray(data, 0, data.length), max);
+        } catch (Exception e) {
+            return null;
         }
-        return bmp;
+    }
+
+    private static Bitmap scaled(Bitmap bmp, int max) {
+        if (bmp == null) return null;
+        if (bmp.getWidth() <= max && bmp.getHeight() <= max) return bmp;
+        float k = (float) max / Math.max(bmp.getWidth(), bmp.getHeight());
+        return Bitmap.createScaledBitmap(bmp, Math.round(bmp.getWidth() * k),
+                Math.round(bmp.getHeight() * k), true);
     }
 
     static SharedPreferences prefs(Context ctx) {

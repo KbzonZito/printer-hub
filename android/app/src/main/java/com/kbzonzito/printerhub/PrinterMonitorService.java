@@ -9,7 +9,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ServiceInfo;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Icon;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.text.format.DateFormat;
@@ -17,6 +20,7 @@ import android.text.format.DateFormat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.ServiceCompat;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -55,6 +59,8 @@ public class PrinterMonitorService extends Service {
     private String jobFile;
     /** Power device to switch off after the print, and since when we are waiting to. */
     private String powerOffDevice;
+    /** Camera still-frame URLs for photos in the alerts (may be empty). */
+    private String[] snapshots = new String[0];
     private long powerOffSince;
 
     static void start(Context ctx) {
@@ -76,6 +82,8 @@ public class PrinterMonitorService extends Service {
         lang = prefs.getString("lang", "es");
         firstLayerAlert = prefs.getBoolean("first_layer", false);
         powerOffDevice = prefs.getString("power_off", "");
+        String shots = prefs.getString("snapshots", "");
+        snapshots = shots.isEmpty() ? new String[0] : shots.split(",");
         createChannels(this, lang);
 
         int type = Build.VERSION.SDK_INT >= 34 ? ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE : 0;
@@ -132,22 +140,52 @@ public class PrinterMonitorService extends Service {
         String file = Moonraker.baseName(s.filename);
         switch (state) {
             case "complete":
-                alert(Texts.get(lang, "done_title"), file);
+                alertWithPhoto(Texts.get(lang, "done_title"), file, s.filename);
                 if (!powerOffDevice.isEmpty()) powerOffSince = System.currentTimeMillis();
                 break;
             case "paused":
-                alert(Texts.get(lang, "paused_title"),
-                        s.message.isEmpty() ? Texts.get(lang, "paused_text") : s.message);
+                alertWithPhoto(Texts.get(lang, "paused_title"),
+                        s.message.isEmpty() ? Texts.get(lang, "paused_text") : s.message, s.filename);
                 break;
             case "cancelled":
-                alert(Texts.get(lang, "cancelled_title"), file);
+                alertWithPhoto(Texts.get(lang, "cancelled_title"), file, s.filename);
                 break;
             case "error":
-                alert(Texts.get(lang, "error_title"), s.message.isEmpty() ? file : s.message);
+                alertWithPhoto(Texts.get(lang, "error_title"),
+                        s.message.isEmpty() ? file : s.message, s.filename);
                 break;
             default:
                 break;
         }
+    }
+
+    /**
+     * A photo for an alert: a camera still frame, so you can see how the print looks, or the
+     * file's thumbnail when the camera has none (the Creality WebRTC camera, for example).
+     */
+    private Bitmap photo(String filename) {
+        for (String url : snapshots) {
+            Bitmap bmp = Moonraker.fetchImage(url.trim(), 1024);
+            if (bmp != null) return bmp;
+        }
+        try {
+            return filename.isEmpty() ? null : Moonraker.fetchThumbnail(host, port, filename);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void alertWithPhoto(String title, String text, String filename) {
+        Bitmap bmp = photo(filename);
+        NotificationCompat.Builder b = alertBuilder(title, text);
+        if (bmp != null) {
+            b.setLargeIcon(bmp);
+            b.setStyle(new NotificationCompat.BigPictureStyle()
+                    .bigPicture(bmp)
+                    .bigLargeIcon((Bitmap) null)
+                    .setSummaryText(text));
+        }
+        notify(ALERT_ID, b.build());
     }
 
     /** After a finished print: switch the plug off once the nozzle has cooled down. */
@@ -194,12 +232,50 @@ public class PrinterMonitorService extends Service {
         int pct = (int) Math.round(s.progress * 100);
         String text = Texts.get(lang, s.state);
         double remaining = s.remaining();
+        long finish = 0;
         if (s.state.equals("printing") && remaining >= 0) {
-            Date finish = new Date(System.currentTimeMillis() + (long) (remaining * 1000));
+            finish = System.currentTimeMillis() + (long) (remaining * 1000);
             text += " · " + String.format(Texts.get(lang, "finish_at"),
-                    DateFormat.getTimeFormat(this).format(finish));
+                    DateFormat.getTimeFormat(this).format(new Date(finish)));
         }
-        return ongoing(name + " · " + pct + "%", text + "\n" + Moonraker.baseName(s.filename), pct);
+        String title = name + " · " + pct + "%";
+        String body = text + "\n" + Moonraker.baseName(s.filename);
+        if (Build.VERSION.SDK_INT >= 36) return liveUpdate(title, body, pct, finish);
+        return ongoing(title, body, pct);
+    }
+
+    /**
+     * Android 16 "Live Update": progress bar styled with the print icon, the percentage as a
+     * chip in the status bar and a countdown to the finish time. Promotion needs Android 16
+     * QPR2+; elsewhere it shows as a normal ongoing notification with the same style.
+     */
+    private Notification liveUpdate(String title, String body, int pct, long finish) {
+        int color = getColor(android.R.color.system_accent1_500);
+        Notification.ProgressStyle style = new Notification.ProgressStyle()
+                .setStyledByProgress(true)
+                .setProgress(pct)
+                .setProgressTrackerIcon(Icon.createWithResource(this, R.drawable.ic_stat_printer))
+                .setProgressSegments(Collections.singletonList(
+                        new Notification.ProgressStyle.Segment(100).setColor(color)));
+        Bundle extras = new Bundle();
+        // Notification.EXTRA_REQUEST_PROMOTED_ONGOING (public from API 36.1).
+        extras.putBoolean("android.requestPromotedOngoing", true);
+        Notification.Builder b = new Notification.Builder(this, CHANNEL_PROGRESS)
+                .setSmallIcon(R.drawable.ic_stat_printer)
+                .setContentTitle(title)
+                .setContentText(body.split("\n")[0])
+                .setSubText(body.contains("\n") ? body.substring(body.indexOf('\n') + 1) : null)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setContentIntent(openApp(this))
+                .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
+                .setShortCriticalText(pct + "%")
+                .setStyle(style)
+                .addExtras(extras);
+        if (finish > 0) {
+            b.setWhen(finish).setShowWhen(true).setUsesChronometer(true).setChronometerCountDown(true);
+        }
+        return b.build();
     }
 
     private Notification ongoing(String title, String text, int progress) {
@@ -225,14 +301,17 @@ public class PrinterMonitorService extends Service {
     }
 
     private void alert(int id, String title, String text) {
-        notify(id, new NotificationCompat.Builder(this, CHANNEL_ALERTS)
+        notify(id, alertBuilder(title, text).build());
+    }
+
+    private NotificationCompat.Builder alertBuilder(String title, String text) {
+        return new NotificationCompat.Builder(this, CHANNEL_ALERTS)
                 .setSmallIcon(R.drawable.ic_stat_printer)
                 .setContentTitle(title)
                 .setContentText(text)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
-                .setContentIntent(openApp(this))
-                .build());
+                .setContentIntent(openApp(this));
     }
 
     private void notify(int id, Notification n) {

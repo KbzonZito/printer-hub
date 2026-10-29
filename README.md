@@ -20,8 +20,11 @@ other printer that exposes Moonraker (the same API Mobileraker uses).
   estimate corrected by how fast your printer really is, or a filament-based estimate).
 - **History** with totals and one-tap reprint, plus **timelapses** (requires the
   moonraker-timelapse plugin).
-- **Notifications** when a print finishes, pauses or fails, even with the app closed, and a
-  **home screen widget** with progress and finish time.
+- **Notifications** when a print finishes, pauses or fails, even with the app closed, with a
+  photo (camera snapshot or the file's thumbnail); live progress on Android 16; a **home
+  screen widget** and a **Quick Settings tile** with progress and finish time.
+- **Exclude objects** from a running print on a bed map, **guided calibrations** (PID, Z
+  offset, input shaper) and an **all printers** view.
 - **Share a .gcode** from another app (Drive, WhatsApp, your slicer…) to upload or print it.
 - **Network discovery** to find Moonraker printers on your Wi-Fi.
 - **Full-screen camera** from the Home card: pinch, drag or double tap to zoom, share a

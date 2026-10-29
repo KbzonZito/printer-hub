@@ -111,7 +111,7 @@ Las tareas low y medium salieron en la 0.6.0; las high van en la 0.7.0 y la vist
 G-code en la 0.8.0. Los títulos de abajo conservan la agrupación original por temas.
 
 ### 0.6.0 — Durante la impresión
-- **[high] Excluir objetos**: mapa de la cama con los contornos de cada pieza (objeto
+- **[high] Excluir objetos** (**hecho**): mapa de la cama con los contornos de cada pieza (objeto
   `exclude_object` de Klipper). Al tocar una pieza se pide confirmación y se excluye con
   `EXCLUDE_OBJECT`. Las piezas excluidas aparecen tachadas. Requiere que el laminador marque los
   objetos (Creality Print y OrcaSlicer lo hacen). Es high por la geometría (convertir las
@@ -120,12 +120,12 @@ G-code en la 0.8.0. Los títulos de abajo conservan la agrupación original por 
   pestaña "Cola" en Archivos para reordenar o quitar, e iniciar / pausar la cola.
 
 ### 0.7.0 — Avisos
-- **[high] Notificación con foto** al terminar, pausar o fallar, con una captura de la cámara
+- **[high] Notificación con foto** (**hecho**) al terminar, pausar o fallar, con una captura de la cámara
   (BigPicture).
 - **[medium]** Aviso opcional al terminar la **primera capa** (**hecho**).
-- **[high] Progreso en vivo** en la notificación (estilo de Android 16 cuando esté disponible).
+- **[high] Progreso en vivo** (**hecho**) en la notificación (estilo de Android 16 cuando esté disponible).
 - **[medium] Widget** (**hecho**) con los colores dinámicos y un tamaño grande con miniatura.
-- **[high] Ajuste rápido** (Quick Settings tile) con el progreso; al tocarlo abre la app.
+- **[high] Ajuste rápido** (**hecho**) (Quick Settings tile) con el progreso; al tocarlo abre la app.
 
 ### 0.8.0 — Filamento y estadísticas
 - **[medium] Spoolman** (**hecho**) (si está instalado): bobina activa, peso restante y cambiar de bobina. Antes de
@@ -137,7 +137,7 @@ G-code en la 0.8.0. Los títulos de abajo conservan la agrupación original por 
 ### 0.9.0 — Mantenimiento
 - **[medium] Malla de la cama** (**hecho**): mapa de calor del `bed_mesh` con la diferencia máxima, y botón para
   calibrar.
-- **[high] Asistentes de calibración** guiados, cada uno con confirmación: PID de boquilla y cama,
+- **[high] Asistentes de calibración** (**hecho**) guiados, cada uno con confirmación: PID de boquilla y cama,
   Z offset, input shaper (si hay acelerómetro).
 - **[medium] Enchufes inteligentes** (**hecho**) (`/machine/device_power`): encender / apagar y apagado automático al
   terminar y enfriar.
@@ -148,7 +148,7 @@ G-code en la 0.8.0. Los títulos de abajo conservan la agrupación original por 
 - **[high] Vista previa del G-code** capa a capa, de un archivo o de la impresión en curso (con la capa
   actual resaltada). El G-code se procesa en un web worker para no bloquear la app. Planear con
   **xhigh**: archivos de decenas de MB en un teléfono obligan a pensar bien el rendimiento.
-- **[high] Todas las impresoras**: si hay más de una, una pantalla con el estado, el progreso y la
+- **[high] Todas las impresoras** (**hecho**): si hay más de una, una pantalla con el estado, el progreso y la
   cámara de cada una.
 
 ## Fase 4 — Mejoras propias

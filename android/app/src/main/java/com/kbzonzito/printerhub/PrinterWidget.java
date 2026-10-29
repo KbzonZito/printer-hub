@@ -53,6 +53,7 @@ public class PrinterWidget extends AppWidgetProvider {
     }
 
     static void updateAll(Context ctx) {
+        PrinterTileService.requestUpdate(ctx);
         AppWidgetManager manager = AppWidgetManager.getInstance(ctx);
         int[] ids = manager.getAppWidgetIds(new ComponentName(ctx, PrinterWidget.class));
         if (ids.length > 0) render(ctx, manager, ids);

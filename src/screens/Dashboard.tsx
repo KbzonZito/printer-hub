@@ -8,6 +8,7 @@ import {
   Maximize2,
   Pause,
   Play,
+  Shapes,
   SlidersHorizontal,
   Square,
   Thermometer,
@@ -22,6 +23,7 @@ import {
 } from '../api/moonraker';
 import { CameraView } from '../components/CameraView';
 import { CameraViewer } from '../components/CameraViewer';
+import { ExcludeObjectsSheet } from '../components/ExcludeObjectsSheet';
 import { SpoolCard } from '../components/SpoolCard';
 import { TempChart } from '../components/TempChart';
 import { TuneSheet } from '../components/TuneSheet';
@@ -99,6 +101,7 @@ export function Dashboard({ printer }: { printer: Printer }) {
   const [preheat, setPreheat] = useState(false);
   const [confirm, setConfirm] = useState<'cancel' | null>(null);
   const [viewer, setViewer] = useState(false);
+  const [objectsOpen, setObjectsOpen] = useState(false);
   const [tune, setTune] = useState(false);
 
   const filename = status?.filename;
@@ -249,6 +252,15 @@ export function Dashboard({ printer }: { printer: Printer }) {
                     <Square size={16} /> {t('home.cancel')}
                   </button>
                 </div>
+                {status.objects.length > 1 && (
+                  <button className="btn" onClick={() => setObjectsOpen(true)}>
+                    <Shapes size={18} />
+                    {t('objects.button', {
+                      n: status.objects.length - status.excludedObjects.length,
+                      total: status.objects.length,
+                    })}
+                  </button>
+                )}
               </>
             )}
           </section>
@@ -409,6 +421,14 @@ export function Dashboard({ printer }: { printer: Printer }) {
       </Sheet>
 
       <TuneSheet open={tune} onClose={() => setTune(false)} printer={printer} status={status} />
+      {status && (
+        <ExcludeObjectsSheet
+          printer={printer}
+          status={status}
+          open={objectsOpen}
+          onClose={() => setObjectsOpen(false)}
+        />
+      )}
       {viewer && <CameraViewer printer={printer} onClose={() => setViewer(false)} />}
       <ConfirmSheet
         open={confirm === 'cancel'}

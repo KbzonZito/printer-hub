@@ -24,6 +24,8 @@ interface PrinterMonitorPlugin {
     lang?: string;
     firstLayer?: boolean;
     powerOff?: string;
+    /** Comma-separated still-frame URLs for photos in notifications. */
+    snapshots?: string;
   }): Promise<void>;
   startMonitor(): Promise<void>;
   stopMonitor(): Promise<void>;

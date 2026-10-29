@@ -58,6 +58,10 @@ const OBJECTS = [
   'idle_timeout',
   'exclude_object',
   'bed_mesh',
+  'probe',
+  'manual_probe',
+  'resonance_tester',
+  'adxl345',
   LIGHT,
   CHAMBER,
   'gcode_macro LOAD_FILAMENT',
@@ -87,14 +91,43 @@ const printer = {
   extruder: { temperature: 209.6, target: 210, power: 0.4, can_extrude: true },
   heater_bed: { temperature: 59.8, target: 60, power: 0.2 },
   fan: { speed: 1 },
-  toolhead: { homed_axes: 'xyz', position: [120.5, 98.2, 17.4, 0], estimated_print_time: 0 },
+  toolhead: {
+    homed_axes: 'xyz',
+    position: [120.5, 98.2, 17.4, 0],
+    estimated_print_time: 0,
+    axis_minimum: [-2, -2, 0, 0],
+    axis_maximum: [262, 262, 300, 0],
+  },
   gcode_move: { speed_factor: 1.1, extrude_factor: 1, homing_origin: [0, 0, -0.02, 0] },
   idle_timeout: { state: 'Printing' },
-  exclude_object: { objects: [], excluded_objects: [], current_object: null },
+  exclude_object: mockObjects(),
   bed_mesh: mockMesh(),
+  manual_probe: { is_active: false, z_position: null, z_position_lower: null, z_position_upper: null },
   [LIGHT]: { value: 1 },
   [CHAMBER]: { temperature: 31.2 },
 };
+
+/** Four parts on the bed, like a plate sliced with labelled objects. */
+function mockObjects() {
+  const square = (name, x, y, w, h) => ({
+    name,
+    center: [x + w / 2, y + h / 2],
+    polygon: [
+      [x, y],
+      [x + w, y],
+      [x + w, y + h],
+      [x, y + h],
+    ],
+  });
+  const objects = [
+    square('3DBENCHY.STL_ID_0_COPY_0', 60, 150, 60, 32),
+    square('3DBENCHY.STL_ID_0_COPY_1', 140, 150, 60, 32),
+    square('CALIBRATION_CUBE.STL_ID_1_COPY_0', 70, 70, 20, 20),
+    // A tiny part with only a center, like some slicers produce.
+    { name: 'PIN.STL_ID_2_COPY_0', center: [180, 80], polygon: [] },
+  ];
+  return { objects, excluded_objects: [], current_object: objects[0].name };
+}
 
 /** A 7×7 mesh with a slight bowl and a tilt, like a real bed. */
 function mockMesh() {
@@ -162,6 +195,41 @@ function runGcode(script) {
     else if (m140) printer.heater_bed.target = Number(m140[2]);
     else if (/^FIRMWARE_RESTART|^RESTART/i.test(cmd)) return restartKlippy();
     else if (/^BED_MESH_CALIBRATE/i.test(cmd)) printer.bed_mesh = mockMesh();
+    else if (/^PID_CALIBRATE/i.test(cmd)) {
+      for (let i = 1; i <= 3; i++) respond(`// sample:${i} pwm:1.0000 asymmetry:0.2${i} tolerance:n/a`);
+      respond('// PID parameters: pid_Kp=22.865 pid_Ki=1.574 pid_Kd=83.052');
+      respond('// The SAVE_CONFIG command will update the printer config file with these parameters and restart the printer.');
+    } else if (/^SHAPER_CALIBRATE/i.test(cmd)) {
+      respond('// Fitted shaper zv frequency = 56.4 Hz (vibrations = 9.1%, smoothing ~= 0.044)');
+      respond('// Recommended shaper_type_x = mzv, shaper_freq_x = 53.8 Hz');
+      respond('// Recommended shaper_type_y = ei, shaper_freq_y = 61.2 Hz');
+    } else if (/^(PROBE_CALIBRATE|Z_ENDSTOP_CALIBRATE)/i.test(cmd)) {
+      Object.assign(printer.manual_probe, { is_active: true, z_position: 5, z_position_lower: null, z_position_upper: null });
+      respond('// Starting manual Z probe. Use TESTZ to adjust position.');
+    } else if (/^TESTZ Z=(-?[\d.]+)/i.test(cmd)) {
+      const mp = printer.manual_probe;
+      if (!mp.is_active) { respond('!! Manual probe not active'); continue; }
+      mp.z_position = Math.round((mp.z_position + Number(cmd.match(/Z=(-?[\d.]+)/i)[1])) * 1000) / 1000;
+      respond(`// Z position: ${mp.z_position.toFixed(3)}`);
+    } else if (/^ACCEPT/i.test(cmd)) {
+      const mp = printer.manual_probe;
+      respond(`// probe: z_offset: ${(mp.z_position ?? 0).toFixed(3)}`);
+      respond('// The SAVE_CONFIG command will update the printer config file and restart the printer.');
+      Object.assign(mp, { is_active: false, z_position: null });
+    } else if (/^ABORT/i.test(cmd)) {
+      Object.assign(printer.manual_probe, { is_active: false, z_position: null });
+      respond('// Manual probe aborted');
+    } else if (/^SAVE_CONFIG/i.test(cmd)) return restartKlippy();
+    else if (/^EXCLUDE_OBJECT NAME=(\S+)/i.test(cmd)) {
+      const name = cmd.match(/NAME=(\S+)/i)[1].toUpperCase();
+      const ex = printer.exclude_object;
+      if (!ex.objects.some((o) => o.name === name)) {
+        respond(`!! Unknown object name "${name}"`);
+        continue;
+      }
+      ex.excluded_objects = [...new Set([...ex.excluded_objects, name])];
+      respond(`// Excluding object ${name}`);
+    }
     else if (/^M115/i.test(cmd)) respond('// FIRMWARE_NAME:Klipper FIRMWARE_VERSION:v0.12.0-mock');
     respond('ok');
   }
@@ -182,6 +250,9 @@ setInterval(() => {
     const p = Math.min(1, printer.virtual_sdcard.progress + 0.00005);
     printer.virtual_sdcard.progress = printer.display_status.progress = p;
     ps.info.current_layer = Math.max(1, Math.round(p * ps.info.total_layer));
+    const ex = printer.exclude_object;
+    const left = ex.objects.filter((o) => !ex.excluded_objects.includes(o.name));
+    ex.current_object = left.length ? left[Math.floor(Date.now() / 4000) % left.length].name : null;
   }
   printer.toolhead.estimated_print_time += 0.25;
 }, 250);

@@ -41,6 +41,20 @@ export interface PrinterStatus {
   extrudeFactor: number;
   zOffset: number;
   canExtrude: boolean;
+  /** Parts the slicer labelled in the G-code (Klipper's exclude_object). */
+  objects: PrintObject[];
+  excludedObjects: string[];
+  currentObject: string | null;
+  /** Bed limits (toolhead axis_minimum / axis_maximum), for drawing the bed. */
+  bedMin: [number, number] | null;
+  bedMax: [number, number] | null;
+}
+
+export interface PrintObject {
+  name: string;
+  center: [number, number] | null;
+  /** Outline on the bed in mm; may be empty if the slicer only gave a center. */
+  polygon: [number, number][];
 }
 
 export interface GcodeFile {
@@ -149,6 +163,8 @@ export async function testConnection(p: Printer): Promise<string> {
 }
 
 export const printerActions = {
+  excludeObject: (p: Printer, name: string) =>
+    printerActions.gcode(p, `EXCLUDE_OBJECT NAME=${name}`),
   pause: (p: Printer) => post(p, '/printer/print/pause'),
   resume: (p: Printer) => post(p, '/printer/print/resume'),
   cancel: (p: Printer) => post(p, '/printer/print/cancel'),
@@ -276,6 +292,26 @@ export async function listWebcams(p: Printer): Promise<Webcam[]> {
 }
 
 /** Resolves a webcam URL that Moonraker may return relative to the web UI host. */
+/**
+ * Where a still frame of the camera may be, best first: the custom URL (as a snapshot), the
+ * webcams configured in Moonraker, then mjpg-streamer's default port. The Creality WebRTC
+ * camera has no still frames, so the background service falls back to the G-code thumbnail.
+ */
+export async function snapshotUrls(p: Printer): Promise<string[]> {
+  const urls: string[] = [];
+  const custom = p.cameraUrl.trim();
+  if (custom) urls.push(custom.replace('action=stream', 'action=snapshot'));
+  try {
+    for (const cam of await listWebcams(p))
+      if (cam.snapshot_url && !/webrtc/i.test(cam.service))
+        urls.push(resolveWebcamUrl(p, cam.snapshot_url));
+  } catch {
+    /* Moonraker webcam API unavailable */
+  }
+  urls.push(`http://${p.host}:8080/?action=snapshot`);
+  return [...new Set(urls)];
+}
+
 export function resolveWebcamUrl(p: Printer, url: string): string {
   if (/^https?:\/\//i.test(url)) return url;
   return `http://${p.host}${url.startsWith('/') ? '' : '/'}${url}`;

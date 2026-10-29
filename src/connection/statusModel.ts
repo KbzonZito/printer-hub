@@ -1,4 +1,4 @@
-import type { PrinterStatus, PrintState } from '../api/moonraker';
+import type { PrinterStatus, PrintObject, PrintState } from '../api/moonraker';
 
 // The printer's state as Klipper objects ("raw"), and how it becomes a PrinterStatus.
 // Both the periodic HTTP query and the WebSocket subscription feed the same raw objects.
@@ -16,6 +16,12 @@ export interface ObjectNames {
   fanScale: number;
   /** User-facing macros (names starting with "_" are internal). */
   macros: string[];
+  /** Klipper's [exclude_object] is enabled (lets you cancel single parts mid-print). */
+  excludeObject: boolean;
+  /** A Z probe exists (PROBE_CALIBRATE); without one, Z_ENDSTOP_CALIBRATE is used. */
+  probe: boolean;
+  /** An accelerometer and [resonance_tester] exist (SHAPER_CALIBRATE). */
+  shaper: boolean;
 }
 
 export function namesFromObjects(objects: string[]): ObjectNames {
@@ -31,6 +37,9 @@ export function namesFromObjects(objects: string[]): ObjectNames {
       .filter((o) => o.startsWith('gcode_macro ') && !o.startsWith('gcode_macro _'))
       .map((o) => o.slice('gcode_macro '.length))
       .sort(),
+    excludeObject: objects.includes('exclude_object'),
+    probe: objects.some((o) => /^(probe|bltouch|probe_eddy_current|smart_effector)\b/.test(o)),
+    shaper: objects.includes('resonance_tester'),
   };
 }
 
@@ -39,7 +48,9 @@ export function namesFromObjects(objects: string[]): ObjectNames {
  * Klipper from sending constant updates for values we never show, like
  * toolhead.estimated_print_time.
  */
-type StatusNames = Pick<ObjectNames, 'chamber' | 'lightPin' | 'fan' | 'fanScale'>;
+type StatusNames = Pick<ObjectNames, 'chamber' | 'lightPin' | 'fan' | 'fanScale'> & {
+  excludeObject?: boolean;
+};
 
 /** The fan's scale comes from the printer config (configfile.settings), when it's a pin. */
 export function needsFanScale(names: ObjectNames) {
@@ -67,12 +78,14 @@ export function subscription(names: StatusNames): Record<string, string[]> {
     display_status: ['progress'],
     extruder: ['temperature', 'target', 'can_extrude'],
     heater_bed: ['temperature', 'target'],
-    toolhead: ['homed_axes', 'position'],
+    toolhead: ['homed_axes', 'position', 'axis_minimum', 'axis_maximum'],
     gcode_move: ['speed_factor', 'extrude_factor', 'homing_origin'],
   };
   if (names.chamber) objects[names.chamber] = ['temperature', 'target'];
   if (names.lightPin) objects[names.lightPin] = ['value'];
   if (names.fan) objects[names.fan] = names.fan === 'fan' ? ['speed'] : ['value'];
+  if (names.excludeObject)
+    objects.exclude_object = ['objects', 'excluded_objects', 'current_object'];
   return objects;
 }
 
@@ -96,9 +109,30 @@ export function mergeStatus(raw: RawStatus, update: RawStatus): RawStatus {
   return next;
 }
 
+/** Klipper's axis limits as [x, y], or null when unknown. */
+function xy(v: unknown): [number, number] | null {
+  return Array.isArray(v) && typeof v[0] === 'number' && typeof v[1] === 'number'
+    ? [v[0], v[1]]
+    : null;
+}
+
+function parseObjects(raw: unknown): PrintObject[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((o) => o && typeof o.name === 'string')
+    .map((o) => ({
+      name: o.name,
+      center: xy(o.center),
+      polygon: Array.isArray(o.polygon)
+        ? (o.polygon.map(xy).filter(Boolean) as [number, number][])
+        : [],
+    }));
+}
+
 export function parseStatus(s: RawStatus, names: StatusNames): PrinterStatus {
   const ps = s.print_stats ?? {};
   const chamber = names.chamber ? s[names.chamber] : null;
+  const ex = s.exclude_object ?? {};
   return {
     klippyState: s.webhooks?.state ?? 'unknown',
     state: (ps.state ?? 'standby') as PrintState,
@@ -133,5 +167,10 @@ export function parseStatus(s: RawStatus, names: StatusNames): PrinterStatus {
     extrudeFactor: s.gcode_move?.extrude_factor ?? 1,
     zOffset: s.gcode_move?.homing_origin?.[2] ?? 0,
     canExtrude: s.extruder?.can_extrude ?? false,
+    objects: parseObjects(ex.objects),
+    excludedObjects: Array.isArray(ex.excluded_objects) ? ex.excluded_objects : [],
+    currentObject: typeof ex.current_object === 'string' ? ex.current_object : null,
+    bedMin: xy(s.toolhead?.axis_minimum),
+    bedMax: xy(s.toolhead?.axis_maximum),
   };
 }
