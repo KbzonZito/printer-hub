@@ -96,3 +96,43 @@ export async function deleteModel(key: string): Promise<void> {
     /* nothing to delete */
   }
 }
+
+async function allMeta(): Promise<Meta[]> {
+  const db = await open();
+  return done(db.transaction(META).objectStore(META).getAll() as IDBRequest<Meta[]>);
+}
+
+/** Saved previews and the space they take (Settings → Storage). */
+export async function cacheUsage(): Promise<{ count: number; bytes: number }> {
+  try {
+    const all = await allMeta();
+    return { count: all.length, bytes: all.reduce((s, m) => s + m.size, 0) };
+  } catch {
+    return { count: 0, bytes: 0 };
+  }
+}
+
+/**
+ * Deletes saved previews not opened in the last `maxAgeMs` (all of them with 0).
+ * Returns how many were deleted.
+ */
+export async function pruneModels(maxAgeMs: number): Promise<number> {
+  try {
+    const cutoff = Date.now() - maxAgeMs;
+    const old = (await allMeta()).filter((m) => maxAgeMs === 0 || m.used < cutoff);
+    if (!old.length) return 0;
+    const db = await open();
+    const tx = db.transaction([MODELS, META], 'readwrite');
+    for (const m of old) {
+      tx.objectStore(MODELS).delete(m.key);
+      tx.objectStore(META).delete(m.key);
+    }
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    return old.length;
+  } catch {
+    return 0;
+  }
+}

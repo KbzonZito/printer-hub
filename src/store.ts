@@ -64,6 +64,8 @@ export interface Settings {
   notifyFirstLayer: boolean;
   /** Power device to switch off once a print finishes and the nozzle cools (Android). */
   powerOffDevice: string;
+  /** Saved G-code previews not opened for this many days are deleted (0 = never). */
+  previewCacheDays: number;
 }
 
 export interface State {
@@ -91,6 +93,7 @@ export function defaultSettings(): Settings {
     notify: true,
     notifyFirstLayer: false,
     powerOffDevice: '',
+    previewCacheDays: 30,
     onboarded: false,
   };
 }

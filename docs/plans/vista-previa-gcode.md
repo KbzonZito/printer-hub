@@ -279,7 +279,7 @@ Archivos nuevos (en `src/gcode/`):
 
 ## Pasos
 
-### G.1 Medir en el teléfono lo que no se puede medir aquí — **high**
+### G.1 Medir en el teléfono lo que no se puede medir aquí — **high** ✅
 
 Ya medido desde el Mac (ver "La Creality Hi real"): la velocidad de descarga, los rangos, la
 falta de gzip y el formato de Creality Print. Falta comprobar **en el teléfono**, con la versión
@@ -422,9 +422,23 @@ Medido en el Mac con `npm run bench:gcode`:
   optimizar: la primera sospecha (crear un array por número) no cambiaba nada.
 - En el navegador contra el simulador (a 0,9 MB/s): las capas aparecen mientras se descarga;
   volver a abrir desde la caché tarda **22 ms**; cancelar a mitad no deja errores.
-- Falta **G.1 en el teléfono**: el panel de información del visor muestra "Primer dato",
-  "Descarga", "Lectura" y "Partes recibidas". Si el primer dato llega en < 1 s y hay muchas
-  partes, la descarga llega por partes también en Android.
+- **G.1 en el teléfono** ("Nozzle cover", 22,1 MB, desde la Creality Hi):
+
+  | Medida | Resultado |
+  | --- | --- |
+  | Primer dato | **91 ms** |
+  | Partes recibidas | **5 831** (de ~4 KB): la descarga llega por partes en Android, sin plan B |
+  | Descarga | 33 s (0,7 MB/s) |
+  | Lectura | 1,1 s (21,9 MB/s), durante la descarga |
+  | Modelo | 650 capas, 0,66 M puntos, 6,5 MB |
+
+  La lectura quedó por debajo del objetivo de 40 MB/s por el coste fijo de enviar al worker
+  5 831 partes pequeñas. Ahora se agrupan en bloques de 64 KB (~350 mensajes). Como la lectura
+  ocurre mientras se descarga, no cambia lo que se ve.
+- **Almacenamiento**: a petición tuya, Ajustes tiene una sección con el espacio que ocupan
+  las vistas previas guardadas, un botón para borrarlas y un borrado automático de las que no se
+  abren en 1 semana o 1 mes (por defecto), o nunca. El "borrar caché" de Android no las elimina
+  porque están en IndexedDB.
 
 ## Objetivos medibles
 

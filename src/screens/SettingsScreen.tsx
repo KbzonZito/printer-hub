@@ -9,6 +9,7 @@ import {
   DatabaseBackup,
   Download,
   GraduationCap,
+  HardDrive,
   Heart,
   Info,
   Layers,
@@ -28,6 +29,8 @@ import {
   Upload,
 } from 'lucide-react';
 import { BackupError, backupFileName, backupJson, parseBackup } from '../backup';
+import { cacheUsage, pruneModels } from '../gcode/cache';
+import { formatBytes } from '../format';
 import { Wizard } from '../onboarding/Wizard';
 import { useConnectionSnapshot } from '../usePrinterStatus';
 import { fetchVersions, testConnection, type SystemVersions } from '../api/moonraker';
@@ -588,6 +591,54 @@ function FirstLayerPref() {
   );
 }
 
+const CACHE_DAYS = [7, 30, 0];
+
+/** Space taken by saved G-code previews, with a button and an auto-delete period. */
+function StoragePrefs() {
+  const t = useT();
+  const toast = useToast();
+  const { settings, updateSettings } = useSettings();
+  const [usage, setUsage] = useState<{ count: number; bytes: number } | null>(null);
+  const refresh = () => cacheUsage().then(setUsage);
+  useEffect(() => {
+    refresh();
+  }, []);
+  return (
+    <>
+      <p className="muted small">{t('storage.hint')}</p>
+      <div className="estimate-row">
+        <span className="muted">{t('storage.previews')}</span>
+        <span>
+          {usage ? t('storage.usage', { n: usage.count, size: formatBytes(usage.bytes) }) : '…'}
+        </span>
+      </div>
+      <div className="field">
+        <span>{t('storage.autoDelete')}</span>
+        <Select
+          title={t('storage.autoDelete')}
+          value={String(settings.previewCacheDays)}
+          onChange={(v) => updateSettings({ previewCacheDays: Number(v) })}
+          options={CACHE_DAYS.map((d) => ({
+            value: String(d),
+            label: d === 0 ? t('storage.never') : d === 7 ? t('storage.week') : t('storage.month'),
+          }))}
+        />
+      </div>
+      <button
+        className="btn"
+        disabled={!usage?.count}
+        onClick={async () => {
+          await pruneModels(0);
+          await refresh();
+          toast(t('storage.cleared'));
+        }}
+      >
+        <Trash2 size={18} /> {t('storage.clear')}
+      </button>
+    </>
+  );
+}
+
 /** Export and import printers, presets and appearance as a JSON file. */
 function BackupPrefs() {
   const t = useT();
@@ -868,6 +919,10 @@ export function SettingsScreen() {
           <FirstLayerPref />
         </Section>
       )}
+
+      <Section id="storage" icon={HardDrive} title={t('storage.title')}>
+        <StoragePrefs />
+      </Section>
 
       <Section id="backup" icon={DatabaseBackup} title={t('backup.title')}>
         <BackupPrefs />

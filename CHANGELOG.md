@@ -9,6 +9,8 @@ new features bump the minor number, fixes bump the patch number.
 - G-code preview (first version): "Preview" in a file's details shows it layer by layer, with
   colors by line type. Layers appear while the file downloads, and a file opens instantly the
   second time. An info panel shows the download and parse times.
+- Settings → Storage: space used by saved G-code previews, a button to delete them, and
+  automatic deletion of previews not opened for a week or a month (the default).
 - Exclude objects: while printing a plate with several parts, "Objects" on Home opens a bed
   map; tap a part (or pick it from the list) and confirm to stop printing it. Excluded parts
   stay drawn, crossed out. Needs [exclude_object] and a slicer that labels objects.

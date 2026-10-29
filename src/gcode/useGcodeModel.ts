@@ -12,6 +12,8 @@ import type { FromWorker, ToWorker } from './worker';
 export const MAX_BYTES = 300e6;
 /** Files above this ask first: at ~0.9 MB/s the Creality Hi takes about a minute. */
 export const WARN_BYTES = 50e6;
+/** Bytes sent to the worker at a time. */
+const BATCH = 64 * 1024;
 /** React updates while loading, at most this often. */
 const UPDATE_MS = 200;
 
@@ -135,17 +137,30 @@ export function useGcodeModel(printer: Printer, file: GcodeFile | null): GcodeMo
       const res = await fetch(gcodeFileUrl(printer, file.path), { signal: controller.signal });
       if (!res.ok) return fail(`HTTP ${res.status}`);
       total = Number(res.headers.get('content-length')) || total;
+      // Android delivers the download in ~4 KB pieces; each message to the worker has a fixed
+      // cost, so pieces are gathered into blocks of BATCH bytes (~90 ms at the Hi's speed).
+      let batch = new Uint8Array(BATCH);
+      let filled = 0;
+      const flush = () => {
+        if (!filled) return;
+        const data = batch.buffer.slice(0, filled);
+        post({ type: 'chunk', data }, [data]);
+        batch = new Uint8Array(BATCH);
+        filled = 0;
+        schedule();
+      };
       const send = (chunk: Uint8Array) => {
         if (stats.firstByteMs == null) stats.firstByteMs = performance.now() - t0;
         stats.chunks++;
         received += chunk.length;
-        // Transfer the bytes; a view into a bigger buffer is copied first.
-        const own =
-          chunk.byteOffset === 0 && chunk.byteLength === chunk.buffer.byteLength
-            ? chunk
-            : chunk.slice();
-        post({ type: 'chunk', data: own.buffer as ArrayBuffer }, [own.buffer as ArrayBuffer]);
-        schedule();
+        let i = 0;
+        while (i < chunk.length) {
+          const n = Math.min(BATCH - filled, chunk.length - i);
+          batch.set(chunk.subarray(i, i + n), filled);
+          filled += n;
+          i += n;
+          if (filled === BATCH) flush();
+        }
       };
       if (res.body) {
         const reader = res.body.getReader();
@@ -157,6 +172,7 @@ export function useGcodeModel(printer: Printer, file: GcodeFile | null): GcodeMo
       } else {
         send(new Uint8Array(await res.arrayBuffer()));
       }
+      flush();
       if (cancelled) return;
       stats.downloadMs = performance.now() - t0;
       stats.bytes = received;

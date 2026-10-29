@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { uploadFile } from './api/moonraker';
 import { handleBack, useBackHandler } from './backStack';
+import { pruneModels } from './gcode/cache';
 import { ConnectionBanner, KlippyStateScreen } from './components/ConnectionStatus';
 import { EmergencyStop } from './components/EmergencyStop';
 import { NavBar } from './components/NavBar';
@@ -172,6 +173,11 @@ export default function App() {
   useEffect(() => {
     document.documentElement.lang = settings.lang;
   }, [settings.lang]);
+
+  // Old G-code previews go away by themselves (Settings → Storage).
+  useEffect(() => {
+    if (settings.previewCacheDays > 0) pruneModels(settings.previewCacheDays * 86_400_000);
+  }, [settings.previewCacheDays]);
 
   if (!settings.onboarded || !active) {
     return (
