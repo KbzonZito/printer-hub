@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { installRipple } from './ripple';
-import './styles.css';
+import './styles/index.css';
 
 installRipple();
 

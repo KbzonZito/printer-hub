@@ -1,0 +1,67 @@
+/* Full-screen camera viewer and zoom chip. */
+
+/* Full-screen camera viewer (below sheets, so its mode picker opens on top) */
+.camera-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  background: #000;
+  color: #fff;
+  animation: fade 0.25s var(--ease) both;
+}
+.camera-viewer .camera-fill {
+  aspect-ratio: auto;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+.viewer-top,
+.viewer-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+  pointer-events: none;
+}
+.viewer-top {
+  top: 0;
+  padding-top: max(12px, env(safe-area-inset-top));
+  background: linear-gradient(rgba(0, 0, 0, 0.55), transparent);
+}
+.viewer-bottom {
+  bottom: 0;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
+}
+.viewer-top > *,
+.viewer-bottom > * {
+  pointer-events: auto;
+}
+.viewer-bottom .camera-overlay {
+  position: static;
+  pointer-events: none;
+}
+.viewer-btn {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+.viewer-mode .select-field {
+  min-height: 44px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+/* The zoom chip sits below the top buttons. */
+.camera-viewer .zoom-chip {
+  top: calc(max(12px, env(safe-area-inset-top)) + 60px);
+}

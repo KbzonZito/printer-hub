@@ -1,0 +1,133 @@
+/* Phone and tablet layouts of the dashboard. */
+
+/* Phone layout stacks the dashboard; tablets get a side rail and columns. */
+.dash,
+.dash-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* On phones the chart goes below the job card; tablets keep it under the camera. */
+.dash-main {
+  display: contents;
+}
+.dash-side {
+  order: 1;
+}
+.chart-card {
+  order: 2;
+}
+@media (min-width: 768px) {
+  .app {
+    flex-direction: row;
+  }
+  /* Navigation rail: pill indicator around the icon, label underneath. */
+  .tabbar {
+    position: static;
+    transform: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 96px;
+    max-width: none;
+    padding: calc(env(safe-area-inset-top) + 20px) 0 20px;
+    border-radius: 0;
+    background: var(--bg);
+    box-shadow: none;
+  }
+  .rail-logo {
+    display: block;
+    border-radius: 14px;
+    margin-bottom: 24px;
+  }
+  .tabbar button,
+  .tabbar button.active {
+    flex-direction: column;
+    flex: none;
+    width: 84px;
+    height: auto;
+    padding: 4px 0;
+    gap: 4px;
+    background: none;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .tabbar button svg {
+    box-sizing: content-box;
+    padding: 4px 16px;
+    border-radius: 999px;
+    transition: background-color 0.3s var(--ease);
+  }
+  .tabbar button.active {
+    color: var(--text);
+  }
+  .tabbar button.active svg {
+    background: var(--accent-soft);
+    color: var(--on-accent-soft);
+  }
+  .tabbar button::before {
+    display: none;
+  }
+  .tab-label,
+  .tabbar button.active .tab-label {
+    max-width: none;
+    margin: 0;
+    opacity: 1;
+    transition: none;
+  }
+  .topbar {
+    padding: calc(env(safe-area-inset-top) + 20px) 28px 6px;
+  }
+  .topbar h1 {
+    font-size: 24px;
+  }
+  .screen {
+    padding: 8px 28px 32px;
+    gap: 18px;
+  }
+  .screen.wide {
+    max-width: 1280px;
+  }
+  .tiles {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  .file-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+  }
+  .sheet-backdrop {
+    align-items: center;
+    padding: 24px;
+  }
+  .sheet {
+    border-radius: 28px;
+    padding: 24px;
+  }
+  .sheet-handle {
+    display: none;
+  }
+  .settings {
+    max-width: 760px;
+  }
+  .toasts {
+    bottom: 32px;
+  }
+}
+
+/* Landscape tablets: camera on the left, job and controls on the right. */
+@media (min-width: 900px) {
+  .dash {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr);
+    align-items: start;
+  }
+  .dash-main {
+    display: block;
+    position: sticky;
+    top: 0;
+  }
+  .dash-main > .chart-card {
+    margin-top: 14px;
+  }
+}

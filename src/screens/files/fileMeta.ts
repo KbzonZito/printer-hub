@@ -6,6 +6,7 @@ import {
   type GcodeFile,
 } from '../../api/moonraker';
 import { completeMetadata, needsCompletion } from '../../api/gcodeInfo';
+import { getStoredMeta, putStoredMeta } from '../../api/metaStore';
 import { loadCalibration, type Calibration } from '../../estimate';
 import type { Printer } from '../../store';
 
@@ -21,18 +22,30 @@ export const GCODE_NAME = /\.(gcode|g|gco)$/i;
 export const parentOf = (path: string) =>
   path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '';
 
+/**
+ * Metadata of a file: from memory, then the phone (metaStore), then the printer, completed from
+ * the file itself when Moonraker lacks something. `detail` reads more (big thumbnail, time).
+ */
+async function loadMeta(printer: Printer, file: GcodeFile, detail: boolean) {
+  const key = metaKey(printer, file);
+  let meta = metaCache.get(key) ?? (await getStoredMeta(key));
+  const fromPrinter = !meta;
+  meta ??= await fetchMetadata(printer, file.path);
+  const missing = needsCompletion(meta, detail);
+  if (missing) meta = await completeMetadata(printer, file.path, meta, detail, file.size);
+  metaCache.set(key, meta);
+  if (fromPrinter || missing) putStoredMeta(key, meta);
+  return meta;
+}
+
 export function useMetadata(printer: Printer, file: GcodeFile, visible: boolean) {
   const key = metaKey(printer, file);
   const [meta, setMeta] = useState(metaCache.get(key));
   useEffect(() => {
     if (!visible || meta) return;
     let cancelled = false;
-    fetchMetadata(printer, file.path)
-      .then((m) => completeMetadata(printer, file.path, m, false, file.size))
-      .then((m) => {
-        metaCache.set(key, m);
-        if (!cancelled) setMeta(m);
-      })
+    loadMeta(printer, file, false)
+      .then((m) => !cancelled && setMeta(m))
       .catch(() => {});
     return () => {
       cancelled = true;
@@ -41,23 +54,14 @@ export function useMetadata(printer: Printer, file: GcodeFile, visible: boolean)
   return meta;
 }
 
-/** Metadata for the file open in the detail sheet. */
 export function useFileMeta(printer: Printer, file: GcodeFile | null) {
   const [meta, setMeta] = useState<FileMetadata>();
   useEffect(() => {
     if (!file) return;
-    const key = metaKey(printer, file);
-    const cached = metaCache.get(key);
-    setMeta(cached);
-    // The list may have cached it with only the small thumbnail; the details want more.
-    if (cached && !needsCompletion(cached, true)) return;
+    setMeta(metaCache.get(metaKey(printer, file)));
     let cancelled = false;
-    (cached ? Promise.resolve(cached) : fetchMetadata(printer, file.path))
-      .then((m) => completeMetadata(printer, file.path, m, true, file.size))
-      .then((m) => {
-        metaCache.set(key, m);
-        if (!cancelled) setMeta(m);
-      })
+    loadMeta(printer, file, true)
+      .then((m) => !cancelled && setMeta(m))
       .catch(() => {});
     return () => {
       cancelled = true;

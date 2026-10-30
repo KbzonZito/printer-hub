@@ -1,0 +1,122 @@
+/* Color tokens (light / dark), base elements and text helpers. */
+
+:root {
+  /* Material 3 tonal palette seeded from the brand orange. */
+  --bg: #17120f;
+  --surface: #221a16;
+  --surface-2: #2d241f;
+  --surface-3: #392e28;
+  --border: #4f4039;
+  --text: #f1dfd6;
+  --muted: #ab978d;
+  --accent: #ff9a5c;
+  --on-accent: #3a1800;
+  --accent-soft: #55301a;
+  --on-accent-soft: #ffdbc9;
+  --ok: #6fdba4;
+  --warn: #f5c45b;
+  --danger: #ffb4ab;
+  --on-danger: #690005;
+  --danger-soft: #5c1a16;
+  --bed: #8ec5ff;
+  --scrim: rgba(0, 0, 0, 0.45);
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  --radius: 24px;
+  --radius-sm: 16px;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emph: cubic-bezier(0.05, 0.7, 0.1, 1);
+  color-scheme: dark;
+}
+
+/* "system" follows the OS; data-theme forces light or dark. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --bg: #fff8f5;
+    --surface: #fceee7;
+    --surface-2: #f6e5dc;
+    --surface-3: #efdcd2;
+    --border: #d8c2b8;
+    --text: #221a15;
+    --muted: #6e5c53;
+    --accent: #b85000;
+    --on-accent: #ffffff;
+    --accent-soft: #ffdbc9;
+    --on-accent-soft: #351000;
+    --ok: #1e7a4c;
+    --warn: #8a6000;
+    --danger: #ba1a1a;
+    --on-danger: #ffffff;
+    --danger-soft: #ffdad6;
+    --bed: #1f6fc4;
+    --scrim: rgba(0, 0, 0, 0.32);
+    --shadow: 0 4px 18px rgba(80, 40, 20, 0.14);
+    color-scheme: light;
+  }
+}
+:root[data-theme='light'] {
+  --bg: #fff8f5;
+  --surface: #fceee7;
+  --surface-2: #f6e5dc;
+  --surface-3: #efdcd2;
+  --border: #d8c2b8;
+  --text: #221a15;
+  --muted: #6e5c53;
+  --accent: #b85000;
+  --on-accent: #ffffff;
+  --accent-soft: #ffdbc9;
+  --on-accent-soft: #351000;
+  --ok: #1e7a4c;
+  --warn: #8a6000;
+  --danger: #ba1a1a;
+  --on-danger: #ffffff;
+  --danger-soft: #ffdad6;
+  --bed: #1f6fc4;
+  --scrim: rgba(0, 0, 0, 0.32);
+  --shadow: 0 4px 18px rgba(80, 40, 20, 0.14);
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 15px;
+  overscroll-behavior: none;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+h1,
+h2 {
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 12.5px;
+}
+.accent {
+  color: var(--accent);
+}

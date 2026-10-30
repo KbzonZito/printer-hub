@@ -1,0 +1,70 @@
+/* Settings toggles and network discovery. */
+
+/* Settings extras */
+.toggle {
+  display: flex;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 12px !important;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 0;
+  background: var(--surface);
+}
+.toggle .grow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.toggle strong {
+  color: var(--text);
+  font-size: 14px;
+}
+.found-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.found {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 0;
+  background: var(--surface-2);
+  text-align: left;
+}
+.found strong {
+  flex: 1;
+}
+.found.selected {
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+.shared-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.timelapse-video {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  background: #000;
+  margin-bottom: 12px;
+}
+
+@media (min-width: 900px) {
+  .control-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .console-log {
+    height: 280px;
+  }
+}

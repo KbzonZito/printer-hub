@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpDown,
   Layers,
@@ -28,12 +28,12 @@ import {
   type GcodeDir,
   type GcodeFile,
 } from '../api/moonraker';
-import { GcodeViewer } from '../components/GcodeViewer';
 import { PullToRefresh } from '../components/PullToRefresh';
 import { Empty, LoadError, Loading } from '../components/states';
 import { useActiveSpool } from '../components/SpoolCard';
 import { ConfirmSheet, Sheet, useAction } from '../components/ui';
 import { useBackHandler } from '../backStack';
+import { useIncremental } from '../useIncremental';
 import { baseName } from '../format';
 import { useT } from '../i18n';
 import { useSettings, type FileSort, type Printer } from '../store';
@@ -48,6 +48,9 @@ import { useCalibration, useFileMeta, GCODE_NAME, parentOf, type Item } from './
 import { FileItem, DirItem } from './files/FileItems';
 import { FolderPicker, Breadcrumbs, NameSheet } from './files/FileSheets';
 import { EstimateCard, FileDetails } from './files/FileDetails';
+import { lazyNamed } from '../lazy';
+// Full-screen viewers load when first opened.
+const GcodeViewer = lazyNamed(() => import('../components/GcodeViewer'), 'GcodeViewer');
 
 const SORTS: FileSort[] = ['date', 'name', 'size'];
 
@@ -149,6 +152,9 @@ export function FileBrowser({
         .map((file) => ({ kind: 'file', file }) as Item),
     ];
   }, [listing, allFiles, query, settings.fileSort, settings.fileSortDesc]);
+
+  // Back to the first rows in another folder or search.
+  const { shown, more, sentinel } = useIncremental(items, `${dir}|${query}`);
 
   const selMeta = useFileMeta(printer, selected);
   const selThumb = selected ? thumbnailUrl(printer, selected.path, selMeta) : null;
@@ -254,7 +260,7 @@ export function FileBrowser({
         </Empty>
       )}
       <div className={grid ? 'file-grid' : 'file-list'} key={`${dir}|${query ? 'q' : ''}`}>
-        {items.map((item) =>
+        {shown.map((item) =>
           item.kind === 'dir' ? (
             <DirItem
               key={`d:${item.dir.path}`}
@@ -275,6 +281,7 @@ export function FileBrowser({
           ),
         )}
       </div>
+      {more && <div ref={sentinel} className="list-more" aria-hidden="true" />}
 
       <Sheet open={!!selected} onClose={() => setSelected(null)}>
         {selected && (
@@ -351,7 +358,11 @@ export function FileBrowser({
         )}
       </Sheet>
 
-      {preview && <GcodeViewer printer={printer} file={preview} onClose={() => setPreview(null)} />}
+      <Suspense fallback={null}>
+        {preview && (
+          <GcodeViewer printer={printer} file={preview} onClose={() => setPreview(null)} />
+        )}
+      </Suspense>
       <ConfirmSheet
         open={!!lowFilament}
         title={t('spool.lowTitle')}

@@ -105,7 +105,7 @@ function tokens(seed: string, style: PaletteStyle, dark: boolean) {
     .join('');
 }
 
-/** Overrides the static tokens in styles.css with ones generated from the seed. */
+/** Overrides the static tokens in styles/theme.css with ones generated from the seed. */
 export function applyPalette(seed: string, style: PaletteStyle) {
   let el = document.getElementById('palette') as HTMLStyleElement | null;
   if (!el) {

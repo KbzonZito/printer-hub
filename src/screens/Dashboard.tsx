@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import {
   Fan,
   Flame,
@@ -23,9 +23,7 @@ import {
   type GcodeFile,
 } from '../api/moonraker';
 import { CameraView } from '../components/CameraView';
-import { CameraViewer } from '../components/CameraViewer';
 import { ExcludeObjectsSheet } from '../components/ExcludeObjectsSheet';
-import { GcodeViewer } from '../components/GcodeViewer';
 import { SpoolCard } from '../components/SpoolCard';
 import { TempChart } from '../components/TempChart';
 import { TuneSheet } from '../components/TuneSheet';
@@ -36,6 +34,10 @@ import { useT, type MessageKey } from '../i18n';
 import { useSettings, type Printer } from '../store';
 import { useConnection, usePrinterReady, usePrinterStatus } from '../usePrinterStatus';
 import { haptic } from '../haptics';
+import { lazyNamed } from '../lazy';
+// Full-screen viewers load when first opened.
+const CameraViewer = lazyNamed(() => import('../components/CameraViewer'), 'CameraViewer');
+const GcodeViewer = lazyNamed(() => import('../components/GcodeViewer'), 'GcodeViewer');
 
 function ProgressRing({ value }: { value: number }) {
   const r = 34;
@@ -446,10 +448,12 @@ export function Dashboard({ printer }: { printer: Printer }) {
           onClose={() => setObjectsOpen(false)}
         />
       )}
-      {liveFile && (
-        <GcodeViewer printer={printer} file={liveFile} live onClose={() => setLiveFile(null)} />
-      )}
-      {viewer && <CameraViewer printer={printer} onClose={() => setViewer(false)} />}
+      <Suspense fallback={null}>
+        {liveFile && (
+          <GcodeViewer printer={printer} file={liveFile} live onClose={() => setLiveFile(null)} />
+        )}
+        {viewer && <CameraViewer printer={printer} onClose={() => setViewer(false)} />}
+      </Suspense>
       <ConfirmSheet
         open={confirm === 'cancel'}
         title={t('home.cancelTitle')}

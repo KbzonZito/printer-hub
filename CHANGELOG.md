@@ -10,9 +10,18 @@ new features bump the minor number, fixes bump the patch number.
   start: wrong values fall back to their defaults and the rest is kept.
 
 ### Changed
+- Faster start: Control, Files, Settings, the welcome wizard and the full-screen viewers load
+  when first opened.
+- Folders with hundreds of files open quickly: the list shows 100 at a time and adds more as
+  you scroll.
+- File thumbnails and details are kept on the phone between app starts (Settings → Storage
+  shows and clears them), so the list doesn't ask the printer again.
+- History, Queue and Timelapses offer "Try again" when loading fails, like Files.
 - If a screen fails, it shows "Something went wrong" with Try again instead of a blank app;
   the other tabs keep working.
-- Development: `npm run check` (types, oxlint, Prettier, unused translations, tests) runs in
+- Development: big screens split into modules (`screens/files`, `screens/settings`), styles
+  split per section (`src/styles/`), and tests for remaining time, estimates, formatting and
+  Moonraker responses. `npm run check` (types, oxlint, Prettier, unused translations, tests) runs in
   GitHub Actions before every build; unused code, styles and translations removed.
 - MIT license. README: privacy note. New 1.0 checklist in docs/checklist-1.0.md.
 

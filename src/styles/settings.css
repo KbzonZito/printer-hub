@@ -1,0 +1,42 @@
+/* Settings lists and printer items. */
+
+/* Settings */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 0;
+  border-radius: var(--radius);
+  border: 0;
+  background: var(--surface);
+}
+.list-item.selected {
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+.list-item.selected .muted {
+  color: inherit;
+  opacity: 0.75;
+}
+.list-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: none;
+  border: 0;
+  text-align: left;
+  min-width: 0;
+}
+.list-main div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}

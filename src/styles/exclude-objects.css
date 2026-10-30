@@ -1,0 +1,56 @@
+/* Exclude objects bed map. */
+
+/* Exclude objects: bed map */
+.bed-map {
+  display: block;
+  width: 100%;
+  max-height: 46vh;
+  margin: 4px 0;
+}
+.bed-plate {
+  fill: var(--surface-2);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.bed-object {
+  cursor: pointer;
+}
+.bed-object .hit {
+  fill: transparent;
+}
+.bed-object polygon,
+.bed-object circle:not(.hit) {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  transition: fill 0.2s var(--ease);
+}
+.bed-object.current polygon,
+.bed-object.current circle:not(.hit) {
+  fill: color-mix(in srgb, var(--accent) 45%, var(--accent-soft));
+}
+.bed-object.selected polygon,
+.bed-object.selected circle:not(.hit) {
+  fill: var(--danger);
+  stroke: var(--danger);
+}
+.bed-object.excluded {
+  cursor: default;
+}
+.bed-object.excluded polygon,
+.bed-object.excluded circle:not(.hit) {
+  fill: transparent;
+  stroke: var(--muted);
+  stroke-dasharray: 3 3;
+}
+.bed-object .cross {
+  stroke: var(--muted);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.bed-legend {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}

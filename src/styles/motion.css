@@ -1,0 +1,90 @@
+/* Animations and the touch ripple. */
+
+/* Motion */
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes snackbar-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+@keyframes ripple {
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+@media (min-width: 768px) {
+  @keyframes sheet-in {
+    from {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+  }
+  @keyframes sheet-out {
+    to {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Touch ripple (see src/ripple.ts) */
+.btn,
+.tabbar button,
+.segmented button,
+.file-row,
+.list-main,
+.chip,
+.tile,
+.found,
+.select-option,
+.select-field {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.ripple {
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.16;
+  transform: scale(0);
+  pointer-events: none;
+  animation: ripple 0.55s var(--ease) forwards;
+}
+/* Only the content is lifted above the pill; the ripple must stay absolute, or it
+   would take up space and stretch the button while it plays. */
+.tabbar button > svg,
+.tabbar button > .tab-label {
+  position: relative;
+}

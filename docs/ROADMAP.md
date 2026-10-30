@@ -172,16 +172,16 @@ G-code en la 0.8.0. Los títulos de abajo conservan la agrupación original por 
 ## Fase 5 — Optimización y limpieza para la 1.0
 
 ### Código
-- **[medium]** Dividir los archivos grandes: `FileBrowser.tsx` (864 líneas), `SettingsScreen.tsx` (747) y
+- **[medium]** (**hecho**) Dividir los archivos grandes: `FileBrowser.tsx` (864 líneas), `SettingsScreen.tsx` (747) y
   `styles.css` (más de 2000 líneas, que pasaría a un CSS por pantalla o componente).
 - **[low]** Eliminar código muerto (**hecho**): reglas CSS que quedaron de las barras anteriores, claves de traducción
   sin usar (`settings.app`…) y exports que ya no se usan. Un script en CI detecta claves de
   traducción sin uso o que falten en un idioma.
-- **[medium]** Unificar patrones repetidos: carga con error y reintento, listas vacías, hojas de confirmación.
+- **[medium]** (**hecho**) Unificar patrones repetidos: carga con error y reintento, listas vacías, hojas de confirmación.
 
 ### Calidad
 - **[low] ESLint + Prettier** (**hecho**: oxlint en lugar de ESLint, porque typescript-eslint no admite TypeScript 7) con comprobación en CI.
-- **[medium] Pruebas unitarias** (Vitest) de la lógica: tiempos restantes (`eta.ts`), estimaciones
+- **[medium] Pruebas unitarias** (**hecho**) (Vitest) de la lógica: tiempos restantes (`eta.ts`), estimaciones
   (`estimate.ts`), formatos, paletas y lectura de respuestas de Moonraker.
 - **[high] Pruebas de extremo a extremo** (Playwright) contra un Moonraker simulado que pasa a formar
   parte del repositorio (`scripts/mock-moonraker.mjs`): bienvenida, añadir impresora, archivos,
@@ -190,9 +190,9 @@ G-code en la 0.8.0. Los títulos de abajo conservan la agrupación original por 
   pantalla en blanco.
 
 ### Rendimiento
-- **[medium]** Cargar cada pantalla solo al abrirla (`React.lazy`) para que la app arranque antes. El paquete
+- **[medium]** (**hecho**: el arranque baja de 566 a 444 kB) Cargar cada pantalla solo al abrirla (`React.lazy`) para que la app arranque antes. El paquete
   JS pesa ahora unos 400 kB.
-- **[medium]** Listas virtualizadas para carpetas con cientos de archivos, y caché de miniaturas.
+- **[medium]** (**hecho**: en lugar de virtualizar, la lista se muestra de 100 en 100; 600 archivos abren en 79 ms en vez de 290 ms; miniaturas y datos guardados en el teléfono) Listas virtualizadas para carpetas con cientos de archivos, y caché de miniaturas.
 - **[high]** Android: activar R8 (minify y shrinkResources) con sus reglas para Capacitor, y corregir la API
   obsoleta que avisa el compilador en `PrinterMonitorPlugin`. Es high porque R8 puede romper en
   tiempo de ejecución el código que Capacitor usa por reflexión, y solo se nota en el APK.

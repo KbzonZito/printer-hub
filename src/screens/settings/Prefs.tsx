@@ -7,6 +7,7 @@ import { ConfirmSheet, Select, useToast } from '../../components/ui';
 import { PrinterMonitor, saveTextFile } from '../../native';
 import { useT, type MessageKey } from '../../i18n';
 import { getState, replaceState, useSettings, type EtaMethod, type State } from '../../store';
+import { clearStoredMeta, metaUsage } from '../../api/metaStore';
 
 // Smaller settings sections: remaining time, notifications, storage and backup.
 
@@ -91,7 +92,8 @@ export function StoragePrefs() {
   const toast = useToast();
   const { settings, updateSettings } = useSettings();
   const [usage, setUsage] = useState<{ count: number; bytes: number } | null>(null);
-  const refresh = () => cacheUsage().then(setUsage);
+  const [meta, setMeta] = useState<{ count: number; bytes: number } | null>(null);
+  const refresh = () => Promise.all([cacheUsage().then(setUsage), metaUsage().then(setMeta)]);
   useEffect(() => {
     refresh();
   }, []);
@@ -102,6 +104,12 @@ export function StoragePrefs() {
         <span className="muted">{t('storage.previews')}</span>
         <span>
           {usage ? t('storage.usage', { n: usage.count, size: formatBytes(usage.bytes) }) : '…'}
+        </span>
+      </div>
+      <div className="estimate-row">
+        <span className="muted">{t('storage.fileData')}</span>
+        <span>
+          {meta ? t('storage.usage', { n: meta.count, size: formatBytes(meta.bytes) }) : '…'}
         </span>
       </div>
       <div className="field">
@@ -118,9 +126,9 @@ export function StoragePrefs() {
       </div>
       <button
         className="btn"
-        disabled={!usage?.count}
+        disabled={!usage?.count && !meta?.count}
         onClick={async () => {
-          await pruneModels(0);
+          await Promise.all([pruneModels(0), clearStoredMeta()]);
           await refresh();
           toast(t('storage.cleared'));
         }}

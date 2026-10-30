@@ -1,0 +1,156 @@
+/* Buttons, inputs, segmented controls and forms. */
+
+/* Buttons & inputs */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--surface-3);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  transition:
+    border-radius 0.25s var(--ease),
+    background-color 0.25s var(--ease),
+    opacity 0.2s var(--ease);
+}
+.btn:active:not(:disabled) {
+  border-radius: 14px;
+}
+.btn:disabled {
+  opacity: 0.45;
+}
+.btn.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.btn.danger {
+  background: var(--danger);
+  color: var(--on-danger);
+}
+.btn.danger-outline {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.btn.ghost {
+  background: transparent;
+}
+.btn.icon {
+  padding: 0;
+  width: 48px;
+  flex-shrink: 0;
+}
+.btn.small {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 12.5px;
+}
+
+.input,
+.search {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  background: var(--surface-2);
+  outline: none;
+  transition: border-color 0.2s var(--ease);
+}
+.search {
+  border-radius: 999px;
+}
+.input:focus,
+.search:focus-within {
+  border-color: var(--accent);
+}
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+.search input {
+  flex: 1;
+  border: 0;
+  background: none;
+  outline: none;
+  color: var(--text);
+  min-width: 0;
+}
+
+.segmented {
+  display: flex;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.segmented button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  /* With the 4px track around it, the touch area is 48px tall. */
+  min-height: 40px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    background-color 0.3s var(--ease),
+    color 0.3s var(--ease);
+}
+.segmented button.active {
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.form label,
+.form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form label > span,
+.form .field > span {
+  font-size: 12.5px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+.banner.warn {
+  background: rgba(245, 185, 66, 0.14);
+  color: var(--warn);
+}
+.banner.error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.banner.ok {
+  background: rgba(62, 207, 142, 0.14);
+  color: var(--ok);
+}

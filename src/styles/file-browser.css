@@ -1,0 +1,175 @@
+/* File browser toolbar, breadcrumbs, grid, folder picker and file details. */
+
+/* File browser: toolbar, breadcrumbs, grid view, folder picker */
+.files-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+}
+.files-toolbar .btn.icon {
+  min-height: 40px;
+  width: 40px;
+  height: 40px;
+}
+.breadcrumbs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+.breadcrumbs::-webkit-scrollbar {
+  display: none;
+}
+.breadcrumbs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 14px;
+}
+.breadcrumbs button.current {
+  color: var(--text);
+  background: var(--surface-2);
+}
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+}
+.sheet .breadcrumbs {
+  margin-bottom: 8px;
+}
+.file-list,
+.file-grid {
+  animation: screen-in 0.3s var(--ease-emph);
+}
+.file-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.file-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 8px 12px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: inherit;
+  text-align: left;
+}
+.file-card .file-thumb {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+}
+.file-card .file-name,
+.file-card .muted {
+  padding: 0 4px;
+}
+.file-card .muted {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.file-name.two-lines {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 14px;
+  line-height: 1.3;
+}
+.folder .file-thumb.placeholder {
+  background: var(--accent-soft);
+  color: var(--on-accent-soft);
+}
+.dir-menu {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: var(--muted);
+}
+.file-card .dir-menu {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--surface);
+}
+.folder-picker {
+  min-height: 120px;
+  max-height: 45vh;
+  overflow-y: auto;
+  margin-bottom: 14px;
+}
+.folder-picker .loader {
+  margin: 30px auto;
+}
+.center {
+  text-align: center;
+}
+.right {
+  text-align: right;
+}
+
+/* File details: time estimates and metadata */
+.estimate,
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.estimate-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--accent);
+}
+.estimate-head > div {
+  display: flex;
+  flex-direction: column;
+  color: var(--text);
+}
+.estimate-head strong {
+  font-size: 22px;
+}
+.estimate-head .right {
+  max-width: 45%;
+}
+.estimate-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+.estimate-row > :last-child {
+  text-align: right;
+}
+.sheet .row.gap + .row.gap {
+  margin-top: 10px;
+}
+
+/* Marks the end of the rows shown so far (useIncremental loads more when it comes near). */
+.list-more {
+  height: 1px;
+}

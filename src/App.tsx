@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -23,12 +23,16 @@ import { formatBytes } from './format';
 import { useT, type MessageKey } from './i18n';
 import { readSharedFile, type SharedFile } from './native';
 import { applyPalette, useSeedColor } from './palette';
-import { ControlScreen } from './screens/ControlScreen';
 import { Dashboard } from './screens/Dashboard';
-import { FilesScreen } from './screens/FilesScreen';
-import { SettingsScreen } from './screens/SettingsScreen';
-import { AllPrinters } from './screens/AllPrinters';
-import { Wizard } from './onboarding/Wizard';
+import { lazyNamed } from './lazy';
+import { Loading } from './components/states';
+
+// Home loads with the app; the other screens when first opened.
+const ControlScreen = lazyNamed(() => import('./screens/ControlScreen'), 'ControlScreen');
+const FilesScreen = lazyNamed(() => import('./screens/FilesScreen'), 'FilesScreen');
+const SettingsScreen = lazyNamed(() => import('./screens/SettingsScreen'), 'SettingsScreen');
+const AllPrinters = lazyNamed(() => import('./screens/AllPrinters'), 'AllPrinters');
+const Wizard = lazyNamed(() => import('./onboarding/Wizard'), 'Wizard');
 import { useSettings, useStore, type Printer, type Settings as AppSettings } from './store';
 import { useNativeSync, useSharedFiles } from './useNativeBridge';
 import { ConnectionProvider } from './connection/ConnectionProvider';
@@ -138,10 +142,12 @@ function Onboarding({ firstRun }: { firstRun: boolean }) {
     <div className="app">
       <main>
         <div className="screen onboarding">
-          <Wizard
-            mode={firstRun ? 'full' : 'printer'}
-            onDone={() => updateSettings({ onboarded: true })}
-          />
+          <Suspense fallback={<Loading />}>
+            <Wizard
+              mode={firstRun ? 'full' : 'printer'}
+              onDone={() => updateSettings({ onboarded: true })}
+            />
+          </Suspense>
         </div>
       </main>
     </div>
@@ -267,25 +273,27 @@ function Main({ active }: { active: Printer }) {
 
           <main key={overview ? 'all' : active.id}>
             <ErrorBoundary key={overview ? 'all' : tab}>
-              {overview && (
-                <AllPrinters
-                  onOpen={() => {
-                    setOverview(false);
-                    setTab('home');
-                  }}
-                />
-              )}
-              {!overview && klippyProblem && (tab === 'home' || tab === 'control') && (
-                <KlippyStateScreen printer={active} />
-              )}
-              {!overview && tab === 'home' && !klippyProblem && <Dashboard printer={active} />}
-              {!overview && tab === 'control' && !klippyProblem && (
-                <ControlScreen printer={active} />
-              )}
-              {!overview && tab === 'files' && (
-                <FilesScreen printer={active} onPrintStarted={() => setTab('home')} />
-              )}
-              {!overview && tab === 'settings' && <SettingsScreen />}
+              <Suspense fallback={<Loading />}>
+                {overview && (
+                  <AllPrinters
+                    onOpen={() => {
+                      setOverview(false);
+                      setTab('home');
+                    }}
+                  />
+                )}
+                {!overview && klippyProblem && (tab === 'home' || tab === 'control') && (
+                  <KlippyStateScreen printer={active} />
+                )}
+                {!overview && tab === 'home' && !klippyProblem && <Dashboard printer={active} />}
+                {!overview && tab === 'control' && !klippyProblem && (
+                  <ControlScreen printer={active} />
+                )}
+                {!overview && tab === 'files' && (
+                  <FilesScreen printer={active} onPrintStarted={() => setTab('home')} />
+                )}
+                {!overview && tab === 'settings' && <SettingsScreen />}
+              </Suspense>
             </ErrorBoundary>
           </main>
         </div>

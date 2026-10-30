@@ -343,6 +343,13 @@ const files = [
   { path: 'creality/block_PLA_17m.gcode', modified: now() - 3 * 86400, size: 610_666 },
 ];
 setTimeout(() => gcodeFor(printer.print_stats.filename), 0);
+// MOCK_MANY=600: a folder with that many files, to check long lists.
+for (let i = 0; i < Number(process.env.MOCK_MANY ?? 0); i++)
+  files.push({
+    path: `muchos/pieza_${String(i).padStart(3, '0')}.gcode`,
+    modified: now() - i * 600,
+    size: 1_000_000 + i,
+  });
 const CREALITY_FIXTURE = new URL(
   '../src/gcode/fixtures/creality-print-block.gcode',
   import.meta.url,
