@@ -109,11 +109,11 @@ export function Dashboard({ printer }: { printer: Printer }) {
   const openLive = async () => {
     if (!status?.filename) return;
     // Modified time and size identify the saved preview (cache) of this exact file.
-    const meta = await fetchMetadata(printer, status.filename).catch(() => null);
+    const info = await fetchMetadata(printer, status.filename).catch(() => null);
     setLiveFile({
       path: status.filename,
-      size: meta?.size ?? status.fileSize ?? 0,
-      modified: meta?.modified ?? 0,
+      size: info?.size ?? status.fileSize ?? 0,
+      modified: info?.modified ?? 0,
     });
   };
   const [tune, setTune] = useState(false);

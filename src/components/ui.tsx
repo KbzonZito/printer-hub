@@ -130,9 +130,11 @@ export function Sheet({
   if (!mounted) return null;
   // Portal to <body> so sheets opened from inside another sheet stack correctly.
   return createPortal(
+    // Tapping outside the sheet closes it; keyboard users have Escape / back (backStack.ts).
     <div
       className={`sheet-backdrop ${closing ? 'closing' : ''}`}
-      onClick={onClose}
+      role="presentation"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
       onAnimationEnd={(e) => {
         if (closing && e.target === e.currentTarget) {
           setMounted(false);
@@ -140,13 +142,7 @@ export function Sheet({
         }
       }}
     >
-      <div
-        ref={sheetRef}
-        className="sheet"
-        role="dialog"
-        aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div ref={sheetRef} className="sheet" role="dialog" aria-modal="true">
         <div className="sheet-handle" />
         {last.current.title && <h2 className="sheet-title">{last.current.title}</h2>}
         {last.current.children}

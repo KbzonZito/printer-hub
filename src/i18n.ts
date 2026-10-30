@@ -15,6 +15,9 @@ const es = {
   'state.error': 'Error',
 
   'common.back': 'Volver',
+  'error.title': 'Algo falló en esta pantalla',
+  'error.text':
+    'El resto de la app sigue funcionando. Puedes reintentar o cambiar de pestaña; si se repite, avísame con el mensaje de abajo.',
   'common.close': 'Cerrar',
   'common.retry': 'Reintentar',
   'common.cancel': 'Cancelar',
@@ -238,14 +241,10 @@ const es = {
   'err.timeout': 'Tiempo de espera agotado',
   'err.unreachable': 'No se pudo conectar con la impresora',
 
-  'onboarding.text':
-    'Conecta tu Creality Hi (o cualquier impresora con Klipper + Moonraker) introduciendo su IP local. La encuentras en la pantalla de la impresora, en Ajustes → Red.',
-
   'home.offline': 'Sin conexión',
   'home.offlineHint':
     '{error}. Revisa la IP {host} y que el puerto {port} (Moonraker) esté accesible.',
   'home.connecting': 'Conectando con {name}…',
-  'home.unstable': 'Conexión inestable: {error}',
   'home.firmwareRestart': 'Reiniciar firmware',
   'home.noJob': 'Sin trabajo',
   'home.layer': 'Capa {current} / {total}',
@@ -298,7 +297,6 @@ const es = {
   'files.uploaded': '{name} subido',
   'files.none': 'No hay archivos en la impresora',
   'files.noResults': 'Sin resultados',
-  'files.time': 'Tiempo',
   'files.layer': 'Capa',
   'files.print': 'Imprimir',
   'files.busy': 'Impresora ocupada',
@@ -339,7 +337,6 @@ const es = {
   'files.est.byFilament': 'Según el filamento',
   'files.est.none': 'El archivo no incluye estimación de tiempo',
   'files.est.finish': 'Si empiezas ahora, termina a las {time}',
-  'files.details': 'Detalles',
   'files.material': 'Material',
   'files.height': 'Altura',
   'files.temps': 'Temperaturas',
@@ -352,7 +349,6 @@ const es = {
   'settings.edit': 'Editar',
   'settings.printer': 'Impresora',
   'settings.deleteTitle': '¿Eliminar {name}?',
-  'settings.app': 'Aplicación',
   'settings.language': 'Idioma',
   'settings.theme': 'Tema',
   'settings.themeSystem': 'Sistema',
@@ -580,6 +576,9 @@ const en: Record<MessageKey, string> = {
   'state.error': 'Error',
 
   'common.back': 'Back',
+  'error.title': 'Something went wrong on this screen',
+  'error.text':
+    'The rest of the app still works. Try again or switch tabs; if it keeps happening, report it with the message below.',
   'common.close': 'Close',
   'common.retry': 'Retry',
   'common.cancel': 'Cancel',
@@ -800,13 +799,9 @@ const en: Record<MessageKey, string> = {
   'err.timeout': 'Request timed out',
   'err.unreachable': 'Could not reach the printer',
 
-  'onboarding.text':
-    'Connect your Creality Hi (or any Klipper + Moonraker printer) by entering its local IP. You can find it on the printer screen under Settings → Network.',
-
   'home.offline': 'Offline',
   'home.offlineHint': '{error}. Check the IP {host} and that port {port} (Moonraker) is reachable.',
   'home.connecting': 'Connecting to {name}…',
-  'home.unstable': 'Unstable connection: {error}',
   'home.firmwareRestart': 'Firmware restart',
   'home.noJob': 'No job',
   'home.layer': 'Layer {current} / {total}',
@@ -859,7 +854,6 @@ const en: Record<MessageKey, string> = {
   'files.uploaded': '{name} uploaded',
   'files.none': 'No files on the printer',
   'files.noResults': 'No results',
-  'files.time': 'Time',
   'files.layer': 'Layer',
   'files.print': 'Print',
   'files.busy': 'Printer busy',
@@ -900,7 +894,6 @@ const en: Record<MessageKey, string> = {
   'files.est.byFilament': 'From filament use',
   'files.est.none': 'This file has no time estimate',
   'files.est.finish': 'If started now, it finishes at {time}',
-  'files.details': 'Details',
   'files.material': 'Material',
   'files.height': 'Height',
   'files.temps': 'Temperatures',
@@ -913,7 +906,6 @@ const en: Record<MessageKey, string> = {
   'settings.edit': 'Edit',
   'settings.printer': 'Printer',
   'settings.deleteTitle': 'Delete {name}?',
-  'settings.app': 'App',
   'settings.language': 'Language',
   'settings.theme': 'Theme',
   'settings.themeSystem': 'System',

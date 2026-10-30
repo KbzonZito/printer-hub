@@ -209,6 +209,12 @@ function DirItem({
         e.stopPropagation();
         onMenu();
       }}
+      onKeyDown={(e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        e.stopPropagation();
+        onMenu();
+      }}
     >
       <MoreVertical size={18} />
     </span>

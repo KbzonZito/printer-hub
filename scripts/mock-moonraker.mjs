@@ -132,8 +132,8 @@ function mockObjects() {
 /** A 7×7 mesh with a slight bowl and a tilt, like a real bed. */
 function mockMesh() {
   const n = 7;
-  const matrix = Array.from({ length: n }, (_, y) =>
-    Array.from({ length: n }, (_, x) => {
+  const matrix = Array.from({ length: n }, (_row, y) =>
+    Array.from({ length: n }, (_col, x) => {
       const dx = x / (n - 1) - 0.5;
       const dy = y / (n - 1) - 0.5;
       return Math.round((0.18 * (dx * dx + dy * dy) - 0.06 * dx + 0.04 * dy - 0.02) * 1000) / 1000;

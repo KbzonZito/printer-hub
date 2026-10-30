@@ -4,8 +4,8 @@ import { KIND_COLORS, KINDS } from './kinds';
 
 describe('viewer colors', () => {
   it('every line kind stands out on the plate (≥ 3:1)', () => {
-    for (const [i, c] of KIND_COLORS.entries())
-      expect(contrast(c, PLATE), KINDS[i]).toBeGreaterThanOrEqual(3);
+    const low = KIND_COLORS.flatMap((c, i) => (contrast(c, PLATE) < 3 ? [KINDS[i]] : []));
+    expect(low).toEqual([]);
   });
 
   it('line kinds are clearly different from each other (ΔE ≥ 20)', () => {

@@ -130,7 +130,7 @@ G-code en la 0.8.0. Los títulos de abajo conservan la agrupación original por 
 ### 0.8.0 — Filamento y estadísticas
 - **[medium] Spoolman** (**hecho**) (si está instalado): bobina activa, peso restante y cambiar de bobina. Antes de
   imprimir, aviso si no queda filamento suficiente.
-- **[low] Coste** por impresión (**hecho**, pendiente de publicar) (precio por kg configurable por material, en los presets).
+- **[low] Coste** por impresión (**hecho**) (precio por kg configurable por material, en los presets).
 - **[medium] Estadísticas** (**hecho**): horas, filamento y número de impresiones por semana / mes, tasa de éxito y
   gráficas sencillas (a partir del historial).
 
@@ -174,19 +174,19 @@ G-code en la 0.8.0. Los títulos de abajo conservan la agrupación original por 
 ### Código
 - **[medium]** Dividir los archivos grandes: `FileBrowser.tsx` (864 líneas), `SettingsScreen.tsx` (747) y
   `styles.css` (más de 2000 líneas, que pasaría a un CSS por pantalla o componente).
-- **[low]** Eliminar código muerto: reglas CSS que quedaron de las barras anteriores, claves de traducción
+- **[low]** Eliminar código muerto (**hecho**): reglas CSS que quedaron de las barras anteriores, claves de traducción
   sin usar (`settings.app`…) y exports que ya no se usan. Un script en CI detecta claves de
   traducción sin uso o que falten en un idioma.
 - **[medium]** Unificar patrones repetidos: carga con error y reintento, listas vacías, hojas de confirmación.
 
 ### Calidad
-- **[low] ESLint + Prettier** con comprobación en CI.
+- **[low] ESLint + Prettier** (**hecho**: oxlint en lugar de ESLint, porque typescript-eslint no admite TypeScript 7) con comprobación en CI.
 - **[medium] Pruebas unitarias** (Vitest) de la lógica: tiempos restantes (`eta.ts`), estimaciones
   (`estimate.ts`), formatos, paletas y lectura de respuestas de Moonraker.
 - **[high] Pruebas de extremo a extremo** (Playwright) contra un Moonraker simulado que pasa a formar
   parte del repositorio (`scripts/mock-moonraker.mjs`): bienvenida, añadir impresora, archivos,
   carpetas e imprimir.
-- **[low] Error boundary**: si una pantalla falla, se muestra un aviso con "Reintentar" en vez de una
+- **[low] Error boundary** (**hecho**): si una pantalla falla, se muestra un aviso con "Reintentar" en vez de una
   pantalla en blanco.
 
 ### Rendimiento
@@ -200,9 +200,9 @@ G-code en la 0.8.0. Los títulos de abajo conservan la agrupación original por 
   cuando falta mucho para terminar).
 
 ### Publicación
-- **[low]** README con capturas de pantalla, licencia (propongo MIT) y nota de privacidad (la app solo
+- **[low]** README (privacidad y comandos **hechos**; faltan capturas y licencia) con capturas de pantalla, licencia (propongo MIT) y nota de privacidad (la app solo
   habla con tu impresora en tu red y no envía datos a terceros).
-- **[low] Lista de comprobación de la 1.0** (la prueba la haces tú en el teléfono):
+- **[low] Lista de comprobación de la 1.0** (**hecho**: [checklist-1.0.md](checklist-1.0.md)) (la prueba la haces tú en el teléfono):
   - Instalación limpia y actualización desde la versión anterior.
   - Teléfono y tablet; Android 10 a 16.
   - Claro / oscuro, español / inglés y varios colores.

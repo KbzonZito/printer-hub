@@ -59,6 +59,7 @@ export function PowerCard({ printer, printing }: { printer: Printer; printing: b
               role="switch"
               className="switch"
               checked={d.status === 'on'}
+              aria-checked={d.status === 'on'}
               disabled={locked || d.status === 'init'}
               onChange={(e) => (e.target.checked ? toggle(d, true) : setTurningOff(d))}
             />

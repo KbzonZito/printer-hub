@@ -26,9 +26,14 @@ jobs:
           java-version: 21
           cache: gradle
 
-      - name: Build web app
+      # Types, lint (oxlint), formatting (Prettier), unused translations and tests.
+      - name: Checks
         run: |
           npm ci
+          npm run check
+
+      - name: Build web app
+        run: |
           npm run build
           npx cap sync android
 

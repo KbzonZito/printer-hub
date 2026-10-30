@@ -46,6 +46,14 @@ other printer that exposes Moonraker (the same API Mobileraker uses).
 - Material 3 look with a floating navigation bar on phones and a navigation rail with a
   two-column dashboard on tablets.
 
+## Privacy
+
+Printer Hub only talks to your printers, directly on your local network (or over your own VPN,
+see [docs/remote-access.md](docs/remote-access.md)). It has no account, no analytics, no ads
+and no server of its own: nothing about you or your prints is sent anywhere else. Settings and
+saved G-code previews stay on the phone (Settings → Storage and Backup let you see, export or
+delete them). The only links that leave the app are the ones you tap in About (GitHub).
+
 ## Install on Android
 
 1. Open [Releases](https://github.com/KbzonZito/printer-hub/releases) on your phone.
@@ -98,11 +106,19 @@ npm run dev          # UI in the browser
 npm run android:sync # build and copy into the Android project
 npm run mock         # simulated Moonraker on port 7125 (add the printer as 127.0.0.1)
 npm test             # unit tests (Vitest)
+npm run check        # types, lint (oxlint), formatting (Prettier), unused translations and tests
+npm run format       # format src/ and scripts/ with Prettier
+npm run bench:gcode  # G-code parser speed (GCODE_BENCH_DIR=folder adds your own files)
 ```
+
+`npm run check` also runs in GitHub Actions before every build.
 
 The simulator has failure scenarios for testing the connection handling:
 `MOCK_SCENARIO=drop npm run mock` (also `klippy-startup`, `shutdown`, `silent`,
-`reject-origin` and `slow`; see `scripts/mock-moonraker.mjs`).
+`reject-origin` and `slow`; see `scripts/mock-moonraker.mjs`). It serves real G-code at the
+Creality Hi's measured speed (`MOCK_FILE_RATE=0` for full speed), and
+`MOCK_PRINT=pruebas/grande_50mb.gcode MOCK_PROGRESS=0.6` prints another file from another
+point.
 
 In the browser, requests to the printer may fail because of CORS; the APK uses native HTTP
 (`CapacitorHttp`) so it isn't affected. To test from a browser, add `cors_domains: *` to the

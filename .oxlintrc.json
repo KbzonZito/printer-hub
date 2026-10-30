@@ -1,0 +1,38 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "unicorn", "oxc", "jsx-a11y", "vitest"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "react-hooks/rules-of-hooks": "error",
+    "react/react-in-jsx-scope": "off",
+    // Render props such as ZoomPan's overlay={(scale) => …} are fine.
+    "react/no-unstable-nested-components": ["warn", { "allowAsProps": true }],
+    // Steps receive the wizard's props whether they use them or not: "_" marks those.
+    "eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+
+    // Effects are keyed on purpose (e.g. [printer.id], not the whole printer object), and the React Compiler style rules flag patterns the app uses deliberately (state reset at the start of a load effect, refs holding the latest callback).
+    "react-hooks/exhaustive-deps": "off",
+    "react/exhaustive-effect-dependencies": "off",
+    "react/set-state-in-effect": "off",
+    "react/refs": "off",
+    "react/purity": "off",
+
+    // Custom controls (sheets, segmented buttons, the camera card inside a disabled fieldset) use ARIA roles on purpose; autofocus is wanted in name dialogs; timelapses have no captions.
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "jsx-a11y/no-autofocus": "off",
+    "jsx-a11y/media-has-caption": "off",
+
+    // Style preferences that don't find bugs here.
+    "unicorn/prefer-add-event-listener": "off",
+    "unicorn/no-array-sort": "off",
+    "unicorn/no-array-reverse": "off",
+    "unicorn/consistent-function-scoping": "off",
+    "unicorn/require-post-message-target-origin": "off",
+    "eslint/no-underscore-dangle": "off",
+    "vitest/require-mock-type-parameters": "off"
+  },
+  "ignorePatterns": ["dist", "android", "builds", "node_modules"]
+}

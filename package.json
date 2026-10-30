@@ -12,7 +12,12 @@
     "release": "scripts/release.sh",
     "mock": "node scripts/mock-moonraker.mjs",
     "test": "vitest run",
-    "bench:gcode": "GCODE_BENCH=1 vitest run src/gcode/parser.perf.test.ts"
+    "bench:gcode": "GCODE_BENCH=1 vitest run src/gcode/parser.perf.test.ts",
+    "lint": "oxlint",
+    "format": "prettier --write src scripts",
+    "format:check": "prettier --check src scripts",
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "check": "tsc --noEmit && npm run lint && npm run format:check && npm run check:i18n && npm test"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
@@ -30,6 +35,8 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "oxlint": "^1.90.0",
+    "prettier": "^3.9.10",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vitest": "^5.0.5",

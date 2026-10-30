@@ -56,3 +56,14 @@ describe('backup', () => {
     expect(restored.settings).not.toHaveProperty('extra');
   });
 });
+
+describe('saved settings', () => {
+  it('survive damaged values: a wrong type falls back to the default', async () => {
+    const { sanitizeSettings, DEFAULT_PRESETS } = await import('./store');
+    const s = sanitizeSettings({ presets: null, theme: 'dark', fileView: 7, onboarded: true });
+    expect(s.presets).toEqual(DEFAULT_PRESETS);
+    expect(s.theme).toBe('dark');
+    expect(s.fileView).toBe('list');
+    expect(s.onboarded).toBe(true);
+  });
+});

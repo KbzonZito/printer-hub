@@ -92,6 +92,7 @@ describe('connection against the simulator', () => {
       method: 'POST',
     });
     await until(() => lines.some((l) => l.includes('FIRMWARE_NAME')), 2000);
+    expect(lines.some((l) => l.includes('FIRMWARE_NAME'))).toBe(true);
     conn.stop();
   });
 
@@ -128,6 +129,7 @@ describe('connection against the simulator', () => {
     const { conn, seen } = connect(7315);
     await until(() => conn.getSnapshot().state.kind === 'ready', 3000);
     await until(() => seen.includes('reconnecting'), 6000);
+    expect(seen).toContain('reconnecting');
     conn.stop();
   });
 });

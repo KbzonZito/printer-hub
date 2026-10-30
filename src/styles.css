@@ -796,13 +796,6 @@ main {
 }
 
 /* Settings */
-.section-title {
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  margin-top: 6px;
-}
 .list {
   display: flex;
   flex-direction: column;
@@ -915,12 +908,6 @@ main {
 .chart-card {
   order: 2;
 }
-.settings-group {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 @media (min-width: 768px) {
   .app {
     flex-direction: row;
@@ -1108,10 +1095,6 @@ main {
 .onboarding p {
   margin: 0 0 8px;
 }
-.brand-mark img {
-  border-radius: 16px;
-}
-
 @keyframes spin {
   to {
     transform: rotate(360deg);

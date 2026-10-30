@@ -165,8 +165,8 @@ export function CameraView({
 
   useEffect(() => {
     if (view.kind !== 'snapshot') return;
-    const t = setInterval(() => setTick((n) => n + 1), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(timer);
   }, [view.kind]);
 
   return (

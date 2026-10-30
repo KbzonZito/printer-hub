@@ -554,6 +554,7 @@ function NotifyPref() {
         role="switch"
         className="switch"
         checked={settings.notify}
+        aria-checked={settings.notify}
         onChange={async (e) => {
           const on = e.target.checked;
           if (on) {
@@ -584,6 +585,7 @@ function FirstLayerPref() {
         role="switch"
         className="switch"
         checked={settings.notifyFirstLayer}
+        aria-checked={settings.notifyFirstLayer}
         disabled={!settings.notify}
         onChange={(e) => updateSettings({ notifyFirstLayer: e.target.checked })}
       />

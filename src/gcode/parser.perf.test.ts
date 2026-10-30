@@ -19,11 +19,11 @@ describe.runIf(run)('GcodeParser performance', async () => {
   ]);
   const dir = process.env.GCODE_BENCH_DIR;
   if (dir && existsSync(dir))
-    for (const f of readdirSync(dir).filter((f) => f.endsWith('.gcode')))
+    for (const f of readdirSync(dir).filter((name) => name.endsWith('.gcode')))
       files.push([f, new Uint8Array(readFileSync(join(dir, f)))]);
 
   for (const [name, data] of files) {
-    it(name, () => {
+    it(`${name}`, () => {
       let best = Infinity;
       let result!: ReturnType<GcodeParser['finish']> & { all: number };
       for (let round = 0; round < 3; round++) {

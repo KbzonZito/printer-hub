@@ -5,6 +5,17 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+### Fixed
+- Damaged saved settings (for example from an interrupted write) no longer crash the app on
+  start: wrong values fall back to their defaults and the rest is kept.
+
+### Changed
+- If a screen fails, it shows "Something went wrong" with Try again instead of a blank app;
+  the other tabs keep working.
+- Development: `npm run check` (types, oxlint, Prettier, unused translations, tests) runs in
+  GitHub Actions before every build; unused code, styles and translations removed.
+- README: privacy note. New 1.0 checklist in docs/checklist-1.0.md.
+
 ## [0.8.0] - 2026-10-29
 
 ### Added

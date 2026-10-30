@@ -98,19 +98,71 @@ export function defaultSettings(): Settings {
   };
 }
 
+export const isObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** A printer as saved (or in a backup), or null if it has no host. */
+export function sanitizePrinter(raw: unknown): Printer | null {
+  if (!isObject(raw) || typeof raw.host !== 'string' || !raw.host.trim()) return null;
+  const base = newPrinter();
+  const pick = <K extends keyof Printer>(key: K) =>
+    typeof raw[key] === typeof base[key] ? (raw[key] as Printer[K]) : base[key];
+  return {
+    id: pick('id'),
+    name: pick('name'),
+    host: raw.host.trim(),
+    port: pick('port'),
+    cameraMode: pick('cameraMode'),
+    cameraUrl: pick('cameraUrl'),
+  };
+}
+
+/**
+ * Keeps only known settings whose type matches the defaults; the rest stay as defaults. Saved
+ * data can be from an older version or damaged, and a wrong type would crash a screen.
+ */
+export function sanitizeSettings(raw: unknown): Settings {
+  const base = defaultSettings();
+  if (!isObject(raw)) return base;
+  const out: Record<string, unknown> = { ...base };
+  for (const key of Object.keys(base) as (keyof Settings)[]) {
+    const value = raw[key];
+    if (
+      value !== undefined &&
+      typeof value === typeof base[key] &&
+      Array.isArray(value) === Array.isArray(base[key])
+    )
+      out[key] = value;
+  }
+  const presets = (out.presets as unknown[]).filter(
+    (p) =>
+      isObject(p) &&
+      typeof p.id === 'string' &&
+      typeof p.name === 'string' &&
+      typeof p.nozzle === 'number' &&
+      typeof p.bed === 'number',
+  );
+  return { ...(out as unknown as Settings), presets: presets as Settings['presets'] };
+}
+
 function load(): State {
   const fallback = { printers: [], activeId: null, settings: defaultSettings() };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const saved = JSON.parse(raw);
+      const printers = (Array.isArray(saved?.printers) ? saved.printers : [])
+        .map(sanitizePrinter)
+        .filter((p: Printer | null): p is Printer => p != null);
+      const settings = sanitizeSettings(saved?.settings);
       // Installs from before the welcome wizard already have their printers set up.
-      const onboarded = saved.settings?.onboarded ?? (saved.printers?.length ?? 0) > 0;
-      return {
-        ...fallback,
-        ...saved,
-        settings: { ...fallback.settings, ...saved.settings, onboarded },
-      };
+      if (typeof saved?.settings?.onboarded !== 'boolean') settings.onboarded = printers.length > 0;
+      const activeId =
+        typeof saved?.activeId === 'string' &&
+        printers.some((p: Printer) => p.id === saved.activeId)
+          ? saved.activeId
+          : (printers[0]?.id ?? null);
+      return { printers, activeId, settings };
     }
   } catch {
     /* storage unavailable or corrupt */
@@ -143,7 +195,10 @@ export const getSettings = () => state.settings;
 export const getState = () => state;
 export const replaceState = (next: State) => setState(next);
 
-export const newId = () => Math.random().toString(36).slice(2, 10);
+// A function declaration (not a const) so load() can use it while the module initialises.
+export function newId() {
+  return Math.random().toString(36).slice(2, 10);
+}
 
 export function newPrinter(): Printer {
   return {

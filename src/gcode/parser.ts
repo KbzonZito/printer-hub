@@ -1,4 +1,4 @@
-import { KIND_INDEX, KINDS, kindFromType } from './kinds';
+import { KIND_INDEX, kindFromType } from './kinds';
 import type { GcodeLayer, GcodeSummary } from './model';
 
 // Streaming G-code parser. It works on bytes (only a few comment lines are decoded to text),
@@ -583,9 +583,6 @@ export class GcodeParser {
     return i;
   }
 }
-
-/** Number of kinds, for callers sizing per-kind arrays. */
-export const KIND_COUNT = KINDS.length;
 
 // ------------------------------------------------------------------ number helpers
 

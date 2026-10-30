@@ -16,6 +16,7 @@ import { handleBack, useBackHandler } from './backStack';
 import { pruneModels } from './gcode/cache';
 import { ConnectionBanner, KlippyStateScreen } from './components/ConnectionStatus';
 import { EmergencyStop } from './components/EmergencyStop';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { NavBar } from './components/NavBar';
 import { Sheet, ToastProvider, useAction } from './components/ui';
 import { formatBytes } from './format';
@@ -265,23 +266,27 @@ function Main({ active }: { active: Printer }) {
           <ConnectionBanner />
 
           <main key={overview ? 'all' : active.id}>
-            {overview && (
-              <AllPrinters
-                onOpen={() => {
-                  setOverview(false);
-                  setTab('home');
-                }}
-              />
-            )}
-            {!overview && klippyProblem && (tab === 'home' || tab === 'control') && (
-              <KlippyStateScreen printer={active} />
-            )}
-            {!overview && tab === 'home' && !klippyProblem && <Dashboard printer={active} />}
-            {!overview && tab === 'control' && !klippyProblem && <ControlScreen printer={active} />}
-            {!overview && tab === 'files' && (
-              <FilesScreen printer={active} onPrintStarted={() => setTab('home')} />
-            )}
-            {!overview && tab === 'settings' && <SettingsScreen />}
+            <ErrorBoundary key={overview ? 'all' : tab}>
+              {overview && (
+                <AllPrinters
+                  onOpen={() => {
+                    setOverview(false);
+                    setTab('home');
+                  }}
+                />
+              )}
+              {!overview && klippyProblem && (tab === 'home' || tab === 'control') && (
+                <KlippyStateScreen printer={active} />
+              )}
+              {!overview && tab === 'home' && !klippyProblem && <Dashboard printer={active} />}
+              {!overview && tab === 'control' && !klippyProblem && (
+                <ControlScreen printer={active} />
+              )}
+              {!overview && tab === 'files' && (
+                <FilesScreen printer={active} onPrintStarted={() => setTab('home')} />
+              )}
+              {!overview && tab === 'settings' && <SettingsScreen />}
+            </ErrorBoundary>
           </main>
         </div>
       </div>
