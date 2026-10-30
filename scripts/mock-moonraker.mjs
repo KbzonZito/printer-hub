@@ -18,7 +18,8 @@ import { generateGcode, objectDefinitions } from './gen-gcode.mjs';
 
 const SCENARIOS = {
   normal: 'Ready and printing',
-  'klippy-startup': 'Klipper reports "startup" for 10 s, then becomes ready',
+  'klippy-startup':
+    'Klipper reports "startup" for 10 s from the first connection, then becomes ready',
   shutdown: 'Klipper is shut down until FIRMWARE_RESTART',
   drop: 'Every WebSocket connection is closed every 30 s',
   silent: '15 s after opening, each WebSocket stops sending and answering, without closing',
@@ -173,8 +174,15 @@ function restartKlippy() {
   setKlippy('startup', 'Klipper is starting');
   setTimeout(() => setKlippy('ready', 'Printer is ready'), MS.restart);
 }
-if (scenario === 'klippy-startup')
+// "klippy-startup": Klipper starts when the first client connects, not when the simulator
+// does, so a client that connects a bit later still sees the startup (and tests don't
+// depend on how long earlier ones took).
+let startupScheduled = false;
+function scheduleStartup() {
+  if (scenario !== 'klippy-startup' || startupScheduled) return;
+  startupScheduled = true;
   setTimeout(() => setKlippy('ready', 'Printer is ready'), MS.startup);
+}
 
 function respond(line) {
   gcodeStore.push({ message: line, time: now(), type: 'response' });
@@ -898,6 +906,7 @@ function broadcast(method, params) {
 }
 
 wss.on('connection', (ws) => {
+  scheduleStartup();
   // Subscribed objects and the last values sent to this client.
   ws.subscription = null;
   ws.lastSent = {};
