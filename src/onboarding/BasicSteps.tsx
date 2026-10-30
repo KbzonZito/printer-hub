@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useT } from '../i18n';
 import { openExternal } from '../native';
-import { AppearancePrefs } from '../screens/SettingsScreen';
+import { AppearancePrefs } from '../screens/settings/Appearance';
 import type { StepProps } from './Wizard';
 
 export function AppearanceStep(_: StepProps) {

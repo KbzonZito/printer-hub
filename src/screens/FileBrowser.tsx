@@ -3,17 +3,11 @@ import {
   ArrowUpDown,
   Layers,
   ListPlus,
-  ChevronRight,
-  Clock,
   FileBox,
-  Folder,
   FolderInput,
-  FolderOpen,
   FolderPlus,
-  History,
   LayoutGrid,
   List,
-  MoreVertical,
   Pencil,
   Play,
   RefreshCw,
@@ -25,27 +19,23 @@ import {
   createDirectory,
   deleteDirectory,
   deleteFile,
-  fetchMetadata,
   listDirectory,
   listFiles,
   moveItem,
   printerActions,
   thumbnailUrl,
   uploadFile,
-  type FileMetadata,
   type GcodeDir,
   type GcodeFile,
 } from '../api/moonraker';
 import { GcodeViewer } from '../components/GcodeViewer';
-import { completeMetadata, needsCompletion } from '../api/gcodeInfo';
 import { PullToRefresh } from '../components/PullToRefresh';
+import { Empty, LoadError, Loading } from '../components/states';
 import { useActiveSpool } from '../components/SpoolCard';
 import { ConfirmSheet, Sheet, useAction } from '../components/ui';
 import { useBackHandler } from '../backStack';
-import { formatCost, printCost } from '../cost';
-import { estimateFile, loadCalibration, type Calibration } from '../estimate';
-import { baseName, formatBytes, formatClock, formatDate, formatDuration } from '../format';
-import { useLang, useT, type MessageKey } from '../i18n';
+import { baseName } from '../format';
+import { useT } from '../i18n';
 import { useSettings, type FileSort, type Printer } from '../store';
 import {
   useCapabilities,
@@ -54,424 +44,10 @@ import {
   usePrinterStatus,
 } from '../usePrinterStatus';
 import { enqueue } from '../api/queue';
-
-const metaCache = new Map<string, FileMetadata>();
-const metaKey = (p: Printer, f: GcodeFile) => `${p.id}:${f.path}:${f.modified}`;
-
-type Item = { kind: 'dir'; dir: GcodeDir } | { kind: 'file'; file: GcodeFile };
-
-const GCODE_NAME = /\.(gcode|g|gco)$/i;
-const parentOf = (path: string) => (path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '');
-
-function useMetadata(printer: Printer, file: GcodeFile, visible: boolean) {
-  const key = metaKey(printer, file);
-  const [meta, setMeta] = useState(metaCache.get(key));
-  useEffect(() => {
-    if (!visible || meta) return;
-    let cancelled = false;
-    fetchMetadata(printer, file.path)
-      .then((m) => completeMetadata(printer, file.path, m, false, file.size))
-      .then((m) => {
-        metaCache.set(key, m);
-        if (!cancelled) setMeta(m);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [key, visible]);
-  return meta;
-}
-
-/** Metadata for the file open in the detail sheet. */
-function useFileMeta(printer: Printer, file: GcodeFile | null) {
-  const [meta, setMeta] = useState<FileMetadata>();
-  useEffect(() => {
-    if (!file) return;
-    const key = metaKey(printer, file);
-    const cached = metaCache.get(key);
-    setMeta(cached);
-    // The list may have cached it with only the small thumbnail; the details want more.
-    if (cached && !needsCompletion(cached, true)) return;
-    let cancelled = false;
-    (cached ? Promise.resolve(cached) : fetchMetadata(printer, file.path))
-      .then((m) => completeMetadata(printer, file.path, m, true, file.size))
-      .then((m) => {
-        metaCache.set(key, m);
-        if (!cancelled) setMeta(m);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [file]);
-  return file ? meta : undefined;
-}
-
-function useVisible<T extends Element>() {
-  const ref = useRef<T>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && setVisible(true), {
-      rootMargin: '200px',
-    });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  return [ref, visible] as const;
-}
-
-function useCalibration(printer: Printer) {
-  const [cal, setCal] = useState<Calibration | null>(null);
-  useEffect(() => {
-    loadCalibration(printer)
-      .then(setCal)
-      .catch(() => {});
-  }, [printer.id]);
-  return cal;
-}
-
-function FileItem({
-  printer,
-  file,
-  grid,
-  showDir,
-  onOpen,
-}: {
-  printer: Printer;
-  file: GcodeFile;
-  grid: boolean;
-  showDir: boolean;
-  onOpen: () => void;
-}) {
-  const [ref, visible] = useVisible<HTMLButtonElement>();
-  const lang = useLang();
-  const meta = useMetadata(printer, file, visible);
-  const thumb = thumbnailUrl(printer, file.path, meta);
-  const image = thumb ? (
-    <img className="file-thumb" src={thumb} alt="" loading="lazy" />
-  ) : (
-    <div className="file-thumb placeholder">
-      <FileBox size={grid ? 32 : 22} />
-    </div>
-  );
-  const time = meta?.estimated_time ? formatDuration(meta.estimated_time) : null;
-  const dir = showDir ? parentOf(file.path) : '';
-
-  if (grid) {
-    return (
-      <button ref={ref} className="file-card" onClick={onOpen}>
-        {image}
-        <span className="file-name two-lines">{baseName(file.path)}</span>
-        <span className="muted small">
-          {time && <Clock size={12} />} {time ?? formatBytes(file.size)}
-        </span>
-      </button>
-    );
-  }
-  return (
-    <button ref={ref} className="file-row" onClick={onOpen}>
-      {image}
-      <div className="file-info">
-        <span className="file-name">{baseName(file.path)}</span>
-        <span className="muted small">
-          {dir && `${dir} · `}
-          {time ? `${time} · ` : ''}
-          {formatBytes(file.size)} · {formatDate(file.modified, lang)}
-        </span>
-      </div>
-    </button>
-  );
-}
-
-function DirItem({
-  dir,
-  grid,
-  onOpen,
-  onMenu,
-}: {
-  dir: GcodeDir;
-  grid: boolean;
-  onOpen: () => void;
-  onMenu: () => void;
-}) {
-  const lang = useLang();
-  const t = useT();
-  const menu = (
-    <span
-      role="button"
-      tabIndex={0}
-      className="dir-menu"
-      aria-label={t('files.folderActions')}
-      onClick={(e) => {
-        e.stopPropagation();
-        onMenu();
-      }}
-      onKeyDown={(e) => {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
-        e.preventDefault();
-        e.stopPropagation();
-        onMenu();
-      }}
-    >
-      <MoreVertical size={18} />
-    </span>
-  );
-  if (grid) {
-    return (
-      <button className="file-card folder" onClick={onOpen}>
-        <div className="file-thumb placeholder">
-          <Folder size={34} />
-        </div>
-        <span className="file-name two-lines">{dir.name}</span>
-        {menu}
-      </button>
-    );
-  }
-  return (
-    <button className="file-row folder" onClick={onOpen}>
-      <div className="file-thumb placeholder">
-        <Folder size={24} />
-      </div>
-      <div className="file-info grow">
-        <span className="file-name">{dir.name}</span>
-        <span className="muted small">{formatDate(dir.modified, lang)}</span>
-      </div>
-      {menu}
-    </button>
-  );
-}
-
-/** Sheet to browse folders and pick a destination. */
-function FolderPicker({
-  printer,
-  open,
-  exclude,
-  onClose,
-  onPick,
-}: {
-  printer: Printer;
-  open: boolean;
-  /** A folder being moved can't go inside itself. */
-  exclude?: string;
-  onClose: () => void;
-  onPick: (dir: string) => void;
-}) {
-  const t = useT();
-  const [dir, setDir] = useState('');
-  const [dirs, setDirs] = useState<GcodeDir[] | null>(null);
-  useEffect(() => {
-    if (!open) return;
-    setDirs(null);
-    listDirectory(printer, dir)
-      .then((r) => setDirs(r.dirs.filter((d) => d.path !== exclude)))
-      .catch(() => setDirs([]));
-  }, [open, dir]);
-  useEffect(() => {
-    if (open) setDir('');
-  }, [open]);
-  return (
-    <Sheet open={open} onClose={onClose} title={t('files.moveTo')}>
-      <Breadcrumbs dir={dir} onNavigate={setDir} />
-      <div className="select-options folder-picker">
-        {!dirs && <div className="loader" />}
-        {dirs?.map((d) => (
-          <button key={d.path} className="select-option" onClick={() => setDir(d.path)}>
-            <Folder size={20} />
-            <span className="grow">{d.name}</span>
-            <ChevronRight size={18} />
-          </button>
-        ))}
-        {dirs?.length === 0 && <p className="muted small center">{t('files.emptyFolder')}</p>}
-      </div>
-      <div className="row gap">
-        <button className="btn grow" onClick={onClose}>
-          {t('common.cancel')}
-        </button>
-        <button className="btn primary grow" onClick={() => onPick(dir)}>
-          <FolderInput size={18} /> {t('files.moveHere')}
-        </button>
-      </div>
-    </Sheet>
-  );
-}
-
-function Breadcrumbs({ dir, onNavigate }: { dir: string; onNavigate: (dir: string) => void }) {
-  const t = useT();
-  const parts = dir ? dir.split('/') : [];
-  return (
-    <nav className="breadcrumbs">
-      <button className={parts.length ? '' : 'current'} onClick={() => onNavigate('')}>
-        <FolderOpen size={16} /> {t('files.tab.files')}
-      </button>
-      {parts.map((name, i) => (
-        <span key={i} className="crumb">
-          <ChevronRight size={14} />
-          <button
-            className={i === parts.length - 1 ? 'current' : ''}
-            onClick={() => onNavigate(parts.slice(0, i + 1).join('/'))}
-          >
-            {name}
-          </button>
-        </span>
-      ))}
-    </nav>
-  );
-}
-
-function NameSheet({
-  open,
-  title,
-  initial,
-  confirmLabel,
-  onClose,
-  onSubmit,
-}: {
-  open: boolean;
-  title: string;
-  initial: string;
-  confirmLabel: string;
-  onClose: () => void;
-  onSubmit: (name: string) => void;
-}) {
-  const t = useT();
-  const [name, setName] = useState(initial);
-  useEffect(() => {
-    if (open) setName(initial);
-  }, [open, initial]);
-  const valid = name.trim() !== '' && !name.includes('/');
-  return (
-    <Sheet open={open} onClose={onClose} title={title}>
-      <form
-        className="form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (valid) onSubmit(name.trim());
-        }}
-      >
-        <label className="field">
-          <span>{t('files.name')}</span>
-          <input
-            className="input"
-            value={name}
-            autoFocus
-            onChange={(e) => setName(e.target.value)}
-          />
-        </label>
-        <div className="row gap">
-          <button type="button" className="btn grow" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button type="submit" className="btn primary grow" disabled={!valid}>
-            {confirmLabel}
-          </button>
-        </div>
-      </form>
-    </Sheet>
-  );
-}
-
-function EstimateCard({
-  file,
-  meta,
-  cal,
-}: {
-  file: GcodeFile;
-  meta: FileMetadata | undefined;
-  cal: Calibration | null;
-}) {
-  const t = useT();
-  const lang = useLang();
-  const est = estimateFile(file.path, meta, cal);
-  const rows: { key: MessageKey; value: number | null; icon?: typeof Clock }[] = [
-    { key: 'files.est.lastPrint', value: est.lastActual, icon: History },
-    { key: 'files.est.calibrated', value: est.calibrated },
-    { key: 'files.est.slicer', value: est.slicer },
-    { key: 'files.est.byFilament', value: est.slicer ? null : est.byFilament },
-  ];
-  return (
-    <div className="estimate">
-      <div className="estimate-head">
-        <Clock size={20} />
-        <div className="grow">
-          <span className="muted small">{t('files.estimate')}</span>
-          <strong>{est.best ? formatDuration(est.best) : '—'}</strong>
-        </div>
-        {est.best && (
-          <span className="muted small right">
-            {t('files.est.finish', {
-              time: formatClock(new Date(Date.now() + est.best * 1000), lang),
-            })}
-          </span>
-        )}
-      </div>
-      {!est.best && <p className="muted small">{t('files.est.none')}</p>}
-      {rows
-        .filter((r) => r.value)
-        .map((r) => (
-          <div key={r.key} className="estimate-row">
-            <span className="muted">{t(r.key)}</span>
-            <strong>{formatDuration(r.value!)}</strong>
-          </div>
-        ))}
-      {est.calibrated && cal?.ratio && (
-        <p className="muted small">
-          {t('files.est.calibratedHint', {
-            n: String(cal.samples),
-            pct: `${Math.round(cal.ratio * 100)}%`,
-          })}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function FileDetails({ file, meta }: { file: GcodeFile; meta: FileMetadata | undefined }) {
-  const t = useT();
-  const lang = useLang();
-  const { settings } = useSettings();
-  const cost = printCost(settings.presets, {
-    type: meta?.filament_type,
-    grams: meta?.filament_weight_total,
-    lengthMm: meta?.filament_total,
-  });
-  const filament = meta?.filament_weight_total
-    ? `${meta.filament_weight_total.toFixed(0)} g`
-    : null;
-  const length = meta?.filament_total ? `${(meta.filament_total / 1000).toFixed(1)} m` : null;
-  const temps =
-    meta?.first_layer_extr_temp || meta?.first_layer_bed_temp
-      ? `${meta.first_layer_extr_temp ?? '—'}° / ${meta.first_layer_bed_temp ?? '—'}°`
-      : null;
-  const rows: [MessageKey, string | null][] = [
-    [
-      'files.material',
-      [meta?.filament_type, meta?.filament_name].filter(Boolean).join(' · ') || null,
-    ],
-    ['home.filament', [length, filament].filter(Boolean).join(' · ') || null],
-    ['files.cost', cost != null ? formatCost(cost, settings.currency, lang) : null],
-    ['files.temps', temps],
-    ['files.layer', meta?.layer_height ? `${meta.layer_height} mm` : null],
-    ['files.height', meta?.object_height ? `${meta.object_height} mm` : null],
-    ['files.slicer', meta?.slicer ?? null],
-    ['files.size', formatBytes(file.size)],
-    ['files.modified', formatDate(file.modified, lang)],
-  ];
-  return (
-    <div className="details">
-      {rows
-        .filter(([, v]) => v)
-        .map(([k, v]) => (
-          <div key={k} className="estimate-row">
-            <span className="muted">{t(k)}</span>
-            <span>{v}</span>
-          </div>
-        ))}
-    </div>
-  );
-}
+import { useCalibration, useFileMeta, GCODE_NAME, parentOf, type Item } from './files/fileMeta';
+import { FileItem, DirItem } from './files/FileItems';
+import { FolderPicker, Breadcrumbs, NameSheet } from './files/FileSheets';
+import { EstimateCard, FileDetails } from './files/FileDetails';
 
 const SORTS: FileSort[] = ['date', 'name', 'size'];
 
@@ -670,26 +246,12 @@ export function FileBrowser({
         </button>
       </div>
 
-      {error && (
-        <div className="empty">
-          <p className="muted">{error}</p>
-          <button className="btn primary" onClick={load}>
-            {t('common.retry')}
-          </button>
-        </div>
-      )}
-      {loading && (
-        <div className="empty">
-          <div className="loader" />
-        </div>
-      )}
+      {error && <LoadError message={error} onRetry={load} />}
+      {loading && <Loading />}
       {!loading && !error && items.length === 0 && (
-        <div className="empty">
-          <FileBox size={36} />
-          <p className="muted">
-            {query ? t('files.noResults') : dir ? t('files.emptyFolder') : t('files.none')}
-          </p>
-        </div>
+        <Empty icon={FileBox}>
+          {query ? t('files.noResults') : dir ? t('files.emptyFolder') : t('files.none')}
+        </Empty>
       )}
       <div className={grid ? 'file-grid' : 'file-list'} key={`${dir}|${query ? 'q' : ''}`}>
         {items.map((item) =>

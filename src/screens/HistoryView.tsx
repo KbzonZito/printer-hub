@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ChartColumn, CheckCircle2, CircleSlash, FileBox, RotateCcw, XCircle } from 'lucide-react';
 import {
   fetchHistory,
@@ -6,14 +6,15 @@ import {
   printerActions,
   thumbnailUrl,
   type HistoryJob,
-  type HistoryTotals,
 } from '../api/moonraker';
 import { PullToRefresh } from '../components/PullToRefresh';
+import { Empty, LoadError, Loading } from '../components/states';
 import { StatsSheet } from '../components/StatsSheet';
 import { Sheet, useAction } from '../components/ui';
 import { baseName, formatDate, formatDuration } from '../format';
 import { useLang, useT, type MessageKey } from '../i18n';
 import { useConnectionEvent } from '../usePrinterStatus';
+import { useLoader } from '../useLoader';
 import { useSettings, type Printer } from '../store';
 import { formatCost, printCost } from '../cost';
 
@@ -35,9 +36,6 @@ export function HistoryView({
   const t = useT();
   const lang = useLang();
   const run = useAction();
-  const [jobs, setJobs] = useState<HistoryJob[] | null>(null);
-  const [totals, setTotals] = useState<HistoryTotals | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<HistoryJob | null>(null);
   const [statsOpen, setStatsOpen] = useState(false);
   const { settings } = useSettings();
@@ -48,23 +46,15 @@ export function HistoryView({
       lengthMm: selected.filament_used,
     });
 
-  const load = () =>
-    Promise.all([
-      fetchHistory(printer)
-        .then((j) => {
-          setJobs(j);
-          setError(null);
-        })
-        .catch((e) => setError((e as Error).message)),
-      fetchHistoryTotals(printer)
-        .then(setTotals)
-        .catch(() => {}),
-    ]);
-  useEffect(() => {
-    load();
-  }, [printer.id]);
+  // Jobs and totals together; the totals are optional (older Moonraker versions).
+  const { data, error, loading, reload } = useLoader(
+    () => Promise.all([fetchHistory(printer), fetchHistoryTotals(printer).catch(() => null)]),
+    [printer.id],
+  );
+  const jobs = data?.[0] ?? null;
+  const totals = data?.[1] ?? null;
   // A print that starts or finishes updates the list by itself.
-  useConnectionEvent('notify_history_changed', () => void load());
+  useConnectionEvent('notify_history_changed', () => void reload());
 
   const done = jobs?.filter((j) => j.status === 'completed').length ?? 0;
   const statusLabel = (s: string) =>
@@ -73,7 +63,7 @@ export function HistoryView({
       : s;
 
   return (
-    <PullToRefresh onRefresh={load}>
+    <PullToRefresh onRefresh={reload}>
       <StatsSheet printer={printer} open={statsOpen} onClose={() => setStatsOpen(false)} />
       {totals && (
         <div className="stats four">
@@ -101,18 +91,9 @@ export function HistoryView({
         </button>
       )}
 
-      {error && <p className="muted">{error}</p>}
-      {!jobs && !error && (
-        <div className="empty">
-          <div className="loader" />
-        </div>
-      )}
-      {jobs?.length === 0 && (
-        <div className="empty">
-          <FileBox size={36} />
-          <p className="muted">{t('history.empty')}</p>
-        </div>
-      )}
+      {error && <LoadError message={error} onRetry={reload} />}
+      {loading && <Loading />}
+      {jobs?.length === 0 && <Empty icon={FileBox}>{t('history.empty')}</Empty>}
 
       <div className="file-list">
         {jobs?.map((j) => {

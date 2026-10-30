@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ArrowDown, ArrowUp, ListOrdered, Pause, Play, Trash2, X } from 'lucide-react';
 import {
   dequeue,
@@ -9,31 +9,27 @@ import {
   type QueueStatus,
 } from '../api/queue';
 import { PullToRefresh } from '../components/PullToRefresh';
+import { Empty, LoadError, Loading } from '../components/states';
 import { ConfirmSheet, useAction } from '../components/ui';
 import { baseName } from '../format';
 import { useT } from '../i18n';
 import type { Printer } from '../store';
 import { useConnectionEvent } from '../usePrinterStatus';
+import { useLoader } from '../useLoader';
 
 /** Moonraker's print queue: the next file starts by itself when the printer is free. */
 export function QueueView({ printer }: { printer: Printer }) {
   const t = useT();
   const run = useAction();
-  const [queue, setQueue] = useState<QueueStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: queue,
+    error,
+    loading,
+    reload,
+    setData: setQueue,
+  } = useLoader(() => fetchQueue(printer), [printer.id]);
   const [clearing, setClearing] = useState(false);
-
-  const load = () =>
-    fetchQueue(printer)
-      .then((q) => {
-        setQueue(q);
-        setError(null);
-      })
-      .catch((e) => setError((e as Error).message));
-  useEffect(() => {
-    load();
-  }, [printer.id]);
-  useConnectionEvent('notify_job_queue_changed', () => void load());
+  useConnectionEvent('notify_job_queue_changed', () => void reload());
 
   const update = (fn: () => Promise<QueueStatus>) =>
     run(async () => {
@@ -49,13 +45,9 @@ export function QueueView({ printer }: { printer: Printer }) {
   };
 
   return (
-    <PullToRefresh onRefresh={load}>
-      {error && <p className="muted">{error}</p>}
-      {!queue && !error && (
-        <div className="empty">
-          <div className="loader" />
-        </div>
-      )}
+    <PullToRefresh onRefresh={reload}>
+      {error && <LoadError message={error} onRetry={reload} />}
+      {loading && <Loading />}
       {queue && (
         <div className="card queue-head">
           <span className="grow">
@@ -74,12 +66,7 @@ export function QueueView({ printer }: { printer: Printer }) {
           </button>
         </div>
       )}
-      {queue && jobs.length === 0 && (
-        <div className="empty">
-          <ListOrdered size={36} />
-          <p className="muted">{t('queue.empty')}</p>
-        </div>
-      )}
+      {queue && jobs.length === 0 && <Empty icon={ListOrdered}>{t('queue.empty')}</Empty>}
       <div className="file-list">
         {jobs.map((job, i) => (
           <div key={job.job_id} className="file-row queue-row">
