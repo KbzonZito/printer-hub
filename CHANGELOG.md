@@ -14,7 +14,7 @@ new features bump the minor number, fixes bump the patch number.
   the other tabs keep working.
 - Development: `npm run check` (types, oxlint, Prettier, unused translations, tests) runs in
   GitHub Actions before every build; unused code, styles and translations removed.
-- README: privacy note. New 1.0 checklist in docs/checklist-1.0.md.
+- MIT license. README: privacy note. New 1.0 checklist in docs/checklist-1.0.md.
 
 ## [0.8.0] - 2026-10-29
 

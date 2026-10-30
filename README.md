@@ -129,3 +129,7 @@ Notifications, the widget, file sharing and network discovery are native Android
 
 Stack: React + TypeScript + Vite, packaged with Capacitor. GitHub Actions builds the APK
 (`.github/workflows/android.yml`), so Android Studio isn't required.
+
+## License
+
+[MIT](LICENSE) © KbzonZito

@@ -200,7 +200,7 @@ G-code en la 0.8.0. Los títulos de abajo conservan la agrupación original por 
   cuando falta mucho para terminar).
 
 ### Publicación
-- **[low]** README (privacidad y comandos **hechos**; faltan capturas y licencia) con capturas de pantalla, licencia (propongo MIT) y nota de privacidad (la app solo
+- **[low]** README (privacidad, comandos y licencia MIT **hechos**; faltan las capturas) con capturas de pantalla, licencia (propongo MIT) y nota de privacidad (la app solo
   habla con tu impresora en tu red y no envía datos a terceros).
 - **[low] Lista de comprobación de la 1.0** (**hecho**: [checklist-1.0.md](checklist-1.0.md)) (la prueba la haces tú en el teléfono):
   - Instalación limpia y actualización desde la versión anterior.
