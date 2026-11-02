@@ -33,6 +33,17 @@ automáticas y el simulador no cubren el hardware real). Marca cada punto al pro
 - [ ] Control: mover ejes, extruir, macros, consola, malla de la cama.
 - [ ] Apagar la impresora y volver a encenderla: "Reconectando…" y vuelve sola.
 
+## Desde la 0.9 (R8 reduce el código de Android)
+
+R8 puede romper en el APK cosas que en el navegador funcionan. Comprobar especialmente:
+
+- [ ] La app abre y conecta (WebSocket nativo).
+- [ ] Permiso de notificaciones, notificación de progreso y aviso al terminar.
+- [ ] Compartir un G-code a la app, compartir una captura de la cámara y exportar la copia de
+      seguridad (Guardar en…).
+- [ ] Vibración al pausar, barra de estado al abrir la cámara, gesto atrás.
+- [ ] Widget y ajuste rápido.
+
 ## Publicación
 
 - [ ] `npm run check` sin errores.

@@ -6,10 +6,16 @@ new features bump the minor number, fixes bump the patch number.
 ## [Unreleased]
 
 ### Fixed
+- Files: entering a folder right after a file changed could briefly show the files of the
+  previous folder.
 - Damaged saved settings (for example from an interrupted write) no longer crash the app on
   start: wrong values fall back to their defaults and the rest is kept.
 
 ### Changed
+- Smaller app: the APK goes from 3.4 MB to 1.2 MB (Android code shrinking with R8).
+- Less battery while printing: with notifications on, the app checks the printer every minute
+  while there's more than an hour left, every 30 s until the last 15 minutes and every 15 s at
+  the end, after a pause or while waiting for the first layer.
 - Faster start: Control, Files, Settings, the welcome wizard and the full-screen viewers load
   when first opened.
 - Folders with hundreds of files open quickly: the list shows 100 at a time and adds more as

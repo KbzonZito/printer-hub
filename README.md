@@ -108,10 +108,13 @@ npm run mock         # simulated Moonraker on port 7125 (add the printer as 127.
 npm test             # unit tests (Vitest)
 npm run check        # types, lint (oxlint), formatting (Prettier), unused translations and tests
 npm run format       # format src/ and scripts/ with Prettier
+npm run e2e          # end-to-end tests: the app in Chromium against the simulator (Playwright)
 npm run bench:gcode  # G-code parser speed (GCODE_BENCH_DIR=folder adds your own files)
 ```
 
-`npm run check` also runs in GitHub Actions before every build.
+`npm run check` and the end-to-end tests also run in GitHub Actions before every build, along
+with the Android unit tests (`./gradlew testReleaseUnitTest`). The first time, install the
+browser for the end-to-end tests with `npx playwright install chromium`.
 
 The simulator has failure scenarios for testing the connection handling:
 `MOCK_SCENARIO=drop npm run mock` (also `klippy-startup`, `shutdown`, `silent`,

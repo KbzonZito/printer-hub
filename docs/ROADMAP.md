@@ -183,7 +183,7 @@ G-code en la 0.8.0. Los títulos de abajo conservan la agrupación original por 
 - **[low] ESLint + Prettier** (**hecho**: oxlint en lugar de ESLint, porque typescript-eslint no admite TypeScript 7) con comprobación en CI.
 - **[medium] Pruebas unitarias** (**hecho**) (Vitest) de la lógica: tiempos restantes (`eta.ts`), estimaciones
   (`estimate.ts`), formatos, paletas y lectura de respuestas de Moonraker.
-- **[high] Pruebas de extremo a extremo** (Playwright) contra un Moonraker simulado que pasa a formar
+- **[high] Pruebas de extremo a extremo** (**hecho**: 5 pruebas en `e2e/`, también en CI; destaparon un fallo real en Archivos) (Playwright) contra un Moonraker simulado que pasa a formar
   parte del repositorio (`scripts/mock-moonraker.mjs`): bienvenida, añadir impresora, archivos,
   carpetas e imprimir.
 - **[low] Error boundary** (**hecho**): si una pantalla falla, se muestra un aviso con "Reintentar" en vez de una
@@ -193,10 +193,10 @@ G-code en la 0.8.0. Los títulos de abajo conservan la agrupación original por 
 - **[medium]** (**hecho**: el arranque baja de 566 a 444 kB) Cargar cada pantalla solo al abrirla (`React.lazy`) para que la app arranque antes. El paquete
   JS pesa ahora unos 400 kB.
 - **[medium]** (**hecho**: en lugar de virtualizar, la lista se muestra de 100 en 100; 600 archivos abren en 79 ms en vez de 290 ms; miniaturas y datos guardados en el teléfono) Listas virtualizadas para carpetas con cientos de archivos, y caché de miniaturas.
-- **[high]** Android: activar R8 (minify y shrinkResources) con sus reglas para Capacitor, y corregir la API
+- **[high]** (**hecho**: el APK baja de 3,4 a 1,17 MB) Android: activar R8 (minify y shrinkResources) con sus reglas para Capacitor, y corregir la API
   obsoleta que avisa el compilador en `PrinterMonitorPlugin`. Es high porque R8 puede romper en
   tiempo de ejecución el código que Capacitor usa por reflexión, y solo se nota en el APK.
-- **[high]** Revisar el consumo de batería del servicio de notificaciones (intervalo adaptativo: más lento
+- **[high]** (**hecho**: cada 60 s con más de 1 h restante, 30 s hasta los últimos 15 min, 15 s al final) Revisar el consumo de batería del servicio de notificaciones (intervalo adaptativo: más lento
   cuando falta mucho para terminar).
 
 ### Publicación

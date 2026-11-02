@@ -40,7 +40,6 @@ public class PrinterMonitorService extends Service {
     /** The plug is switched off once the nozzle is below this. */
     private static final double COOL_TEMP = 50;
     private static final long COOL_TIMEOUT_MS = 2 * 60 * 60 * 1000;
-    private static final long POLL_SECONDS = 15;
     private static final long LOST_AFTER_MS = 2 * 60 * 1000;
 
     private ScheduledExecutorService executor;
@@ -100,12 +99,20 @@ public class PrinterMonitorService extends Service {
             wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PrinterHub:monitor");
             wakeLock.acquire(24 * 60 * 60 * 1000L);
             executor = Executors.newSingleThreadScheduledExecutor();
-            executor.scheduleWithFixedDelay(this::poll, 0, POLL_SECONDS, TimeUnit.SECONDS);
+            executor.schedule(this::pollAndReschedule, 0, TimeUnit.SECONDS);
         }
         return START_STICKY;
     }
 
-    private void poll() {
+    /** Polls, then waits as long as PollInterval says before the next poll. */
+    private void pollAndReschedule() {
+        long next = poll();
+        ScheduledExecutorService ex = executor;
+        if (ex != null && !ex.isShutdown()) ex.schedule(this::pollAndReschedule, next, TimeUnit.SECONDS);
+    }
+
+    /** Returns the seconds until the next poll. */
+    private long poll() {
         try {
             Moonraker.Snapshot s = Moonraker.fetch(host, port);
             lastOk = System.currentTimeMillis();
@@ -123,12 +130,15 @@ public class PrinterMonitorService extends Service {
             } else {
                 shutdown();
             }
+            return PollInterval.seconds(s, firstLayerAlert && !firstLayerNotified, powerOffSince > 0);
         } catch (Exception e) {
             if (!lostNotified && System.currentTimeMillis() - lastOk > LOST_AFTER_MS) {
                 lostNotified = true;
                 alert(Texts.get(lang, "lost_title"), Texts.get(lang, "lost_text"));
                 notify(ONGOING_ID, ongoing(Texts.get(lang, "offline"), null, -1));
             }
+            // Unreachable: keep trying at the fast pace, to notice when it comes back.
+            return PollInterval.FAST;
         }
     }
 

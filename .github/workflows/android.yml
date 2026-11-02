@@ -82,7 +82,8 @@ jobs:
             export VERSION_SUFFIX="-dev.$GITHUB_RUN_NUMBER"
           fi
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          # Java unit tests (e.g. the monitor service polling interval), then the release APK.
+          ./gradlew testReleaseUnitTest assembleRelease --no-daemon
           mv app/build/outputs/apk/release/app-release.apk \
             "$GITHUB_WORKSPACE/printer-hub-${{ steps.version.outputs.version }}.apk"
 

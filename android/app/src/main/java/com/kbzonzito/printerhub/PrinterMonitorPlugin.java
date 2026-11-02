@@ -339,7 +339,7 @@ public class PrinterMonitorPlugin extends Plugin {
         if (intent == null) return;
         Uri uri = null;
         if (Intent.ACTION_SEND.equals(intent.getAction())) {
-            uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+            uri = streamExtra(intent);
         } else if (Intent.ACTION_VIEW.equals(intent.getAction())) {
             uri = intent.getData();
         }
@@ -355,6 +355,13 @@ public class PrinterMonitorPlugin extends Plugin {
                 // Unreadable share; nothing to import.
             }
         }).start();
+    }
+
+    /** The shared file's Uri; the typed getter only exists from Android 13. */
+    @SuppressWarnings("deprecation")
+    private static Uri streamExtra(Intent intent) {
+        if (Build.VERSION.SDK_INT >= 33) return intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri.class);
+        return intent.getParcelableExtra(Intent.EXTRA_STREAM);
     }
 
     private JSObject copyToCache(Uri uri) throws Exception {

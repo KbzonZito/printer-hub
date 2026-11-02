@@ -1,21 +1,20 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# R8 rules for Printer Hub (release builds have minifyEnabled and shrinkResources).
+# Capacitor, its plugins and the AndroidX libraries ship their own consumer rules; the
+# activity, service, widget and tile are kept through the manifest.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Readable stack traces in crash reports, without exposing the source file names.
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Methods the WebView's JavaScript calls by name (Capacitor's bridge).
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Our plugin: Capacitor finds its methods by reflection (also covered by Capacitor's rules,
+# kept here explicitly because a missing method only fails at run time, in the APK).
+-keep class com.kbzonzito.printerhub.PrinterMonitorPlugin { *; }
+
+# Java-WebSocket (native WebSocket transport): its optional SLF4J logging isn't bundled.
+-keep class org.java_websocket.** { *; }
+-dontwarn org.slf4j.**

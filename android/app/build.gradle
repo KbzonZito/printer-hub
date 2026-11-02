@@ -39,8 +39,11 @@ android {
     buildTypes {
         release {
             signingConfig keystorePath ? signingConfigs.release : signingConfigs.debug
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // R8: removes unused code and resources and shortens names (smaller APK). Capacitor
+            // and the plugins bring their own keep rules; ours are in proguard-rules.pro.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
@@ -75,3 +78,6 @@ try {
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
+
+// Show deprecated and unchecked API uses in the app's own code (they were hidden in a summary).
+tasks.withType(JavaCompile).configureEach { options.compilerArgs << "-Xlint:deprecation" << "-Xlint:unchecked" }

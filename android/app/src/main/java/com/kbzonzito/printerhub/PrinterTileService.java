@@ -72,9 +72,15 @@ public class PrinterTileService extends TileService {
         if (Build.VERSION.SDK_INT >= 34) {
             startActivityAndCollapse(open);
         } else {
-            Intent intent = new Intent(this, MainActivity.class)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            startActivityAndCollapse(intent);
+            openBeforeAndroid14();
         }
+    }
+
+    /** Before Android 14 the tile can only start an Intent (that overload is deprecated since). */
+    @SuppressWarnings("deprecation")
+    private void openBeforeAndroid14() {
+        Intent intent = new Intent(this, MainActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivityAndCollapse(intent);
     }
 }
