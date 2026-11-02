@@ -5,6 +5,8 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-02
+
 First stable version: everything planned in the roadmap, tested on the Creality Hi.
 
 ### Fixed
