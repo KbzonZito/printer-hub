@@ -5,6 +5,8 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+First stable version: everything planned in the roadmap, tested on the Creality Hi.
+
 ### Fixed
 - Files: entering a folder right after a file changed could briefly show the files of the
   previous folder.
