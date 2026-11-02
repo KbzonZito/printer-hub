@@ -679,6 +679,8 @@ const server = http.createServer(async (req, res) => {
         print_duration: 0,
       });
       printer.virtual_sdcard.progress = 0;
+      // A new print starts with every object included again, like Klipper.
+      printer.exclude_object = mockObjects();
       return send('ok');
     }
     if (u.pathname === '/server/temperature_store') {
@@ -820,10 +822,19 @@ const server = http.createServer(async (req, res) => {
         configFiles[file.name] = file.text;
         return send({ item: { path: file.name, root: 'config' }, action: 'create_file' });
       }
-      return send({
-        item: { path: file?.name, root: fields.root ?? 'gcodes' },
-        action: 'create_file',
-      });
+      // G-code uploads are kept, so they appear in the folder (and can be printed).
+      const path = [fields.path, file?.name].filter(Boolean).join('/');
+      if (file) {
+        const data = Buffer.from(file.text);
+        gcodeData.set(path, data);
+        const i = files.findIndex((f) => f.path === path);
+        if (i >= 0) files.splice(i, 1);
+        files.push({ path, modified: now(), size: data.length });
+        broadcast('notify_filelist_changed', [
+          { action: 'create_file', item: { root: 'gcodes', path } },
+        ]);
+      }
+      return send({ item: { path, root: fields.root ?? 'gcodes' }, action: 'create_file' });
     }
     if (req.method === 'POST') return send('ok');
     fail(404, 'Not found');

@@ -88,18 +88,26 @@ export function FileBrowser({
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // The folder on screen. A listing that arrives for another one (a slow response, or a reload
+  // scheduled just before moving to another folder) is ignored instead of replacing it.
+  const currentDir = useRef(dir);
+  currentDir.current = dir;
   const load = useCallback(() => {
     setError(null);
     setAllFiles(null);
-    return listDirectory(printer, dir)
-      .then(setListing)
-      .catch((e) => setError((e as Error).message));
+    const requested = dir;
+    return listDirectory(printer, requested)
+      .then((l) => requested === currentDir.current && setListing(l))
+      .catch((e) => requested === currentDir.current && setError((e as Error).message));
   }, [printer, dir]);
+  const latestLoad = useRef(load);
+  latestLoad.current = load;
   // Files added, moved or deleted from elsewhere (the slicer, Fluidd…) show up by themselves.
   const reloadTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useConnectionEvent('notify_filelist_changed', () => {
     clearTimeout(reloadTimer.current);
-    reloadTimer.current = setTimeout(load, 500);
+    // latestLoad: the folder on screen when the timer fires, not when the event arrived.
+    reloadTimer.current = setTimeout(() => latestLoad.current(), 500);
   });
   useEffect(() => () => clearTimeout(reloadTimer.current), []);
 

@@ -32,6 +32,12 @@ jobs:
           npm ci
           npm run check
 
+      # End-to-end: the app in a browser against the simulated printer (e2e/, Playwright).
+      - name: End-to-end tests
+        run: |
+          npx playwright install --with-deps chromium
+          npm run e2e
+
       - name: Build web app
         run: |
           npm run build
