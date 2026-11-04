@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { gcodeFileUrl, type GcodeFile } from '../api/moonraker';
+import { fetchOrDemo } from '../demo';
 import type { Printer } from '../store';
 import { deleteModel, getModel, putModel } from './cache';
 import type { GcodeLayer, GcodeSummary } from './model';
@@ -178,7 +179,7 @@ export function useGcodeModel(
       post({ type: 'start' });
 
       const t0 = performance.now();
-      const res = await fetch(url, { signal: controller.signal });
+      const res = await fetchOrDemo(url, { signal: controller.signal });
       if (!res.ok) return fail(`HTTP ${res.status}`);
       total = Number(res.headers.get('content-length')) || total;
       // Android delivers the download in ~4 KB pieces; each message to the worker has a fixed
@@ -238,7 +239,7 @@ export function useGcodeModel(
 
 /** Bytes a–b of the file (HTTP range). */
 async function fetchRange(url: string, a: number, b: number, signal: AbortSignal) {
-  const res = await fetch(url, { headers: { Range: `bytes=${a}-${b}` }, signal });
+  const res = await fetchOrDemo(url, { headers: { Range: `bytes=${a}-${b}` }, signal });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.arrayBuffer();
 }

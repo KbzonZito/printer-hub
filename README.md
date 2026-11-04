@@ -93,6 +93,10 @@ your printer:
 
 Give it a name and tap **Save printer**. The camera is detected by itself.
 
+No printer at hand? **Try without a printer** adds a demo printer that lives inside the app,
+with a print in progress, files, camera and G-code preview. Remove it from **Settings →
+Printers** when you're done.
+
 ### Add, switch or remove printers
 
 Go to **Settings → Printers**:

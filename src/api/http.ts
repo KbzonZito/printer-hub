@@ -1,3 +1,4 @@
+import { fetchOrDemo } from '../demo';
 import { tr } from '../i18n';
 
 // Small fetch wrapper. On Android, Capacitor routes fetch() through native HTTP
@@ -32,7 +33,7 @@ export async function request(url: string, opts: RequestOptions = {}): Promise<R
   });
   try {
     const res = await Promise.race([
-      fetch(url, { method, body, headers, signal: controller.signal }),
+      fetchOrDemo(url, { method, body, headers, signal: controller.signal }),
       timeoutPromise,
     ]);
     if (!res.ok) {

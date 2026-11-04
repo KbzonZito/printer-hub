@@ -13,11 +13,13 @@ import {
 } from 'lucide-react';
 import { uploadFile } from './api/moonraker';
 import { handleBack, useBackHandler } from './backStack';
+import { isDemo } from './demo';
 import { pruneModels } from './gcode/cache';
 import { ConnectionBanner, KlippyStateScreen } from './components/ConnectionStatus';
 import { EmergencyStop } from './components/EmergencyStop';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { NavBar } from './components/NavBar';
+import { WhatsNew } from './components/WhatsNew';
 import { Sheet, ToastProvider, useAction } from './components/ui';
 import { formatBytes } from './format';
 import { useT, type MessageKey } from './i18n';
@@ -213,7 +215,9 @@ function Main({ active }: { active: Printer }) {
   const many = printers.length > 1;
   const snapshot = useConnectionSnapshot();
   const st = snapshot.status;
-  useNativeSync(active, st, settings);
+  // The demo printer lives in the app: the monitor service and widget can't reach it.
+  const demo = isDemo(active);
+  useNativeSync(demo ? null : active, demo ? null : st, settings);
   const [sharedFile, clearSharedFile] = useSharedFiles();
 
   // Back from another tab returns to Home before leaving the app.
@@ -256,7 +260,11 @@ function Main({ active }: { active: Printer }) {
                 ) : (
                   <>
                     <span className={`dot ${dotClass}`} />
-                    {kind === 'reconnecting' ? t('common.disconnected') : active.host}
+                    {kind === 'reconnecting'
+                      ? t('common.disconnected')
+                      : demo
+                        ? t('demo.label')
+                        : active.host}
                   </>
                 )}
               </span>
@@ -304,6 +312,7 @@ function Main({ active }: { active: Printer }) {
         onClose={clearSharedFile}
         onPrinted={() => setTab('home')}
       />
+      <WhatsNew />
     </>
   );
 }

@@ -4,6 +4,7 @@ import {
   Check,
   Clock,
   DatabaseBackup,
+  FlaskConical,
   GraduationCap,
   HardDrive,
   Info,
@@ -18,7 +19,8 @@ import { Wizard } from '../onboarding/Wizard';
 import { ConfirmSheet, Section, Sheet, useToast } from '../components/ui';
 import { isNative } from '../native';
 import { useT, type MessageKey } from '../i18n';
-import { useSettings, useStore, type Printer } from '../store';
+import { demoPrinter, isDemo } from '../demo';
+import { newPrinter, useSettings, useStore, type Printer } from '../store';
 
 import { PrinterForm } from './settings/PrinterForm';
 import { THEMES, AppearancePrefs } from './settings/Appearance';
@@ -35,6 +37,7 @@ export function SettingsScreen() {
   const [deleting, setDeleting] = useState<Printer | null>(null);
   const toast = useToast();
   const themeKey = THEMES.find((x) => x.id === settings.theme)!.key;
+  const hostLabel = (p: Printer) => (isDemo(p) ? t('demo.label') : `${p.host}:${p.port}`);
 
   return (
     <div className="screen settings settings-sections">
@@ -42,7 +45,7 @@ export function SettingsScreen() {
         id="printers"
         icon={PrinterIcon}
         title={t('settings.printers')}
-        summary={active ? `${active.name} · ${active.host}` : undefined}
+        summary={active ? `${active.name} · ${hostLabel(active)}` : undefined}
         defaultOpen
       >
         <div className="list">
@@ -52,9 +55,7 @@ export function SettingsScreen() {
                 <PrinterIcon size={20} />
                 <div>
                   <strong>{p.name}</strong>
-                  <span className="muted small">
-                    {p.host}:{p.port}
-                  </span>
+                  <span className="muted small">{hostLabel(p)}</span>
                 </div>
                 {active?.id === p.id && <Check size={18} className="accent" />}
               </button>
@@ -78,6 +79,18 @@ export function SettingsScreen() {
         <button className="btn" onClick={() => setAdding(true)}>
           <Plus size={18} /> {t('settings.add')}
         </button>
+        {!printers.some(isDemo) && (
+          <button
+            className="btn ghost"
+            onClick={() => {
+              const p = demoPrinter(newPrinter(), t('demo.name'));
+              savePrinter(p);
+              selectPrinter(p.id);
+            }}
+          >
+            <FlaskConical size={18} /> {t('demo.try')}
+          </button>
+        )}
       </Section>
 
       <Section

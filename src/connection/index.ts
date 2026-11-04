@@ -5,6 +5,7 @@ import {
   queryObjects,
   websocketUrl,
 } from '../api/moonraker';
+import { demoTransport, isDemo } from '../demo';
 import { isNative } from '../native';
 import type { Printer } from '../store';
 import { nativeTransport } from './nativeTransport';
@@ -15,7 +16,7 @@ import { webTransport } from './transport';
 export function createConnection(printer: Printer): PrinterConnection {
   return new PrinterConnection({
     url: websocketUrl(printer),
-    transport: isNative ? nativeTransport : webTransport,
+    transport: isDemo(printer) ? demoTransport : isNative ? nativeTransport : webTransport,
     clientVersion: __APP_VERSION__,
     http: {
       serverInfo: () => fetchServerInfo(printer),

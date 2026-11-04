@@ -32,6 +32,10 @@ obligatoria, así que conviene **reunir los testers antes de crear la cuenta**.
 
 ## Modelos de cobro
 
+**Decisión (2026-11-04):** versión de GitHub gratis y completa con propinas por Ko-fi;
+Google Play con **freemium y Pro de pago único** (opción 2). El modo de prueba (paso 2) se
+adelantó y ya está en la versión de GitHub.
+
 La app es MIT: cualquiera puede compilarla con todo desbloqueado. No es un problema real (casi
 nadie que instala desde Play compila apps), pero condiciona qué modelo es honesto y cuál
 molesta a la comunidad de Klipper, que está acostumbrada a herramientas gratis (Mainsail,
@@ -126,7 +130,7 @@ la usa y Obtainium sigue funcionando.
 - `npm run apk` sigue construyendo el sabor de GitHub; `npm run apk -- --play` para probar el
   de Play.
 
-### 2. Modo demo (high)
+### 2. Modo demo (high) — hecho en la versión 1.1.0
 
 Imprescindible: el revisor de Google y el informe previo al lanzamiento abren la app sin
 impresora. Si solo ven "No se pudo conectar", la pueden rechazar por funcionalidad rota.

@@ -3,6 +3,7 @@ import {
   Camera,
   Check,
   CircleAlert,
+  FlaskConical,
   Keyboard,
   Monitor,
   Printer as PrinterIcon,
@@ -11,6 +12,7 @@ import {
   Wifi,
 } from 'lucide-react';
 import { fetchVersions, listWebcams, testConnection } from '../api/moonraker';
+import { demoPrinter } from '../demo';
 import { localSubnet, scanNetwork, type Found } from '../discovery';
 import { useT } from '../i18n';
 import { newPrinter, useStore, type Printer } from '../store';
@@ -97,6 +99,21 @@ export function PrinterStep({ next, onBack, onSkip }: StepProps & { onSkip?: () 
             <span className="grow">
               <strong>{t('wizard.printer.manual')}</strong>
               <small className="muted">{t('wizard.printer.manualHint')}</small>
+            </span>
+          </button>
+          <button
+            className="choice"
+            onClick={() => {
+              const p = demoPrinter(newPrinter(), t('demo.name'));
+              savePrinter(p);
+              selectPrinter(p.id);
+              next();
+            }}
+          >
+            <FlaskConical size={24} />
+            <span className="grow">
+              <strong>{t('demo.try')}</strong>
+              <small className="muted">{t('demo.tryHint')}</small>
             </span>
           </button>
           {onSkip && (

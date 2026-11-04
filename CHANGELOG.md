@@ -5,6 +5,12 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+### Added
+- Demo mode: "Try without a printer" in the welcome steps (and in Settings → Printers) adds a
+  simulated printer inside the app, printing a part, with files, history, camera, G-code
+  preview and controls, to look around before connecting your own.
+- After an update, a "What's new" panel shows the changes of the new version once.
+
 ## [1.0.1] - 2026-11-04
 
 ### Added

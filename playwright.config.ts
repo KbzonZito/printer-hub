@@ -4,7 +4,8 @@ import { defineConfig, devices } from '@playwright/test';
 // screen. `npm run e2e`. The ports differ from `npm run dev` / `npm run mock`, so both can run.
 
 export const MOCK_PORT = 7330;
-const APP_PORT = 5180;
+// E2E_APP_PORT overrides the app port when 5180 is taken by something else.
+const APP_PORT = Number(process.env.E2E_APP_PORT ?? 5180);
 
 export default defineConfig({
   testDir: 'e2e',

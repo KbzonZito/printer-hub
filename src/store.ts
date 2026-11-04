@@ -74,7 +74,7 @@ export interface State {
   settings: Settings;
 }
 
-const KEY = 'printer-hub:v1';
+export const STORE_KEY = 'printer-hub:v1';
 
 export function defaultSettings(): Settings {
   const lang =
@@ -148,7 +148,7 @@ export function sanitizeSettings(raw: unknown): Settings {
 function load(): State {
   const fallback = { printers: [], activeId: null, settings: defaultSettings() };
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
       const saved = JSON.parse(raw);
       const printers = (Array.isArray(saved?.printers) ? saved.printers : [])
@@ -176,7 +176,7 @@ const listeners = new Set<() => void>();
 function setState(next: State) {
   state = next;
   try {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
   } catch {
     /* ignore */
   }

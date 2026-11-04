@@ -8,6 +8,7 @@ import {
   subscription,
   type ObjectNames,
 } from '../connection/statusModel';
+import { isDemo } from '../demo';
 import { formatDuration } from '../format';
 import { useT, type MessageKey } from '../i18n';
 import { useStore, type Printer } from '../store';
@@ -108,7 +109,9 @@ function PrinterCard({
             <Thermometer size={14} /> {status.bed.temperature.toFixed(0)}°
           </small>
         )}
-        {!status && !offline && <small className="muted">{printer.host}</small>}
+        {!status && !offline && (
+          <small className="muted">{isDemo(printer) ? t('demo.label') : printer.host}</small>
+        )}
       </div>
     </button>
   );

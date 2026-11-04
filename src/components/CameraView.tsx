@@ -2,6 +2,7 @@ import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'reac
 import { CameraOff, Loader2 } from 'lucide-react';
 import { connectCrealityWebrtc, crealityWebrtcUrl } from '../api/crealityWebrtc';
 import { listWebcams, resolveWebcamUrl } from '../api/moonraker';
+import { DEMO_CAMERA, isDemo } from '../demo';
 import { useT } from '../i18n';
 import type { CameraMode, Printer } from '../store';
 
@@ -21,6 +22,7 @@ type View =
 const workingSource = new Map<string, Source>();
 
 async function candidates(p: Printer, mode: CameraMode): Promise<Source[]> {
+  if (isDemo(p)) return [{ kind: 'mjpeg', url: DEMO_CAMERA }];
   const custom = p.cameraUrl.trim();
   if (mode === 'webrtc') return [{ kind: 'webrtc', url: custom || crealityWebrtcUrl(p.host) }];
   if (mode === 'snapshot')
