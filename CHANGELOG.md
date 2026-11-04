@@ -5,6 +5,9 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+### Added
+- The coffee button in About opens Ko-fi (ko-fi.com/kbzonzito).
+
 ## [1.0.0] - 2026-11-02
 
 First stable version: everything planned in the roadmap, tested on the Creality Hi.

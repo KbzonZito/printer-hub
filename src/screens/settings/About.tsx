@@ -3,17 +3,17 @@ import { App as CapApp } from '@capacitor/app';
 import { Bug, Coffee, Heart, Share2 } from 'lucide-react';
 import { useConnectionSnapshot } from '../../usePrinterStatus';
 import { fetchVersions, type SystemVersions } from '../../api/moonraker';
-import { useToast } from '../../components/ui';
 import { isNative, openExternal, shareText } from '../../native';
 import { useT } from '../../i18n';
 import { type Printer } from '../../store';
 
-// About: version, author, links, support (Buy me a coffee) and the connected printer.
+// About: version, author, links, support (Ko-fi) and the connected printer.
 
 export const REPO_URL = 'https://github.com/KbzonZito/printer-hub';
 const AUTHOR_URL = 'https://github.com/KbzonZito';
-/** Buy Me a Coffee page. Empty until the account is set up; the button says "coming soon". */
-const DONATE_URL = '';
+/** Ko-fi page. Leave it empty in a Google Play build: Play doesn't allow outside payment links,
+ *  and without a link the card is hidden. */
+const DONATE_URL = 'https://ko-fi.com/kbzonzito';
 const REMOTE_ACCESS_URL = `${REPO_URL}/blob/main/docs/remote-access.md`;
 
 // Lucide no longer ships brand logos.
@@ -38,7 +38,6 @@ export function useAppVersion() {
 
 export function About({ printer }: { printer: Printer | null }) {
   const t = useT();
-  const toast = useToast();
   const { mode } = useConnectionSnapshot();
   const version = useAppVersion();
   const [versions, setVersions] = useState<SystemVersions | null>(null);
@@ -69,16 +68,14 @@ export function About({ printer }: { printer: Printer | null }) {
       <button type="button" className="btn primary" onClick={() => openExternal(REPO_URL)}>
         <GithubIcon /> {t('about.star')}
       </button>
-      <div className="coffee-card">
-        <p className="small">{t('about.coffeeText')}</p>
-        <button
-          type="button"
-          className="btn coffee"
-          onClick={() => (DONATE_URL ? openExternal(DONATE_URL) : toast(t('about.coffeeSoon')))}
-        >
-          <Coffee size={18} /> {t('about.coffee')}
-        </button>
-      </div>
+      {DONATE_URL && (
+        <div className="coffee-card">
+          <p className="small">{t('about.coffeeText')}</p>
+          <button type="button" className="btn coffee" onClick={() => openExternal(DONATE_URL)}>
+            <Coffee size={18} /> {t('about.coffee')}
+          </button>
+        </div>
+      )}
       <div className="row gap">
         <button
           type="button"

@@ -471,7 +471,6 @@ const es = {
   'about.coffee': 'Invítame a un café',
   'about.coffeeText':
     'Printer Hub es gratis y sin anuncios. Si te resulta útil, puedes apoyar su desarrollo.',
-  'about.coffeeSoon': 'Muy pronto podrás invitarme a un café. ¡Gracias!',
   'about.issue': 'Reportar fallo',
   'about.share': 'Compartir',
   'about.shareText': 'Printer Hub: controla tu impresora Klipper desde Android. {url}',
@@ -1029,7 +1028,6 @@ const en: Record<MessageKey, string> = {
   'about.coffee': 'Buy me a coffee',
   'about.coffeeText':
     'Printer Hub is free and ad-free. If you find it useful, you can support its development.',
-  'about.coffeeSoon': 'Buying me a coffee will be possible very soon. Thank you!',
   'about.issue': 'Report a bug',
   'about.share': 'Share',
   'about.shareText': 'Printer Hub: control your Klipper printer from Android. {url}',

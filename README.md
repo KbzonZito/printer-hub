@@ -5,6 +5,7 @@
 [![Latest release](https://img.shields.io/github/v/release/KbzonZito/printer-hub)](https://github.com/KbzonZito/printer-hub/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/KbzonZito/printer-hub/total)](https://github.com/KbzonZito/printer-hub/releases)
 [![License: MIT](https://img.shields.io/github/license/KbzonZito/printer-hub)](LICENSE)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-support-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/kbzonzito)
 ![Android 7+](https://img.shields.io/badge/Android-7%2B-3ddc84?logo=android&logoColor=white)
 
 [Download](https://github.com/KbzonZito/printer-hub/releases/latest) •
@@ -149,6 +150,12 @@ stay on the phone, and **Settings → Storage** lets you delete them.
 
 Bug reports and ideas are welcome in the [issues](https://github.com/KbzonZito/printer-hub/issues).
 To build the app yourself, see [docs/development.md](docs/development.md).
+
+## Support
+
+Printer Hub is free and made in my spare time. If it saves you trips to the printer, you can
+[buy me a coffee on Ko-fi](https://ko-fi.com/kbzonzito). Starring the repo and telling other
+Klipper users about it helps too.
 
 ## License
 
