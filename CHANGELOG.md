@@ -5,6 +5,8 @@ new features bump the minor number, fixes bump the patch number.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-04
+
 ### Added
 - The coffee button in About opens Ko-fi (ko-fi.com/kbzonzito).
 
